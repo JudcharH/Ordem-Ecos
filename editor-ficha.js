@@ -33,6 +33,8 @@ let characterPhotoBase64 = "";
 
 let linkedCampaignId = null;
 
+let characterBodyState = {};
+
 
 /*==========================================================
 =                       ELEMENTOS
@@ -306,7 +308,23 @@ function initCharacterEditor(){
 
     bindCharacterEditorEvents();
 
+    bindAutomaticStatEvents();
+
+    bindCurrentValueLimits();
+
+    bindBodyConditionEvents();
+
+
+    if(!editingCharacter){
+
+        initializeBodyStates();
+
+    }
+
+
     updateLifeSystem();
+
+    calculateAutomaticStats();
 
 }
 
@@ -870,6 +888,11 @@ function saveCharacter(){
         campaignId:
             linkedCampaignId ||
             null,
+
+            bodyState:
+    structuredCloneSafe(
+        characterBodyState
+    ),
 
 
         /*==================================================
@@ -1458,6 +1481,12 @@ function loadCharacterIntoEditor(){
     const body =
         editingCharacter.body || {};
 
+        characterBodyState =
+    structuredCloneSafe(
+        editingCharacter.bodyState ||
+        {}
+    );
+
 
     if(bodyHead){
 
@@ -1611,6 +1640,9 @@ function loadCharacterIntoEditor(){
 
     }
 
+    initializeBodyStates();
+
+calculateAutomaticStats();
 
     updateLifeSystem();
 
@@ -1781,3 +1813,1152 @@ document.addEventListener(
 
     }
 );
+
+
+/*==========================================================
+=              STATUS AUTOMÁTICOS
+==========================================================*/
+
+function calculateAutomaticStats(){
+
+    const level =
+        Math.max(
+            1,
+            Number(
+                characterLevel?.value
+            ) || 1
+        );
+
+    const vig =
+        Math.max(
+            0,
+            Number(
+                attributeVIG?.value
+            ) || 0
+        );
+
+    const pre =
+        Math.max(
+            0,
+            Number(
+                attributePRE?.value
+            ) || 0
+        );
+
+
+    /*======================================================
+    =                    PV CLÁSSICO
+    ======================================================*/
+
+    const calculatedPV =
+        (7 + vig) * level;
+
+
+    if(characterPVMax){
+
+        characterPVMax.value =
+            calculatedPV;
+
+    }
+
+
+    /*======================================================
+    =                       PD
+    ======================================================*/
+
+    const calculatedPD =
+        (4 + pre) * level;
+
+
+    if(characterPDMax){
+
+        characterPDMax.value =
+            calculatedPD;
+
+    }
+
+
+    /*======================================================
+    =                       PA
+    ======================================================*/
+
+    /*
+        Nível 1–9  = 3 PA
+        Nível 10–19 = 4 PA
+        Nível 20–29 = 5 PA
+        etc.
+    */
+
+    const calculatedPA =
+        3 +
+        Math.floor(
+            level / 10
+        );
+
+
+    if(characterPAMax){
+
+        characterPAMax.value =
+            calculatedPA;
+
+    }
+
+
+    /*======================================================
+    =              PARTES DO CORPO
+    ======================================================*/
+
+    calculateBodyMaximums(
+        vig
+    );
+
+}
+
+
+/*==========================================================
+=              PV DAS PARTES DO CORPO
+==========================================================*/
+
+/*==========================================================
+=              PV DAS PARTES DO CORPO
+==========================================================*/
+
+function calculateBodyMaximums(vig){
+
+    const bodyValues = {
+
+        head:
+            2 + vig,
+
+        chest:
+            2 + vig,
+
+        leftArm:
+            1 + vig,
+
+        rightArm:
+            1 + vig,
+
+        leftLeg:
+            1 + vig,
+
+        rightLeg:
+            1 + vig
+
+    };
+
+
+    updateBodyPartMaximum(
+        "head",
+        bodyHead,
+        bodyValues.head
+    );
+
+    updateBodyPartMaximum(
+        "chest",
+        bodyChest,
+        bodyValues.chest
+    );
+
+    updateBodyPartMaximum(
+        "leftArm",
+        bodyLeftArm,
+        bodyValues.leftArm
+    );
+
+    updateBodyPartMaximum(
+        "rightArm",
+        bodyRightArm,
+        bodyValues.rightArm
+    );
+
+    updateBodyPartMaximum(
+        "leftLeg",
+        bodyLeftLeg,
+        bodyValues.leftLeg
+    );
+
+    updateBodyPartMaximum(
+        "rightLeg",
+        bodyRightLeg,
+        bodyValues.rightLeg
+    );
+
+
+    renderBodyStates();
+
+}
+
+
+/*==========================================================
+=              ATUALIZAR MEMBRO
+==========================================================*/
+
+/*==========================================================
+=              ATUALIZAR PV MÁXIMO DO MEMBRO
+==========================================================*/
+
+function updateBodyPartMaximum(
+    partName,
+    input,
+    calculatedMax
+){
+
+    if(!input){
+
+        return;
+
+    }
+
+
+    const state =
+        characterBodyState[
+            partName
+        ] || {
+
+            type:"natural"
+
+        };
+
+
+    /*
+        Membro ausente não recebe cálculo.
+    */
+
+    if(state.type === "missing"){
+
+        input.dataset.max = "0";
+
+        return;
+
+    }
+
+
+    /*
+        Prótese possui PV próprio.
+    */
+
+    if(state.type === "prosthetic"){
+
+        input.dataset.max =
+            Number(
+                state.maxPV
+            ) || 0;
+
+        return;
+
+    }
+
+
+    /*
+        Membro natural.
+    */
+
+    input.dataset.max =
+        calculatedMax;
+
+
+    /*
+        Na criação da ficha, se estiver vazio,
+        começa cheio.
+
+        Depois disso aumentar VIG NÃO cura.
+    */
+
+    if(
+        input.value === "" ||
+        input.value === null
+    ){
+
+        input.value =
+            calculatedMax;
+
+    }
+
+
+    /*
+        Se o máximo diminuir e o atual estiver
+        acima dele, reduzimos até o novo máximo.
+    */
+
+    if(
+        Number(input.value) >
+        calculatedMax
+    ){
+
+        input.value =
+            calculatedMax;
+
+    }
+
+}
+
+
+/*==========================================================
+=              EVENTOS DOS CÁLCULOS
+==========================================================*/
+
+function bindAutomaticStatEvents(){
+
+    characterLevel?.addEventListener(
+        "input",
+        calculateAutomaticStats
+    );
+
+    attributeVIG?.addEventListener(
+        "input",
+        calculateAutomaticStats
+    );
+
+    attributePRE?.addEventListener(
+        "input",
+        calculateAutomaticStats
+    );
+
+}
+
+
+/*==========================================================
+=              LIMITES DO PV ATUAL
+==========================================================*/
+
+function bindCurrentValueLimits(){
+
+    characterPV?.addEventListener(
+        "change",
+        () => {
+
+            const max =
+                Number(
+                    characterPVMax?.value
+                ) || 0;
+
+            let current =
+                Number(
+                    characterPV.value
+                ) || 0;
+
+            current =
+                Math.max(
+                    0,
+                    Math.min(
+                        current,
+                        max
+                    )
+                );
+
+            characterPV.value =
+                current;
+
+        }
+    );
+
+
+    characterPD?.addEventListener(
+        "change",
+        () => {
+
+            const max =
+                Number(
+                    characterPDMax?.value
+                ) || 0;
+
+            let current =
+                Number(
+                    characterPD.value
+                ) || 0;
+
+            current =
+                Math.max(
+                    0,
+                    Math.min(
+                        current,
+                        max
+                    )
+                );
+
+            characterPD.value =
+                current;
+
+        }
+    );
+
+
+    characterPA?.addEventListener(
+        "change",
+        () => {
+
+            const max =
+                Number(
+                    characterPAMax?.value
+                ) || 0;
+
+            let current =
+                Number(
+                    characterPA.value
+                ) || 0;
+
+            current =
+                Math.max(
+                    0,
+                    Math.min(
+                        current,
+                        max
+                    )
+                );
+
+            characterPA.value =
+                current;
+
+        }
+    );
+
+}
+
+
+/*==========================================================
+=              MEMBRO EM 0 = INUTILIZADO
+==========================================================*/
+
+function bindBodyConditionEvents(){
+
+    const bodyInputs = [
+
+        {
+            name:"head",
+            label:"Cabeça",
+            input:bodyHead
+        },
+
+        {
+            name:"chest",
+            label:"Torso",
+            input:bodyChest
+        },
+
+        {
+            name:"leftArm",
+            label:"Braço Esquerdo",
+            input:bodyLeftArm
+        },
+
+        {
+            name:"rightArm",
+            label:"Braço Direito",
+            input:bodyRightArm
+        },
+
+        {
+            name:"leftLeg",
+            label:"Perna Esquerda",
+            input:bodyLeftLeg
+        },
+
+        {
+            name:"rightLeg",
+            label:"Perna Direita",
+            input:bodyRightLeg
+        }
+
+    ];
+
+
+    bodyInputs.forEach(part => {
+
+        part.input?.addEventListener(
+            "input",
+            () => {
+
+                updateBodyPartCondition(
+                    part.name,
+                    part.label,
+                    part.input
+                );
+
+            }
+        );
+
+    });
+
+}
+
+
+/*==========================================================
+=              ESTADO DO MEMBRO
+==========================================================*/
+
+function updateBodyPartCondition(
+    partName,
+    label,
+    input
+){
+
+    if(!input){
+
+        return;
+
+    }
+
+    const current =
+        Number(
+            input.value
+        ) || 0;
+
+
+    const max =
+        Number(
+            input.dataset.max
+        ) || current;
+
+
+    if(current < 0){
+
+        input.value = 0;
+
+    }
+
+
+    if(current > max){
+
+        input.value = max;
+
+    }
+
+
+    const row =
+        input.closest(
+            ".body-member-row"
+        ) ||
+        input.closest(
+            ".status-card"
+        );
+
+
+    if(
+        Number(input.value) <= 0
+    ){
+
+        row?.classList.add(
+            "body-part-disabled"
+        );
+
+        input.dataset.condition =
+            "disabled";
+
+    }
+    else{
+
+        row?.classList.remove(
+            "body-part-disabled"
+        );
+
+        input.dataset.condition =
+            "normal";
+
+    }
+
+}
+
+/*==========================================================
+=              SISTEMA DE MEMBROS
+==========================================================*/
+
+const detachableBodyParts = {
+
+    leftArm:{
+
+        label:"Braço Esquerdo",
+
+        input:bodyLeftArm
+
+    },
+
+    rightArm:{
+
+        label:"Braço Direito",
+
+        input:bodyRightArm
+
+    },
+
+    leftLeg:{
+
+        label:"Perna Esquerda",
+
+        input:bodyLeftLeg
+
+    },
+
+    rightLeg:{
+
+        label:"Perna Direita",
+
+        input:bodyRightLeg
+
+    }
+
+};
+
+
+/*==========================================================
+=              INICIALIZAR ESTADO DOS MEMBROS
+==========================================================*/
+
+function initializeBodyStates(){
+
+    const saved =
+        editingCharacter?.bodyState;
+
+
+    if(
+        saved &&
+        typeof saved === "object"
+    ){
+
+        characterBodyState =
+            structuredCloneSafe(saved);
+
+    }
+
+
+    const allParts = [
+
+        "head",
+        "chest",
+        "leftArm",
+        "rightArm",
+        "leftLeg",
+        "rightLeg"
+
+    ];
+
+
+    allParts.forEach(part => {
+
+        if(!characterBodyState[part]){
+
+            characterBodyState[part] = {
+
+                type:"natural"
+
+            };
+
+        }
+
+    });
+
+
+    renderBodyStates();
+
+}
+
+
+/*==========================================================
+=              CLONE SEGURO
+==========================================================*/
+
+function structuredCloneSafe(value){
+
+    try{
+
+        return structuredClone(
+            value
+        );
+
+    }
+    catch{
+
+        return JSON.parse(
+            JSON.stringify(value)
+        );
+
+    }
+
+}
+
+
+/*==========================================================
+=              RENDERIZAR ESTADO DOS MEMBROS
+==========================================================*/
+
+function renderBodyStates(){
+
+    Object.entries(
+        detachableBodyParts
+    )
+    .forEach(
+        ([partName,data]) => {
+
+            renderDetachableBodyPart(
+                partName,
+                data
+            );
+
+        }
+    );
+
+
+    updateBodyPartCondition(
+        "head",
+        "Cabeça",
+        bodyHead
+    );
+
+    updateBodyPartCondition(
+        "chest",
+        "Torso",
+        bodyChest
+    );
+
+}
+
+
+/*==========================================================
+=              RENDERIZAR MEMBRO
+==========================================================*/
+
+function renderDetachableBodyPart(
+    partName,
+    data
+){
+
+    const input =
+        data.input;
+
+    if(!input){
+
+        return;
+
+    }
+
+
+    const row =
+        input.closest(
+            ".body-member-row"
+        );
+
+    if(!row){
+
+        return;
+
+    }
+
+
+    let controls =
+        row.querySelector(
+            ".body-part-controls"
+        );
+
+
+    if(!controls){
+
+        controls =
+            document.createElement(
+                "div"
+            );
+
+        controls.className =
+            "body-part-controls";
+
+        row.appendChild(
+            controls
+        );
+
+    }
+
+
+    const state =
+        characterBodyState[
+            partName
+        ] || {
+
+            type:"natural"
+
+        };
+
+
+    row.classList.remove(
+        "body-part-missing",
+        "body-part-prosthetic",
+        "body-part-disabled"
+    );
+
+
+    /*======================================================
+    =                    AUSENTE
+    ======================================================*/
+
+    if(state.type === "missing"){
+
+        row.classList.add(
+            "body-part-missing"
+        );
+
+        input.disabled = true;
+
+        input.value = "";
+
+        controls.innerHTML = `
+
+            <span class="body-state-badge missing">
+                AUSENTE
+            </span>
+
+            <button
+                type="button"
+                class="body-action-button regenerate"
+                data-part="${partName}">
+
+                Regenerar
+
+            </button>
+
+            <button
+                type="button"
+                class="body-action-button prosthetic"
+                data-part="${partName}">
+
+                Instalar Prótese
+
+            </button>
+
+        `;
+
+
+        bindBodyControlButtons(
+            controls
+        );
+
+        return;
+
+    }
+
+
+    /*======================================================
+    =                    PRÓTESE
+    ======================================================*/
+
+    if(state.type === "prosthetic"){
+
+        row.classList.add(
+            "body-part-prosthetic"
+        );
+
+        input.disabled = false;
+
+        input.dataset.max =
+            Number(
+                state.maxPV
+            ) || 0;
+
+
+        if(
+            state.currentPV !==
+            undefined
+        ){
+
+            input.value =
+                state.currentPV;
+
+        }
+
+
+        controls.innerHTML = `
+
+            <span
+                class="body-state-badge prosthetic"
+                title="${escapeCharacterEditorHTML(
+                    state.name ||
+                    "Prótese"
+                )}"
+            >
+
+                ${escapeCharacterEditorHTML(
+                    state.name ||
+                    "PRÓTESE"
+                )}
+
+                • ${Number(
+                    input.value
+                ) || 0}/${Number(
+                    state.maxPV
+                ) || 0}
+
+            </span>
+
+            <button
+                type="button"
+                class="body-action-button remove-prosthetic"
+                data-part="${partName}">
+
+                Remover
+
+            </button>
+
+        `;
+
+
+        bindBodyControlButtons(
+            controls
+        );
+
+        return;
+
+    }
+
+
+    /*======================================================
+    =                    NATURAL
+    ======================================================*/
+
+    input.disabled = false;
+
+
+    const current =
+        Number(
+            input.value
+        ) || 0;
+
+
+    const max =
+        Number(
+            input.dataset.max
+        ) || 0;
+
+
+    if(current <= 0){
+
+        row.classList.add(
+            "body-part-disabled"
+        );
+
+    }
+
+
+    controls.innerHTML = `
+
+        <span class="body-state-badge natural">
+
+            ${
+                current <= 0
+                    ? "INUTILIZADO"
+                    : `NATURAL • ${current}/${max}`
+            }
+
+        </span>
+
+        <button
+            type="button"
+            class="body-action-button dismember"
+            data-part="${partName}">
+
+            Desmembrar
+
+        </button>
+
+    `;
+
+
+    bindBodyControlButtons(
+        controls
+    );
+
+}
+
+/*==========================================================
+=              EVENTOS DOS BOTÕES DO CORPO
+==========================================================*/
+
+function bindBodyControlButtons(
+    container
+){
+
+    container
+        .querySelector(
+            ".dismember"
+        )
+        ?.addEventListener(
+            "click",
+            event => {
+
+                dismemberBodyPart(
+                    event.currentTarget
+                        .dataset.part
+                );
+
+            }
+        );
+
+
+    container
+        .querySelector(
+            ".regenerate"
+        )
+        ?.addEventListener(
+            "click",
+            event => {
+
+                regenerateBodyPart(
+                    event.currentTarget
+                        .dataset.part
+                );
+
+            }
+        );
+
+
+    container
+        .querySelector(
+            ".prosthetic"
+        )
+        ?.addEventListener(
+            "click",
+            event => {
+
+                openProstheticCreator(
+                    event.currentTarget
+                        .dataset.part
+                );
+
+            }
+        );
+
+
+    container
+        .querySelector(
+            ".remove-prosthetic"
+        )
+        ?.addEventListener(
+            "click",
+            event => {
+
+                removeProsthetic(
+                    event.currentTarget
+                        .dataset.part
+                );
+
+            }
+        );
+
+}
+
+
+/*==========================================================
+=                    DESMEMBRAR
+==========================================================*/
+
+function dismemberBodyPart(
+    partName
+){
+
+    const part =
+        detachableBodyParts[
+            partName
+        ];
+
+    if(!part){
+
+        return;
+
+    }
+
+
+    characterBodyState[
+        partName
+    ] = {
+
+        type:"missing"
+
+    };
+
+
+    part.input.value = "";
+
+    part.input.disabled = true;
+
+
+    renderBodyStates();
+
+
+    showCharacterEditorMessage(
+        "Membro desmembrado",
+        `${part.label} foi removido. Agora ele pode ser regenerado ou substituído por uma prótese.`
+    );
+
+}
+
+
+/*==========================================================
+=                    REGENERAR
+==========================================================*/
+
+function regenerateBodyPart(
+    partName
+){
+
+    const part =
+        detachableBodyParts[
+            partName
+        ];
+
+    if(!part){
+
+        return;
+
+    }
+
+
+    characterBodyState[
+        partName
+    ] = {
+
+        type:"natural"
+
+    };
+
+
+    part.input.disabled = false;
+
+
+    const vig =
+        Math.max(
+            0,
+            Number(
+                attributeVIG?.value
+            ) || 0
+        );
+
+
+    const naturalMax =
+        (
+            partName === "leftArm" ||
+            partName === "rightArm" ||
+            partName === "leftLeg" ||
+            partName === "rightLeg"
+        )
+            ? 1 + vig
+            : 2 + vig;
+
+
+    part.input.dataset.max =
+        naturalMax;
+
+
+    /*
+        Regenerar traz o membro de volta
+        com o PV natural máximo.
+    */
+
+    part.input.value =
+        naturalMax;
+
+
+    renderBodyStates();
+
+
+    showCharacterEditorMessage(
+        "Membro regenerado",
+        `${part.label} foi restaurado.`
+    );
+
+}

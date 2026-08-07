@@ -2391,3 +2391,235 @@ margin:0;
 border-color:#3E3352;
 
 }
+
+/*==========================================================
+=              ESTADO DOS MEMBROS
+==========================================================*/
+
+.body-member-row{
+
+grid-template-columns:120px 90px 1fr;
+
+}
+
+.body-part-controls{
+
+display:flex;
+
+align-items:center;
+
+justify-content:flex-end;
+
+gap:7px;
+
+flex-wrap:wrap;
+
+}
+
+.body-state-badge{
+
+display:inline-flex;
+
+align-items:center;
+
+min-height:29px;
+
+padding:5px 9px;
+
+border-radius:999px;
+
+font-size:9px;
+
+font-weight:800;
+
+letter-spacing:.8px;
+
+white-space:nowrap;
+
+}
+
+.body-state-badge.natural{
+
+background:#18241D;
+
+border:1px solid #315B40;
+
+color:#9BE5B3;
+
+}
+
+.body-state-badge.missing{
+
+background:#291515;
+
+border:1px solid #693131;
+
+color:#FF9D9D;
+
+}
+
+.body-state-badge.prosthetic{
+
+background:#181E2A;
+
+border:1px solid #354F76;
+
+color:#AFCFFF;
+
+}
+
+.body-part-disabled{
+
+border-color:#773535 !important;
+
+background:#211414 !important;
+
+}
+
+.body-part-disabled input{
+
+border-color:#6D3030;
+
+color:#FF8D8D;
+
+}
+
+.body-part-missing{
+
+border-style:dashed;
+
+border-color:#663030 !important;
+
+opacity:.78;
+
+}
+
+.body-part-missing input{
+
+background:#09090C;
+
+}
+
+.body-part-prosthetic{
+
+border-color:#355982 !important;
+
+background:#121923 !important;
+
+}
+
+.body-action-button{
+
+min-height:29px;
+
+padding:5px 9px;
+
+border-radius:8px;
+
+background:#24242E;
+
+border:1px solid var(--border);
+
+color:white;
+
+font-size:10px;
+
+font-weight:700;
+
+}
+
+.body-action-button:hover{
+
+border-color:var(--primary);
+
+}
+
+.body-action-button.dismember{
+
+color:#FFAAAA;
+
+}
+
+.body-action-button.regenerate{
+
+color:#A6E8B7;
+
+}
+
+.body-action-button.prosthetic{
+
+color:#ADCDFF;
+
+}
+
+.body-action-button.remove-prosthetic{
+
+color:#FFAAAA;
+
+}
+
+
+/*==========================================================
+=              MODAL DE PRÓTESE
+==========================================================*/
+
+.prosthetic-editor-modal{
+
+width:min(500px,95vw);
+
+padding:30px;
+
+background:linear-gradient(
+180deg,
+#1B1B25,
+#111118
+);
+
+border:1px solid var(--primary);
+
+border-radius:24px;
+
+box-shadow:
+0 0 50px rgba(123,44,255,.3);
+
+}
+
+.prosthetic-editor-modal h2{
+
+font-family:'Orbitron',sans-serif;
+
+font-size:24px;
+
+margin:7px 0 10px;
+
+}
+
+.prosthetic-editor-modal > p{
+
+font-size:13px;
+
+line-height:1.7;
+
+color:var(--text2);
+
+margin-bottom:22px;
+
+}
+
+.prosthetic-editor-modal .field{
+
+margin-bottom:16px;
+
+}
+
+.prosthetic-modal-actions{
+
+display:grid;
+
+grid-template-columns:1fr 1fr;
+
+gap:10px;
+
+margin-top:22px;
+
+}
