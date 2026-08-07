@@ -978,3 +978,9 @@ font-size:23px;
 }
 
 }
+
+window.addEventListener("pageshow", () => {
+
+    document.body.classList.remove("page-leaving");
+
+});

@@ -205,6 +205,19 @@ function initPageTransition(){
 
 
 /*==========================================================
+=        CORRIGIR VOLTA PELO NAVEGADOR
+==========================================================*/
+
+window.addEventListener("pageshow", () => {
+
+    document.body.classList.remove(
+        "page-leaving"
+    );
+
+});
+
+
+/*==========================================================
 =                INFORMAÇÕES DO APP
 ==========================================================*/
 

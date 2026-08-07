@@ -563,10 +563,16 @@ transform:translateY(-7px);
 
 }
 
-.page-leaving{
+body{
 
-opacity:0;
+opacity:1;
 
 transition:opacity .18s ease;
+
+}
+
+body.page-leaving{
+
+opacity:0;
 
 }
