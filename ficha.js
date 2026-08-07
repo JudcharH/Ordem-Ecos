@@ -476,6 +476,26 @@ function renderCharacters(search = ""){
 
     });
 
+    document
+.querySelectorAll(
+".open-character-button"
+)
+.forEach(button=>{
+
+button.addEventListener(
+"click",
+()=>{
+
+const id =
+button.dataset.characterId;
+
+window.location.href =
+`editor-ficha.html?id=${id}`;
+
+});
+
+});
+
 }
 
 
@@ -692,8 +712,8 @@ function openCharacter(id){
         este endereço será usado.
     */
 
-    window.location.href =
-        `personagem.html?character=${encodeURIComponent(id)}`;
+window.location.href =
+    `editor-ficha.html?character=${encodeURIComponent(id)}`;
 
 }
 
