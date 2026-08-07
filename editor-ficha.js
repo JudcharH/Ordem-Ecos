@@ -9,9 +9,6 @@ document.addEventListener(
     
 );
 
-characterAbilitiesState = [];
-
-characterAssimilationsState = [];
 
 /*==========================================================
 =                       STORAGE
@@ -320,16 +317,19 @@ function initCharacterEditor(){
     bindBodyConditionEvents();
 
 
-    if(editingCharacter){
+    if(!editingCharacter){
 
-        loadCharacterIntoEditor();
+        characterAbilitiesState = [];
 
-    }
-    else{
+        characterAssimilationsState = [];
 
         initializeBodyStates();
 
         calculateAutomaticStats();
+
+        renderAbilityEditorList();
+
+        renderAssimilationEditorList();
 
     }
 
@@ -337,9 +337,6 @@ function initCharacterEditor(){
     updateLifeSystem();
 
 }
-
-
-
 
 
 /*==========================================================
@@ -419,11 +416,13 @@ function discoverEditingCharacter(){
         params.get("id") ||
         params.get("character");
 
+
     if(!characterId){
 
         return;
 
     }
+
 
     editingCharacter =
         editorCharacters.find(
@@ -432,21 +431,17 @@ function discoverEditingCharacter(){
                 characterId
         ) || null;
 
+
     if(!editingCharacter){
 
         return;
 
     }
 
+
     loadCharacterIntoEditor();
-initializeBodyStates();
-
-calculateAutomaticStats();
-
-    updateLifeSystem();
 
 }
-
 
 /*==========================================================
 =                       EVENTOS
@@ -1401,23 +1396,6 @@ function loadCharacterIntoEditor(){
 
     }
 
-    [
-    bodyHead,
-    bodyChest,
-    bodyLeftArm,
-    bodyRightArm,
-    bodyLeftLeg,
-    bodyRightLeg
-
-].forEach(input => {
-
-    if(input){
-
-        input.dataset.initialized =
-            "true";
-
-    }
-
     characterAbilitiesState =
     structuredCloneSafe(
         editingCharacter.abilities ||
@@ -1433,6 +1411,23 @@ characterAssimilationsState =
 renderAbilityEditorList();
 
 renderAssimilationEditorList();
+
+[
+    bodyHead,
+    bodyChest,
+    bodyLeftArm,
+    bodyRightArm,
+    bodyLeftLeg,
+    bodyRightLeg
+
+].forEach(input => {
+
+    if(input){
+
+        input.dataset.initialized =
+            "true";
+
+    }
 
 });
 
@@ -3914,46 +3909,51 @@ const alreadyHas =
     }
 
 
-    characterAbilitiesState.push({
+characterAbilitiesState.push({
 
-        
+    id:
+        ability.id,
 
-        id:
-            ability.id,
+    name:
+        ability.name,
 
-        name:
-            ability.name,
+    description:
+        ability.description,
 
-        description:
-            ability.description,
+    upgrade:
+        ability.upgrade,
 
-        upgrade:
-            ability.upgrade,
+    permanentCost:
+        structuredCloneSafe(
+            ability.permanentCost
+        ),
 
-        permanentCost:
-            ability.permanentCost,
+    useCost:
+        structuredCloneSafe(
+            ability.useCost
+        ),
 
-        useCost:
-            ability.useCost,
+    acquiredAt:
+        Date.now()
 
-        acquiredAt:
-            Date.now()
-
-    });
-
-
-    showCharacterEditorMessage(
-        "Habilidade adquirida",
-        `${ability.name} foi adicionada à ficha.`
-    );
+});
 
 
-    renderAbilityEditorList();
+calculateAutomaticStats();
 
-    return true;
+renderAbilityEditorList();
+
+
+showCharacterEditorMessage(
+    "Habilidade adquirida",
+    `${ability.name} foi adicionada à ficha.`
+);
+
+
+return true;
 
 }
- calculateAutomaticStats();
+
 
 /*==========================================================
 =              USAR HABILIDADE
@@ -3963,18 +3963,11 @@ function useCharacterAbility(
     abilityId
 ){
 
-    if(!editingCharacter){
-
-        return false;
-
-    }
-
-
-    const ability =
-        editingCharacter.abilities?.find(
-            item =>
-                item.id === abilityId
-        );
+const ability =
+    characterAbilitiesState.find(
+        item =>
+            item.id === abilityId
+    );
 
 
     if(!ability){
@@ -4103,7 +4096,7 @@ function renderAbilityEditorList(){
 
 
     const abilities =
-        editingCharacter?.abilities || [];
+    characterAbilitiesState;
 
 
     if(abilities.length === 0){
