@@ -95,6 +95,31 @@ const saveStatus =
         "saveStatus"
     );
 
+    const campaignMasterPassword =
+    document.getElementById(
+        "campaignMasterPassword"
+    );
+
+const campaignMasterPasswordConfirm =
+    document.getElementById(
+        "campaignMasterPasswordConfirm"
+    );
+
+const showMasterPassword =
+    document.getElementById(
+        "showMasterPassword"
+    );
+
+const masterPasswordStrengthFill =
+    document.getElementById(
+        "masterPasswordStrengthFill"
+    );
+
+const masterPasswordStrengthText =
+    document.getElementById(
+        "masterPasswordStrengthText"
+    );
+
 
 /*==========================================================
 =                    INICIALIZAÇÃO
@@ -166,6 +191,40 @@ function bindEvents(){
         saveCampaign
 
     );
+
+    campaignMasterPassword?.addEventListener(
+    "input",
+    () => {
+
+        updateMasterPasswordStrength();
+
+        markUnsaved();
+
+    }
+);
+
+campaignMasterPasswordConfirm?.addEventListener(
+    "input",
+    markUnsaved
+);
+
+showMasterPassword?.addEventListener(
+    "change",
+    () => {
+
+        const type =
+            showMasterPassword.checked
+                ? "text"
+                : "password";
+
+        campaignMasterPassword.type =
+            type;
+
+        campaignMasterPasswordConfirm.type =
+            type;
+
+    }
+);
 
 }
 
@@ -245,6 +304,94 @@ function loadCampaignData(){
         showCoverImage(
             editingCampaign.cover
         );
+
+    }
+
+    campaignMasterPassword.value =
+    editingCampaign.masterPassword || "";
+
+campaignMasterPasswordConfirm.value =
+    editingCampaign.masterPassword || "";
+
+updateMasterPasswordStrength();
+
+}
+
+/*==========================================================
+=          FORÇA DA SENHA DO MESTRE
+==========================================================*/
+
+function updateMasterPasswordStrength(){
+
+    if(
+        !campaignMasterPassword ||
+        !masterPasswordStrengthFill ||
+        !masterPasswordStrengthText
+    ){
+
+        return;
+
+    }
+
+    const password =
+        campaignMasterPassword.value;
+
+    let strength = 0;
+
+    if(password.length >= 4){
+        strength++;
+    }
+
+    if(password.length >= 8){
+        strength++;
+    }
+
+    if(/[A-Z]/.test(password)){
+        strength++;
+    }
+
+    if(/[0-9]/.test(password)){
+        strength++;
+    }
+
+    if(/[^A-Za-z0-9]/.test(password)){
+        strength++;
+    }
+
+    const percent =
+        Math.min(
+            strength * 20,
+            100
+        );
+
+    masterPasswordStrengthFill.style.width =
+        `${percent}%`;
+
+    if(password.length === 0){
+
+        masterPasswordStrengthText.textContent =
+            "Nenhuma senha definida";
+
+        return;
+
+    }
+
+    if(strength <= 1){
+
+        masterPasswordStrengthText.textContent =
+            "Senha fraca";
+
+    }
+    else if(strength <= 3){
+
+        masterPasswordStrengthText.textContent =
+            "Senha média";
+
+    }
+    else{
+
+        masterPasswordStrengthText.textContent =
+            "Senha forte";
 
     }
 
@@ -634,6 +781,9 @@ async function saveCampaign(){
         editingCampaign.inviteCode =
             currentInviteCode;
 
+            editingCampaign.masterPassword =
+    masterPassword;
+
         editingCampaign.cover =
             cover;
 
@@ -654,6 +804,8 @@ async function saveCampaign(){
             maxPlayers,
 
             visibility,
+
+            masterPassword,
 
             inviteCode:
                 currentInviteCode,
@@ -683,6 +835,41 @@ async function saveCampaign(){
         );
 
     }
+
+    const masterPassword =
+    campaignMasterPassword?.value || "";
+
+const masterPasswordConfirm =
+    campaignMasterPasswordConfirm?.value || "";
+
+if(masterPassword.length < 4){
+
+    showEditorMessage(
+        "Senha inválida",
+        "A senha do mestre precisa ter pelo menos 4 caracteres."
+    );
+
+    campaignMasterPassword?.focus();
+
+    return;
+
+}
+
+if(
+    masterPassword !==
+    masterPasswordConfirm
+){
+
+    showEditorMessage(
+        "Senhas diferentes",
+        "A confirmação da senha do mestre não corresponde."
+    );
+
+    campaignMasterPasswordConfirm?.focus();
+
+    return;
+
+}
 
     saveCampaignsToStorage();
 
