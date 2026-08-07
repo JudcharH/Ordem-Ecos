@@ -4243,6 +4243,25 @@ function renderAbilityEditorList(){
 
         });
 
+container
+    .querySelectorAll(
+        ".remove-ability-button"
+    )
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                removeCharacterAbility(
+                    button.dataset.ability
+                );
+
+            }
+        );
+
+    });
+
 }
 
 
@@ -4880,6 +4899,25 @@ function renderAssimilationEditorList(){
 
         });
 
+        container
+    .querySelectorAll(
+        ".remove-assimilation-button"
+    )
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                removeCharacterAssimilation(
+                    button.dataset.assimilation
+                );
+
+            }
+        );
+
+    });
+
 }
 
 /*==========================================================
@@ -4922,7 +4960,8 @@ function openAssimilationSelector(){
         "editor-message";
 
 
-const cards =
+
+
     DEFAULT_ASSIMILATIONS
         .map(
             assimilation => `
@@ -5467,5 +5506,328 @@ function getBodyPartLabel(
 
     return labels[partName] ||
         "Parte do Corpo";
+
+}
+
+/*==========================================================
+=              REMOVER HABILIDADE
+==========================================================*/
+
+function removeCharacterAbility(
+    abilityId
+){
+
+    const ability =
+        characterAbilitiesState.find(
+            item =>
+                item.id === abilityId
+        );
+
+
+    if(!ability){
+
+        return;
+
+    }
+
+
+    openRemoveConfirmation({
+
+        type:"Habilidade",
+
+        name:
+            ability.name,
+
+        message:
+            ability.permanentCost
+                ? `Ao remover esta habilidade, o custo permanente de ${ability.permanentCost.value} ${ability.permanentCost.type.toUpperCase()} deixará de ser aplicado.`
+                : "Esta habilidade será removida da ficha.",
+
+        onConfirm:() => {
+
+            characterAbilitiesState =
+                characterAbilitiesState.filter(
+                    item =>
+                        item.id !== abilityId
+                );
+
+
+            /*
+                Recalcular devolve automaticamente
+                o máximo consumido pela habilidade.
+            */
+
+            calculateAutomaticStats();
+
+            renderAbilityEditorList();
+
+
+            showCharacterEditorMessage(
+                "Habilidade removida",
+                `${ability.name} foi removida da ficha.`
+            );
+
+        }
+
+    });
+
+}
+
+/*==========================================================
+=              REMOVER ASSIMILAÇÃO
+==========================================================*/
+
+function removeCharacterAssimilation(
+    assimilationId
+){
+
+    const assimilation =
+        characterAssimilationsState.find(
+            item =>
+                item.id === assimilationId
+        );
+
+
+    if(!assimilation){
+
+        return;
+
+    }
+
+
+    let costMessage =
+        "A Assimilação será removida da ficha.";
+
+
+    if(
+        assimilation.permanentCost
+            ?.type === "pv"
+    ){
+
+        const part =
+            assimilation
+                .permanentCost
+                ?.bodyPart;
+
+
+        if(part){
+
+            costMessage =
+                `Os ${assimilation.permanentCost.value} PV permanentes sacrificados de ${getBodyPartLabel(part)} serão restaurados ao máximo dessa parte.`;
+
+        }
+        else{
+
+            costMessage =
+                `Os ${assimilation.permanentCost.value} PV permanentes serão restaurados ao seu PV máximo.`;
+
+        }
+
+    }
+
+
+    openRemoveConfirmation({
+
+        type:"Assimilação",
+
+        name:
+            assimilation.name,
+
+        message:
+            costMessage,
+
+        onConfirm:() => {
+
+            characterAssimilationsState =
+                characterAssimilationsState.filter(
+                    item =>
+                        item.id !== assimilationId
+                );
+
+
+            calculateAutomaticStats();
+
+            renderAssimilationEditorList();
+
+
+            showCharacterEditorMessage(
+                "Assimilação removida",
+                `${assimilation.name} foi removida da ficha.`
+            );
+
+        }
+
+    });
+
+}
+
+/*==========================================================
+=              CONFIRMAR REMOÇÃO
+==========================================================*/
+
+function openRemoveConfirmation({
+
+    type = "Conteúdo",
+
+    name = "Item",
+
+    message =
+        "Tem certeza que deseja remover?",
+
+    onConfirm
+
+}){
+
+
+    document
+        .getElementById(
+            "removeConfirmationModal"
+        )
+        ?.remove();
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "removeConfirmationModal";
+
+    modal.className =
+        "editor-message";
+
+
+    modal.innerHTML = `
+
+        <div class="remove-confirmation-modal">
+
+            <div class="remove-confirmation-icon">
+
+                ×
+
+            </div>
+
+
+            <span class="section-label">
+
+                REMOVER ${escapeCharacterEditorHTML(
+                    type.toUpperCase()
+                )}
+
+            </span>
+
+
+            <h2>
+
+                ${escapeCharacterEditorHTML(
+                    name
+                )}
+
+            </h2>
+
+
+            <p>
+
+                ${escapeCharacterEditorHTML(
+                    message
+                )}
+
+            </p>
+
+
+            <div class="remove-confirmation-warning">
+
+                Esta ação altera permanentemente
+                os dados atuais da ficha após salvar.
+
+            </div>
+
+
+            <div class="remove-confirmation-actions">
+
+                <button
+                    type="button"
+                    id="cancelRemoveCharacterContent"
+                    class="secondary-button">
+
+                    Cancelar
+
+                </button>
+
+
+                <button
+                    type="button"
+                    id="confirmRemoveCharacterContent"
+                    class="danger-button">
+
+                    Remover
+
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    modal
+        .querySelector(
+            "#cancelRemoveCharacterContent"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+            }
+        );
+
+
+    modal
+        .querySelector(
+            "#confirmRemoveCharacterContent"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+                if(
+                    typeof onConfirm ===
+                    "function"
+                ){
+
+                    onConfirm();
+
+                }
+
+            }
+        );
+
+
+    modal.addEventListener(
+        "click",
+        event => {
+
+            if(
+                event.target === modal
+            ){
+
+                modal.remove();
+
+            }
+
+        }
+    );
 
 }
