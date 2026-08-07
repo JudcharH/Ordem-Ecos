@@ -40,6 +40,11 @@ const saveCampaignButton = document.getElementById("saveCampaign");
 
 const cancelCampaignButton = document.getElementById("cancelCampaign");
 
+const joinCampaignButton =
+    document.getElementById(
+        "joinCampaign"
+    );
+
 
 /*==========================================================
 =                  INICIALIZAÇÃO
@@ -120,6 +125,15 @@ function bindCampaignEvents(){
         );
 
     }
+
+    if(joinCampaignButton){
+
+    joinCampaignButton.addEventListener(
+        "click",
+        openJoinCampaignModal
+    );
+
+}
 
 }
 
@@ -1302,3 +1316,220 @@ window.CampaignAPI = {
     }
 
 };
+
+/*==========================================================
+=          ENTRAR COM CÓDIGO
+==========================================================*/
+
+function openJoinCampaignModal(){
+
+    closeJoinCampaignModal();
+
+    const overlay =
+        document.createElement("div");
+
+    overlay.id =
+        "joinCampaignModal";
+
+    overlay.className =
+        "game-modal";
+
+    overlay.innerHTML = `
+
+        <div class="game-message join-campaign-box">
+
+            <div class="game-message-icon">
+                ⛓
+            </div>
+
+            <span class="game-modal-label">
+                CONVITE
+            </span>
+
+            <h2>
+                Entrar em Campanha
+            </h2>
+
+            <p>
+                Digite o código enviado pelo mestre.
+            </p>
+
+            <input
+                type="text"
+                id="inviteCodeInput"
+                maxlength="8"
+                autocomplete="off"
+                placeholder="XXXXXXXX">
+
+            <div class="join-campaign-buttons">
+
+                <button
+                    type="button"
+                    class="primary-button"
+                    id="confirmJoinCampaign">
+
+                    Entrar
+
+                </button>
+
+                <button
+                    type="button"
+                    class="secondary-button"
+                    id="cancelJoinCampaign">
+
+                    Cancelar
+
+                </button>
+
+            </div>
+
+            <div
+                id="inviteCodeError"
+                class="invite-error">
+            </div>
+
+        </div>
+
+    `;
+
+    document.body.appendChild(
+        overlay
+    );
+
+    const input =
+        overlay.querySelector(
+            "#inviteCodeInput"
+        );
+
+    input.focus();
+
+    input.addEventListener(
+        "input",
+        () => {
+
+            input.value =
+                input.value
+                    .toUpperCase()
+                    .replace(
+                        /[^A-Z0-9]/g,
+                        ""
+                    );
+
+        }
+    );
+
+    overlay
+        .querySelector(
+            "#confirmJoinCampaign"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                tryJoinCampaign(
+                    input.value
+                );
+
+            }
+        );
+
+    overlay
+        .querySelector(
+            "#cancelJoinCampaign"
+        )
+        .addEventListener(
+            "click",
+            closeJoinCampaignModal
+        );
+
+    input.addEventListener(
+        "keydown",
+        event => {
+
+            if(event.key === "Enter"){
+
+                tryJoinCampaign(
+                    input.value
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/*==========================================================
+=          TENTAR ENTRAR
+==========================================================*/
+
+function tryJoinCampaign(code){
+
+    const normalized =
+        code
+            .trim()
+            .toUpperCase();
+
+    const error =
+        document.getElementById(
+            "inviteCodeError"
+        );
+
+    if(!normalized){
+
+        if(error){
+
+            error.textContent =
+                "Digite um código de convite.";
+
+        }
+
+        return;
+
+    }
+
+    const campaign =
+        getCampaignByInviteCode(
+            normalized
+        );
+
+    if(!campaign){
+
+        if(error){
+
+            error.textContent =
+                "Código de campanha inválido.";
+
+        }
+
+        return;
+
+    }
+
+    localStorage.setItem(
+        "ordem_current_campaign",
+        campaign.id
+    );
+
+    window.location.href =
+        `mesa.html?campaign=${encodeURIComponent(
+            campaign.id
+        )}`;
+
+}
+
+
+/*==========================================================
+=          FECHAR ENTRADA POR CÓDIGO
+==========================================================*/
+
+function closeJoinCampaignModal(){
+
+    document
+        .getElementById(
+            "joinCampaignModal"
+        )
+        ?.remove();
+
+}

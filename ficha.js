@@ -1085,7 +1085,7 @@ function getAvailableCampaigns(){
 
 
 /*==========================================================
-=              VINCULAR FICHA À CAMPANHA
+=          ESCOLHER CAMPANHA PARA A FICHA
 ==========================================================*/
 
 function assignCharacterToCampaign(characterId){
@@ -1107,47 +1107,190 @@ function assignCharacterToCampaign(characterId){
 
     if(campaigns.length === 0){
 
-        alert(
-            "Nenhuma campanha disponível."
+        showCharacterMessage(
+            "Nenhuma campanha disponível",
+            "Crie uma campanha primeiro para poder adicionar esta ficha."
         );
 
         return;
 
     }
 
-    const campaignNames =
+    openCampaignSelector(
+        character,
         campaigns
-            .map(
-                (campaign,index) =>
-                    `${index + 1} - ${campaign.name}`
-            )
-            .join("\n");
-
-    const choice = prompt(
-        `Escolha uma campanha:\n\n${campaignNames}`
     );
 
-    if(choice === null){
+}
 
-        return;
 
-    }
+/*==========================================================
+=          SELETOR VISUAL DE CAMPANHA
+==========================================================*/
 
-    const index =
-        Number(choice) - 1;
+function openCampaignSelector(
+    character,
+    campaigns
+){
 
-    const campaign =
-        campaigns[index];
+    closeCampaignSelector();
 
-    if(!campaign){
+    const overlay =
+        document.createElement("div");
 
-        alert(
-            "Campanha inválida."
+    overlay.id =
+        "campaignSelectorModal";
+
+    overlay.className =
+        "game-modal";
+
+    const panel =
+        document.createElement("div");
+
+    panel.className =
+        "game-modal-content";
+
+    panel.innerHTML = `
+
+        <div class="game-modal-header">
+
+            <div>
+
+                <span class="game-modal-label">
+                    VINCULAR PERSONAGEM
+                </span>
+
+                <h2>
+                    Escolha uma campanha
+                </h2>
+
+                <p>
+                    Selecione onde
+                    <strong>${escapeCharacterHTML(character.name)}</strong>
+                    será utilizado.
+                </p>
+
+            </div>
+
+            <button
+                type="button"
+                class="game-modal-close"
+                id="closeCampaignSelector">
+
+                ✕
+
+            </button>
+
+        </div>
+
+        <div
+            id="campaignSelectorList"
+            class="campaign-selector-list">
+        </div>
+
+    `;
+
+    overlay.appendChild(panel);
+
+    document.body.appendChild(overlay);
+
+    const list =
+        panel.querySelector(
+            "#campaignSelectorList"
         );
 
-        return;
+    campaigns.forEach(campaign => {
 
-    }
+        const option =
+            document.createElement("button");
+
+        option.type =
+            "button";
+
+        option.className =
+            "campaign-selector-card";
+
+        const playerCount =
+            Array.isArray(campaign.players)
+                ? campaign.players.length
+                : 0;
+
+        option.innerHTML = `
+
+            <div class="campaign-selector-icon">
+                🗡
+            </div>
+
+            <div class="campaign-selector-info">
+
+                <strong>
+                    ${escapeCharacterHTML(campaign.name)}
+                </strong>
+
+                <span>
+                    ${playerCount}
+                    ${playerCount === 1 ? "jogador" : "jogadores"}
+                </span>
+
+            </div>
+
+            <div class="campaign-selector-arrow">
+                →
+            </div>
+
+        `;
+
+        option.addEventListener(
+            "click",
+            () => {
+
+                connectCharacterToCampaign(
+                    character,
+                    campaign
+                );
+
+                closeCampaignSelector();
+
+            }
+        );
+
+        list.appendChild(option);
+
+    });
+
+    panel
+        .querySelector(
+            "#closeCampaignSelector"
+        )
+        .addEventListener(
+            "click",
+            closeCampaignSelector
+        );
+
+    overlay.addEventListener(
+        "click",
+        event => {
+
+            if(event.target === overlay){
+
+                closeCampaignSelector();
+
+            }
+
+        }
+    );
+
+}
+
+
+/*==========================================================
+=          CONECTAR PERSONAGEM
+==========================================================*/
+
+function connectCharacterToCampaign(
+    character,
+    campaign
+){
 
     character.campaignId =
         campaign.id;
@@ -1165,6 +1308,95 @@ function assignCharacterToCampaign(characterId){
     renderCharacters(
         searchCharacterInput?.value || ""
     );
+
+    showCharacterMessage(
+        "Ficha adicionada",
+        `${character.name} agora está vinculado à campanha ${campaign.name}.`
+    );
+
+}
+
+
+/*==========================================================
+=          FECHAR SELETOR
+==========================================================*/
+
+function closeCampaignSelector(){
+
+    document
+        .getElementById(
+            "campaignSelectorModal"
+        )
+        ?.remove();
+
+}
+
+
+/*==========================================================
+=          MENSAGEM DO SISTEMA
+==========================================================*/
+
+function showCharacterMessage(
+    title,
+    message
+){
+
+    document
+        .getElementById(
+            "characterMessageModal"
+        )
+        ?.remove();
+
+    const overlay =
+        document.createElement("div");
+
+    overlay.id =
+        "characterMessageModal";
+
+    overlay.className =
+        "game-modal";
+
+    overlay.innerHTML = `
+
+        <div class="game-message">
+
+            <div class="game-message-icon">
+                ◈
+            </div>
+
+            <h2>
+                ${escapeCharacterHTML(title)}
+            </h2>
+
+            <p>
+                ${escapeCharacterHTML(message)}
+            </p>
+
+            <button
+                type="button"
+                class="primary-button"
+                id="closeCharacterMessage">
+
+                Continuar
+
+            </button>
+
+        </div>
+
+    `;
+
+    document.body.appendChild(
+        overlay
+    );
+
+    overlay
+        .querySelector(
+            "#closeCharacterMessage"
+        )
+        .addEventListener(
+            "click",
+            () => overlay.remove()
+        );
 
 }
 
