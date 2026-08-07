@@ -4330,9 +4330,9 @@ const DEFAULT_ABILITIES = [
             "Uma vez por cena, durante 1 rodada, todos os bônus de ataque e dano são dobrados.",
 
         upgrade:null
-    }
+    },
 
-    [
+    
     {
         id:"lobo-solitario",
 
@@ -4882,1157 +4882,6 @@ const DEFAULT_ABILITIES = [
             "Passiva. Enquanto estiver na condição Machucado, recebe +5 em testes de Fortitude e Vontade.",
 
         upgrade:null
-    }
-
-]
-
-];
-
-
-function ensureCharacterAbilities(){
-
-    if(
-        !Array.isArray(
-            characterAbilitiesState
-        )
-    ){
-
-        characterAbilitiesState = [];
-
-    }
-
-}
-
-
-/*==========================================================
-=              ADICIONAR HABILIDADE
-==========================================================*/
-
-function addAbilityToCharacter(
-    abilityId
-){
-
-
-    ensureCharacterAbilities();
-
-
-    const ability =
-        DEFAULT_ABILITIES.find(
-            item =>
-                item.id === abilityId
-        );
-
-
-    if(!ability){
-
-        return false;
-
-    }
-
-const alreadyHas =
-    characterAbilitiesState.some(
-            item =>
-                item.id === ability.id
-        );
-
-
-    if(alreadyHas){
-
-        showCharacterEditorMessage(
-            "Habilidade já adquirida",
-            `${ability.name} já pertence ao personagem.`
-        );
-
-        return false;
-
-    }
-
-
-    /*======================================================
-    =              CUSTO PERMANENTE
-    ======================================================*/
-
-    if(
-        ability.permanentCost?.type ===
-        "pd"
-    ){
-
-        const cost =
-            Number(
-                ability.permanentCost.value
-            ) || 0;
-
-
-        const currentMax =
-            Number(
-                characterPDMax?.value
-            ) || 0;
-
-
-        if(currentMax < cost){
-
-            showCharacterEditorMessage(
-                "PD insuficiente",
-                `Você precisa de ${cost} PD máximos para adquirir ${ability.name}.`
-            );
-
-            return false;
-
-        }
-
-
-        characterPDMax.value =
-            Math.max(
-                0,
-                currentMax - cost
-            );
-
-
-        /*
-            Se o PD atual ficar acima do novo máximo,
-            reduzimos o atual também.
-        */
-
-        if(
-            Number(
-                characterPD?.value
-            ) >
-            Number(
-                characterPDMax.value
-            )
-        ){
-
-            characterPD.value =
-                characterPDMax.value;
-
-        }
-
-    }
-
-
-characterAbilitiesState.push({
-
-    id:
-        ability.id,
-
-    name:
-        ability.name,
-
-    description:
-        ability.description,
-
-    upgrade:
-        ability.upgrade,
-
-    permanentCost:
-        structuredCloneSafe(
-            ability.permanentCost
-        ),
-
-    useCost:
-        structuredCloneSafe(
-            ability.useCost
-        ),
-
-    acquiredAt:
-        Date.now()
-
-});
-
-
-calculateAutomaticStats();
-
-renderAbilityEditorList();
-
-
-showCharacterEditorMessage(
-    "Habilidade adquirida",
-    `${ability.name} foi adicionada à ficha.`
-);
-
-
-return true;
-
-}
-
-
-/*==========================================================
-=              USAR HABILIDADE
-==========================================================*/
-
-function useCharacterAbility(
-    abilityId
-){
-
-const ability =
-    characterAbilitiesState.find(
-        item =>
-            item.id === abilityId
-    );
-
-
-    if(!ability){
-
-        return false;
-
-    }
-
-
-    const costType =
-        ability.useCost?.type;
-
-
-    const cost =
-        Number(
-            ability.useCost?.value
-        ) || 0;
-
-
-    if(costType === "pd"){
-
-        const currentPD =
-            Number(
-                characterPD?.value
-            ) || 0;
-
-
-        if(currentPD < cost){
-
-            showCharacterEditorMessage(
-                "PD insuficiente",
-                `Você precisa de ${cost} PD para usar ${ability.name}.`
-            );
-
-            return false;
-
-        }
-
-
-        characterPD.value =
-            currentPD - cost;
-
-    }
-
-
-    if(costType === "pv"){
-
-        const currentPV =
-            Number(
-                characterPV?.value
-            ) || 0;
-
-
-        if(currentPV < cost){
-
-            showCharacterEditorMessage(
-                "PV insuficiente",
-                `Você precisa de ${cost} PV para usar ${ability.name}.`
-            );
-
-            return false;
-
-        }
-
-
-        characterPV.value =
-            currentPV - cost;
-
-    }
-
-
-    if(costType === "pa"){
-
-        const currentPA =
-            Number(
-                characterPA?.value
-            ) || 0;
-
-
-        if(currentPA < cost){
-
-            showCharacterEditorMessage(
-                "PA insuficiente",
-                `Você precisa de ${cost} PA para usar ${ability.name}.`
-            );
-
-            return false;
-
-        }
-
-
-        characterPA.value =
-            currentPA - cost;
-
-    }
-
-
-    showCharacterEditorMessage(
-        ability.name,
-        `Habilidade utilizada. Custo: ${cost} ${String(costType).toUpperCase()}.`
-    );
-
-
-    return true;
-
-}
-
-
-/*==========================================================
-=              RENDERIZAR HABILIDADES
-==========================================================*/
-
-function renderAbilityEditorList(){
-
-    const container =
-        document.getElementById(
-            "abilitiesEditorList"
-        );
-
-
-    if(!container){
-
-        return;
-
-    }
-
-
-    const abilities =
-    characterAbilitiesState;
-
-
-    if(abilities.length === 0){
-
-        container.innerHTML = `
-
-            <div class="editor-empty-state">
-
-                <span>◇</span>
-
-                <p>
-                    Nenhuma habilidade adicionada.
-                </p>
-
-            </div>
-
-        `;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        abilities
-            .map(ability => `
-
-<div class="ability-editor-card">
-
-    <h3>
-        ${escapeCharacterEditorHTML(
-            ability.name
-        )}
-    </h3>
-
-    <p>
-        ${escapeCharacterEditorHTML(
-            ability.description || ""
-        )}
-    </p>
-
-    ${
-        ability.upgrade
-            ? `
-                <p>
-                    <strong>Aprimoramento:</strong>
-
-                    ${escapeCharacterEditorHTML(
-                        ability.upgrade
-                    )}
-                </p>
-            `
-            : ""
-    }
-
-    ${
-        ability.useCost
-            ? `
-                <button
-                    type="button"
-                    class="primary-button use-ability-button"
-                    data-ability="${escapeCharacterEditorHTML(
-                        ability.id
-                    )}"
-                >
-
-                    Usar •
-                    ${Number(
-                        ability.useCost.value
-                    )}
-                    ${String(
-                        ability.useCost.type
-                    ).toUpperCase()}
-
-                </button>
-            `
-            : ""
-    }
-
-    <button
-        type="button"
-        class="remove-content-button remove-ability-button"
-        data-ability="${escapeCharacterEditorHTML(
-            ability.id
-        )}"
-    >
-
-        Remover
-
-    </button>
-
-</div>
-
-            `)
-            .join("");
-
-
-    container
-        .querySelectorAll(
-            ".use-ability-button"
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    useCharacterAbility(
-                        button.dataset.ability
-                    );
-
-                }
-            );
-
-        });
-
-container
-    .querySelectorAll(
-        ".remove-ability-button"
-    )
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            () => {
-
-                removeCharacterAbility(
-                    button.dataset.ability
-                );
-
-            }
-        );
-
-    });
-
-}
-
-
-/*==========================================================
-=              BOTÃO + HABILIDADE
-==========================================================*/
-
-document
-    .getElementById(
-        "addAbilityEditor"
-    )
-    ?.addEventListener(
-        "click",
-        openAbilitySelector
-    );
-
-
-/*==========================================================
-=              SELETOR DE HABILIDADES
-==========================================================*/
-
-function openAbilitySelector(){
-
-    document
-        .getElementById(
-            "abilitySelectorModal"
-        )
-        ?.remove();
-
-
-    const modal =
-        document.createElement(
-            "div"
-        );
-
-
-    modal.id =
-        "abilitySelectorModal";
-
-    modal.className =
-        "editor-message";
-
-
-const cards =
-    DEFAULT_ABILITIES
-        .map(
-            ability => `
-
-            <button
-                type="button"
-                class="ability-choice-card"
-                data-ability="${ability.id}"
-            >
-
-                <strong>
-                    ✦ ${escapeCharacterEditorHTML(
-                        ability.name
-                    )}
-                </strong>
-
-                <span>
-                    ${ability.permanentCost.value}
-                    ${ability.permanentCost.type.toUpperCase()}
-                    permanente
-                </span>
-
-                <p>
-                    ${escapeCharacterEditorHTML(
-                        ability.description
-                    )}
-                </p>
-
-            </button>
-
-        `
-        )
-        .join("");
-
-
-    modal.innerHTML = `
-
-        <div class="prosthetic-editor-modal">
-
-            <span class="section-label">
-                HABILIDADES
-            </span>
-
-            <h2>
-                Adicionar Habilidade
-            </h2>
-
-            <div class="editor-dynamic-list">
-
-                ${cards}
-
-            </div>
-
-            <button
-                type="button"
-                id="closeAbilitySelector"
-                class="secondary-button"
-                style="width:100%;margin-top:18px;"
-            >
-
-                Fechar
-
-            </button>
-
-        </div>
-
-    `;
-
-
-    document.body.appendChild(
-        modal
-    );
-
-
-    modal
-        .querySelectorAll(
-            ".ability-choice-card"
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    const success =
-                        addAbilityToCharacter(
-                            button.dataset.ability
-                        );
-
-
-                    if(success){
-
-                        modal.remove();
-
-                    }
-
-                }
-            );
-
-        });
-
-
-    modal
-        .querySelector(
-            "#closeAbilitySelector"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-
-                modal.remove();
-
-            }
-        );
-
-}
-
-/*==========================================================
-=              ASSIMILAÇÕES DISPONÍVEIS
-==========================================================*/
-
-const DEFAULT_ASSIMILATIONS = [
-
-    {
-        id:"presas",
-        name:"Presas",
-
-        permanentCost:{
-            type:"pv",
-            value:5
-        },
-
-        activationCost:{
-            type:"pa",
-            value:1
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Cria garras e presas monstruosas. Enquanto estiverem ativas, seus ataques desarmados causam +1 dado de dano."
-    },
-
-
-    {
-        id:"lamina-de-sangue",
-        name:"Lâmina de Sangue",
-
-        permanentCost:{
-            type:"pv",
-            value:5
-        },
-
-        activationCost:{
-            type:"pa",
-            value:1
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Cria uma espada formada por sangue coagulado que causa 2d8 + FOR de dano de Sangue."
-    },
-
-
-    {
-        id:"celulas-regenerativas",
-        name:"Células Regenerativas",
-
-        permanentCost:{
-            type:"pv",
-            value:5
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Recupera 2d6 PV no início de cada rodada."
-    },
-
-
-    {
-        id:"espinhoso",
-        name:"Espinhoso",
-
-        permanentCost:{
-            type:"pv",
-            value:5
-        },
-
-        activationCost:{
-            type:"pa",
-            value:1
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Enquanto estiver ativo, sempre que sofrer um ataque corpo a corpo, o atacante recebe 2d6 de dano de Sangue."
-    },
-
-
-    {
-        id:"devorar",
-        name:"Devorar",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:{
-            type:"pa",
-            value:1
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Após acertar um ataque corpo a corpo, pode ativar esta habilidade para recuperar 2d10 PV."
-    },
-
-
-    {
-        id:"sangue-compartilhado",
-        name:"Sangue Compartilhado",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Pode transferir seus próprios PV para recuperar PV de um aliado em até 1 posição."
-    },
-
-
-    {
-        id:"musculos-intensificados",
-        name:"Músculos Intensificados",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Recebe +1 em FOR e +3 em testes de Manobra."
-    },
-
-
-    {
-        id:"peitoral-de-ferro",
-        name:"Peitoral de Ferro",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Recebe +1 em VIG e +3 em testes de Fortitude."
-    },
-
-
-    {
-        id:"asas-profanas",
-        name:"Asas Profanas",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:{
-            type:"pa",
-            value:1
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Cria asas demoníacas. Seu deslocamento passa a ser 4 posições e você ignora terreno difícil."
-    },
-
-
-    {
-        id:"insensibilidade-a-dor",
-        name:"Insensibilidade à Dor",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:{
-            type:"pa",
-            value:1
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Uma vez por cena, reduza um dano recebido em 30."
-    },
-
-
-    {
-        id:"camada-extra",
-        name:"Camada Extra",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "No início de cada Cena de Combate recebe 20 PV temporários."
-    },
-
-
-    {
-        id:"sentir-emocao",
-        name:"Sentir Emoção",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:{
-            type:"pd",
-            value:4
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Descobre exatamente qual emoção domina um alvo no momento."
-    },
-
-
-    {
-        id:"consumir-e-transformar",
-        name:"Consumir e Transformar",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:{
-            type:"pa",
-            value:1
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Uma vez por cena, redistribua seus pontos de atributos, transferindo-os livremente para FOR e VIG até o fim da cena."
-    },
-
-
-    {
-        id:"gula",
-        name:"Gula",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:{
-            type:"pa",
-            value:1
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Consome 1 ponto de FOR ou VIG do alvo, adicionando esse ponto ao seu próprio atributo enquanto durar a cena."
-    },
-
-
-    {
-        id:"inveja",
-        name:"Inveja",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:{
-            type:"pa",
-            value:1
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Copia a habilidade mais recentemente utilizada por um aliado, podendo utilizá-la apenas uma vez."
-    },
-
-
-    {
-        id:"ira",
-        name:"Ira",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:{
-            type:"pa",
-            value:1
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Seu próximo ataque causa +2d8 de dano. Até o início do seu próximo turno, você não pode utilizar as reações Esquivar ou Bloquear."
-    },
-
-
-    {
-        id:"luxuria",
-        name:"Luxúria",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Recebe +5 em testes de interação. Uma vez por cena, pode dobrar todos os bônus aplicados em um único teste de interação."
-    },
-
-
-    {
-        id:"preguica",
-        name:"Preguiça",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Pode reutilizar 1 PA não gasto na rodada anterior."
-    },
-
-
-    {
-        id:"orgulho",
-        name:"Orgulho",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Enquanto não receber cura ou proteção de aliados, recebe Resistência a dano Mundano e de Sangue."
-    },
-
-
-    {
-        id:"ganancia",
-        name:"Ganância",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:{
-            type:"pa",
-            value:3
-        },
-
-        activationType:"Ativação",
-
-        active:false,
-
-        description:
-            "Rouba uma habilidade ou ritual utilizado por uma ameaça. Enquanto não utilizar a habilidade roubada, o alvo também não poderá utilizá-la."
-    },
-
-
-    {
-        id:"vinganca",
-        name:"Vingança",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Sempre que um aliado morrer durante a cena, seu próximo ataque possui Acerto Crítico garantido."
-    },
-
-
-    {
-        id:"instinto-predatorio",
-        name:"Instinto Predatório",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Sempre que uma criatura entrar na sua posição ou iniciar o turno adjacente a você, pode realizar imediatamente um ataque corpo a corpo contra ela. Limite: 1 vez por rodada."
-    },
-
-
-    {
-        id:"elo-carmesim",
-        name:"Elo Carmesim",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Enquanto houver um aliado em até 1 posição de você, ambos recebem +5 na Defesa. Sempre que um dos dois sofrer dano, o outro recebe +5 no próximo ataque contra o agressor."
-    },
-
-
-    {
-        id:"crescimento-anomalo",
-        name:"Crescimento Anômalo",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Sempre que perder permanentemente um membro do corpo, ele cresce novamente após um descanso longo. O novo membro possui aparência grotesca e paranormal, funciona normalmente e não pode ser perdido novamente da mesma forma."
-    },
-
-
-    {
-        id:"frenesi",
-        name:"Frenesi",
-
-        permanentCost:{
-            type:"pv",
-            value:4
-        },
-
-        activationCost:null,
-
-        activationType:"Passiva",
-
-        active:true,
-
-        description:
-            "Sempre que reduzir uma criatura a 0 PV, entra em um estado de Frenesi, recuperando imediatamente 2d8 PV. Limite: 1 vez por rodada."
     },
 
     
@@ -7356,9 +6205,1157 @@ const DEFAULT_ASSIMILATIONS = [
             "Passiva. Ao utilizar uma habilidade, pode reduzir pela metade seu custo em PD e PA, arredondando para cima. O custo nunca pode ser reduzido para 0. Pode ser utilizada um número de vezes igual ao INT por cena.",
 
         upgrade:null
+    },
+
+];
+
+
+function ensureCharacterAbilities(){
+
+    if(
+        !Array.isArray(
+            characterAbilitiesState
+        )
+    ){
+
+        characterAbilitiesState = [];
+
+    }
+
+}
+
+
+/*==========================================================
+=              ADICIONAR HABILIDADE
+==========================================================*/
+
+function addAbilityToCharacter(
+    abilityId
+){
+
+
+    ensureCharacterAbilities();
+
+
+    const ability =
+        DEFAULT_ABILITIES.find(
+            item =>
+                item.id === abilityId
+        );
+
+
+    if(!ability){
+
+        return false;
+
+    }
+
+const alreadyHas =
+    characterAbilitiesState.some(
+            item =>
+                item.id === ability.id
+        );
+
+
+    if(alreadyHas){
+
+        showCharacterEditorMessage(
+            "Habilidade já adquirida",
+            `${ability.name} já pertence ao personagem.`
+        );
+
+        return false;
+
     }
 
 
+    /*======================================================
+    =              CUSTO PERMANENTE
+    ======================================================*/
+
+    if(
+        ability.permanentCost?.type ===
+        "pd"
+    ){
+
+        const cost =
+            Number(
+                ability.permanentCost.value
+            ) || 0;
+
+
+        const currentMax =
+            Number(
+                characterPDMax?.value
+            ) || 0;
+
+
+        if(currentMax < cost){
+
+            showCharacterEditorMessage(
+                "PD insuficiente",
+                `Você precisa de ${cost} PD máximos para adquirir ${ability.name}.`
+            );
+
+            return false;
+
+        }
+
+
+        characterPDMax.value =
+            Math.max(
+                0,
+                currentMax - cost
+            );
+
+
+        /*
+            Se o PD atual ficar acima do novo máximo,
+            reduzimos o atual também.
+        */
+
+        if(
+            Number(
+                characterPD?.value
+            ) >
+            Number(
+                characterPDMax.value
+            )
+        ){
+
+            characterPD.value =
+                characterPDMax.value;
+
+        }
+
+    }
+
+
+characterAbilitiesState.push({
+
+    id:
+        ability.id,
+
+    name:
+        ability.name,
+
+    description:
+        ability.description,
+
+    upgrade:
+        ability.upgrade,
+
+    permanentCost:
+        structuredCloneSafe(
+            ability.permanentCost
+        ),
+
+    useCost:
+        structuredCloneSafe(
+            ability.useCost
+        ),
+
+    acquiredAt:
+        Date.now()
+
+});
+
+
+calculateAutomaticStats();
+
+renderAbilityEditorList();
+
+
+showCharacterEditorMessage(
+    "Habilidade adquirida",
+    `${ability.name} foi adicionada à ficha.`
+);
+
+
+return true;
+
+}
+
+
+/*==========================================================
+=              USAR HABILIDADE
+==========================================================*/
+
+function useCharacterAbility(
+    abilityId
+){
+
+const ability =
+    characterAbilitiesState.find(
+        item =>
+            item.id === abilityId
+    );
+
+
+    if(!ability){
+
+        return false;
+
+    }
+
+
+    const costType =
+        ability.useCost?.type;
+
+
+    const cost =
+        Number(
+            ability.useCost?.value
+        ) || 0;
+
+
+    if(costType === "pd"){
+
+        const currentPD =
+            Number(
+                characterPD?.value
+            ) || 0;
+
+
+        if(currentPD < cost){
+
+            showCharacterEditorMessage(
+                "PD insuficiente",
+                `Você precisa de ${cost} PD para usar ${ability.name}.`
+            );
+
+            return false;
+
+        }
+
+
+        characterPD.value =
+            currentPD - cost;
+
+    }
+
+
+    if(costType === "pv"){
+
+        const currentPV =
+            Number(
+                characterPV?.value
+            ) || 0;
+
+
+        if(currentPV < cost){
+
+            showCharacterEditorMessage(
+                "PV insuficiente",
+                `Você precisa de ${cost} PV para usar ${ability.name}.`
+            );
+
+            return false;
+
+        }
+
+
+        characterPV.value =
+            currentPV - cost;
+
+    }
+
+
+    if(costType === "pa"){
+
+        const currentPA =
+            Number(
+                characterPA?.value
+            ) || 0;
+
+
+        if(currentPA < cost){
+
+            showCharacterEditorMessage(
+                "PA insuficiente",
+                `Você precisa de ${cost} PA para usar ${ability.name}.`
+            );
+
+            return false;
+
+        }
+
+
+        characterPA.value =
+            currentPA - cost;
+
+    }
+
+
+    showCharacterEditorMessage(
+        ability.name,
+        `Habilidade utilizada. Custo: ${cost} ${String(costType).toUpperCase()}.`
+    );
+
+
+    return true;
+
+}
+
+
+/*==========================================================
+=              RENDERIZAR HABILIDADES
+==========================================================*/
+
+function renderAbilityEditorList(){
+
+    const container =
+        document.getElementById(
+            "abilitiesEditorList"
+        );
+
+
+    if(!container){
+
+        return;
+
+    }
+
+
+    const abilities =
+    characterAbilitiesState;
+
+
+    if(abilities.length === 0){
+
+        container.innerHTML = `
+
+            <div class="editor-empty-state">
+
+                <span>◇</span>
+
+                <p>
+                    Nenhuma habilidade adicionada.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        abilities
+            .map(ability => `
+
+<div class="ability-editor-card">
+
+    <h3>
+        ${escapeCharacterEditorHTML(
+            ability.name
+        )}
+    </h3>
+
+    <p>
+        ${escapeCharacterEditorHTML(
+            ability.description || ""
+        )}
+    </p>
+
+    ${
+        ability.upgrade
+            ? `
+                <p>
+                    <strong>Aprimoramento:</strong>
+
+                    ${escapeCharacterEditorHTML(
+                        ability.upgrade
+                    )}
+                </p>
+            `
+            : ""
+    }
+
+    ${
+        ability.useCost
+            ? `
+                <button
+                    type="button"
+                    class="primary-button use-ability-button"
+                    data-ability="${escapeCharacterEditorHTML(
+                        ability.id
+                    )}"
+                >
+
+                    Usar •
+                    ${Number(
+                        ability.useCost.value
+                    )}
+                    ${String(
+                        ability.useCost.type
+                    ).toUpperCase()}
+
+                </button>
+            `
+            : ""
+    }
+
+    <button
+        type="button"
+        class="remove-content-button remove-ability-button"
+        data-ability="${escapeCharacterEditorHTML(
+            ability.id
+        )}"
+    >
+
+        Remover
+
+    </button>
+
+</div>
+
+            `)
+            .join("");
+
+
+    container
+        .querySelectorAll(
+            ".use-ability-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    useCharacterAbility(
+                        button.dataset.ability
+                    );
+
+                }
+            );
+
+        });
+
+container
+    .querySelectorAll(
+        ".remove-ability-button"
+    )
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                removeCharacterAbility(
+                    button.dataset.ability
+                );
+
+            }
+        );
+
+    });
+
+}
+
+
+/*==========================================================
+=              BOTÃO + HABILIDADE
+==========================================================*/
+
+document
+    .getElementById(
+        "addAbilityEditor"
+    )
+    ?.addEventListener(
+        "click",
+        openAbilitySelector
+    );
+
+
+/*==========================================================
+=              SELETOR DE HABILIDADES
+==========================================================*/
+
+function openAbilitySelector(){
+
+    document
+        .getElementById(
+            "abilitySelectorModal"
+        )
+        ?.remove();
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "abilitySelectorModal";
+
+    modal.className =
+        "editor-message";
+
+
+const cards =
+    DEFAULT_ABILITIES
+        .map(
+            ability => `
+
+            <button
+                type="button"
+                class="ability-choice-card"
+                data-ability="${ability.id}"
+            >
+
+                <strong>
+                    ✦ ${escapeCharacterEditorHTML(
+                        ability.name
+                    )}
+                </strong>
+
+                <span>
+                    ${ability.permanentCost.value}
+                    ${ability.permanentCost.type.toUpperCase()}
+                    permanente
+                </span>
+
+                <p>
+                    ${escapeCharacterEditorHTML(
+                        ability.description
+                    )}
+                </p>
+
+            </button>
+
+        `
+        )
+        .join("");
+
+
+    modal.innerHTML = `
+
+        <div class="prosthetic-editor-modal">
+
+            <span class="section-label">
+                HABILIDADES
+            </span>
+
+            <h2>
+                Adicionar Habilidade
+            </h2>
+
+            <div class="editor-dynamic-list">
+
+                ${cards}
+
+            </div>
+
+            <button
+                type="button"
+                id="closeAbilitySelector"
+                class="secondary-button"
+                style="width:100%;margin-top:18px;"
+            >
+
+                Fechar
+
+            </button>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    modal
+        .querySelectorAll(
+            ".ability-choice-card"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const success =
+                        addAbilityToCharacter(
+                            button.dataset.ability
+                        );
+
+
+                    if(success){
+
+                        modal.remove();
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    modal
+        .querySelector(
+            "#closeAbilitySelector"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+            }
+        );
+
+}
+
+/*==========================================================
+=              ASSIMILAÇÕES DISPONÍVEIS
+==========================================================*/
+
+const DEFAULT_ASSIMILATIONS = [
+
+    {
+        id:"presas",
+        name:"Presas",
+
+        permanentCost:{
+            type:"pv",
+            value:5
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Cria garras e presas monstruosas. Enquanto estiverem ativas, seus ataques desarmados causam +1 dado de dano."
+    },
+
+
+    {
+        id:"lamina-de-sangue",
+        name:"Lâmina de Sangue",
+
+        permanentCost:{
+            type:"pv",
+            value:5
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Cria uma espada formada por sangue coagulado que causa 2d8 + FOR de dano de Sangue."
+    },
+
+
+    {
+        id:"celulas-regenerativas",
+        name:"Células Regenerativas",
+
+        permanentCost:{
+            type:"pv",
+            value:5
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Recupera 2d6 PV no início de cada rodada."
+    },
+
+
+    {
+        id:"espinhoso",
+        name:"Espinhoso",
+
+        permanentCost:{
+            type:"pv",
+            value:5
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Enquanto estiver ativo, sempre que sofrer um ataque corpo a corpo, o atacante recebe 2d6 de dano de Sangue."
+    },
+
+
+    {
+        id:"devorar",
+        name:"Devorar",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Após acertar um ataque corpo a corpo, pode ativar esta habilidade para recuperar 2d10 PV."
+    },
+
+
+    {
+        id:"sangue-compartilhado",
+        name:"Sangue Compartilhado",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Pode transferir seus próprios PV para recuperar PV de um aliado em até 1 posição."
+    },
+
+
+    {
+        id:"musculos-intensificados",
+        name:"Músculos Intensificados",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Recebe +1 em FOR e +3 em testes de Manobra."
+    },
+
+
+    {
+        id:"peitoral-de-ferro",
+        name:"Peitoral de Ferro",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Recebe +1 em VIG e +3 em testes de Fortitude."
+    },
+
+
+    {
+        id:"asas-profanas",
+        name:"Asas Profanas",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Cria asas demoníacas. Seu deslocamento passa a ser 4 posições e você ignora terreno difícil."
+    },
+
+
+    {
+        id:"insensibilidade-a-dor",
+        name:"Insensibilidade à Dor",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Uma vez por cena, reduza um dano recebido em 30."
+    },
+
+
+    {
+        id:"camada-extra",
+        name:"Camada Extra",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "No início de cada Cena de Combate recebe 20 PV temporários."
+    },
+
+
+    {
+        id:"sentir-emocao",
+        name:"Sentir Emoção",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pd",
+            value:4
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Descobre exatamente qual emoção domina um alvo no momento."
+    },
+
+
+    {
+        id:"consumir-e-transformar",
+        name:"Consumir e Transformar",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Uma vez por cena, redistribua seus pontos de atributos, transferindo-os livremente para FOR e VIG até o fim da cena."
+    },
+
+
+    {
+        id:"gula",
+        name:"Gula",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Consome 1 ponto de FOR ou VIG do alvo, adicionando esse ponto ao seu próprio atributo enquanto durar a cena."
+    },
+
+
+    {
+        id:"inveja",
+        name:"Inveja",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Copia a habilidade mais recentemente utilizada por um aliado, podendo utilizá-la apenas uma vez."
+    },
+
+
+    {
+        id:"ira",
+        name:"Ira",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Seu próximo ataque causa +2d8 de dano. Até o início do seu próximo turno, você não pode utilizar as reações Esquivar ou Bloquear."
+    },
+
+
+    {
+        id:"luxuria",
+        name:"Luxúria",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Recebe +5 em testes de interação. Uma vez por cena, pode dobrar todos os bônus aplicados em um único teste de interação."
+    },
+
+
+    {
+        id:"preguica",
+        name:"Preguiça",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Pode reutilizar 1 PA não gasto na rodada anterior."
+    },
+
+
+    {
+        id:"orgulho",
+        name:"Orgulho",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Enquanto não receber cura ou proteção de aliados, recebe Resistência a dano Mundano e de Sangue."
+    },
+
+
+    {
+        id:"ganancia",
+        name:"Ganância",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:3
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Rouba uma habilidade ou ritual utilizado por uma ameaça. Enquanto não utilizar a habilidade roubada, o alvo também não poderá utilizá-la."
+    },
+
+
+    {
+        id:"vinganca",
+        name:"Vingança",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Sempre que um aliado morrer durante a cena, seu próximo ataque possui Acerto Crítico garantido."
+    },
+
+
+    {
+        id:"instinto-predatorio",
+        name:"Instinto Predatório",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Sempre que uma criatura entrar na sua posição ou iniciar o turno adjacente a você, pode realizar imediatamente um ataque corpo a corpo contra ela. Limite: 1 vez por rodada."
+    },
+
+
+    {
+        id:"elo-carmesim",
+        name:"Elo Carmesim",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Enquanto houver um aliado em até 1 posição de você, ambos recebem +5 na Defesa. Sempre que um dos dois sofrer dano, o outro recebe +5 no próximo ataque contra o agressor."
+    },
+
+
+    {
+        id:"crescimento-anomalo",
+        name:"Crescimento Anômalo",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Sempre que perder permanentemente um membro do corpo, ele cresce novamente após um descanso longo. O novo membro possui aparência grotesca e paranormal, funciona normalmente e não pode ser perdido novamente da mesma forma."
+    },
+
+
+    {
+        id:"frenesi",
+        name:"Frenesi",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Sempre que reduzir uma criatura a 0 PV, entra em um estado de Frenesi, recuperando imediatamente 2d8 PV. Limite: 1 vez por rodada."
+    }
+    
 
 ];
 
