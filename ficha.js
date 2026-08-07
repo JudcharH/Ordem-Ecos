@@ -142,25 +142,7 @@ function bindCharacterEvents(){
 
 function openCreateCharacter(){
 
-    if(newCharacterModal){
-
-        clearCharacterForm();
-
-        newCharacterModal.classList.remove(
-            "hidden"
-        );
-
-        setTimeout(() => {
-
-            characterNameInput?.focus();
-
-        },50);
-
-        return;
-
-    }
-
-    createCharacterFallback();
+    window.location.href = "editor-ficha.html";
 
 }
 
@@ -332,92 +314,7 @@ async function createCharacter(){
 }
 
 
-/*==========================================================
-=              CRIAÇÃO SEM MODAL
-==========================================================*/
 
-function createCharacterFallback(){
-
-    const name = prompt(
-        "Nome do personagem:"
-    );
-
-    if(name === null){
-
-        return;
-
-    }
-
-    const cleanName =
-        name.trim();
-
-    if(!cleanName){
-
-        return;
-
-    }
-
-    const origin =
-        prompt(
-            "Origem:",
-            ""
-        ) || "";
-
-    const character = {
-
-        id:createCharacterId(),
-
-        name:cleanName,
-
-        class:"",
-
-        origin:origin.trim(),
-
-        level:1,
-
-        photo:"",
-
-        campaignId:null,
-
-        attributes:{
-
-            for:1,
-            agi:1,
-            int:1,
-            vig:1,
-            pre:1
-
-        },
-
-        status:{},
-
-        inventory:[],
-
-        conditions:[],
-
-        assimilations:[],
-
-        abilities:[],
-
-        grimoire:[],
-
-        attacks:[],
-
-        notes:"",
-
-        createdAt:Date.now(),
-
-        updatedAt:Date.now()
-
-    };
-
-    characters.unshift(character);
-
-    saveCharacters();
-
-    renderCharacters();
-
-}
 
 
 /*==========================================================

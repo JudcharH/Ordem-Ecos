@@ -804,75 +804,7 @@ window.CampaignAPI = {
 =              CAMPANHAS.JS - PARTE 3
 ==========================================================*/
 
-/*==========================================================
-=          CRIAÇÃO SEM MODAL (FALLBACK)
-==========================================================*/
 
-function createCampaignFallback(){
-
-    const name = prompt(
-        "Nome da campanha:"
-    );
-
-    if(name === null){
-
-        return;
-
-    }
-
-    const cleanName = name.trim();
-
-    if(!cleanName){
-
-        alert(
-            "Digite um nome para a campanha."
-        );
-
-        return;
-
-    }
-
-    const description = prompt(
-        "Descrição da campanha:",
-        ""
-    );
-
-    const campaign = {
-
-        id:createId(),
-
-        name:cleanName,
-
-        description:
-            description?.trim() || "",
-
-        background:"",
-
-        players:[],
-
-        enemies:[],
-
-        npcs:[],
-
-        scene:"",
-
-        music:"",
-
-        inviteCode:createInviteCode(),
-
-        createdAt:Date.now(),
-
-        updatedAt:Date.now()
-
-    };
-
-    campaigns.unshift(campaign);
-
-    saveCampaigns();
-
-    renderCampaigns();
-
-}
 
 
 /*==========================================================
@@ -881,25 +813,7 @@ function createCampaignFallback(){
 
 function openCreateCampaign(){
 
-    if(createCampaignModal){
-
-        clearCampaignForm();
-
-        createCampaignModal
-            .classList
-            .remove("hidden");
-
-        setTimeout(() => {
-
-            campaignNameInput?.focus();
-
-        },50);
-
-        return;
-
-    }
-
-    createCampaignFallback();
+    window.location.href = "editor-campanha.html";
 
 }
 
