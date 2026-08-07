@@ -3799,25 +3799,18 @@ function escapeCharacterEditorHTML(
 const DEFAULT_ABILITIES = [
 
     {
-
         id:"ataque-especial",
 
         name:"Ataque Especial",
 
         permanentCost:{
-
             type:"pd",
-
             value:3
-
         },
 
         useCost:{
-
             type:"pd",
-
             value:2
-
         },
 
         description:
@@ -3825,8 +3818,1073 @@ const DEFAULT_ABILITIES = [
 
         upgrade:
             "Para cada +2 PD gastos, recebe +5 adicional, podendo dividir livremente entre ataque e dano."
+    },
 
+
+    {
+        id:"ataque-de-oportunidade",
+
+        name:"Ataque de Oportunidade",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        description:
+            "Reação. Quando um inimigo sair voluntariamente do seu alcance corpo a corpo, realize imediatamente um ataque contra ele. Não funciona contra teleporte ou movimento forçado. Limite: 1 vez por rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"sacar-e-atacar",
+
+        name:"Sacar e Atacar",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Reação. Em todo início de cena de combate você é o primeiro a atacar e recebe um ataque sem custo. Limite: 1 vez por cena.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"postura-defensiva",
+
+        name:"Postura Defensiva",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        description:
+            "Até o início do seu próximo turno, recebe +2 Defesa e aumenta seu Bloqueio em 5.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"em-furia",
+
+        name:"Em Fúria",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        description:
+            "Abdica de toda sua defesa até o seu próximo turno, mas recebe +2 dados de dano para seus ataques até sua defesa voltar.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"golpe-arriscado",
+
+        name:"Golpe Arriscado",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"variable",
+            options:[
+                {
+                    pd:2,
+                    effect:"-5 Defesa e +10 no ataque."
+                },
+                {
+                    pd:4,
+                    effect:"-10 Defesa e +20 no ataque."
+                }
+            ]
+        },
+
+        description:
+            "Escolha entre gastar 2 PD para receber -5 Defesa e +10 no ataque ou gastar 4 PD para receber -10 Defesa e +20 no ataque. O efeito dura até sua próxima rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"golpe-pesado",
+
+        name:"Golpe Pesado",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Seu dano corpo a corpo aumenta em 1 passo.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"especialista-em-criticos",
+
+        name:"Especialista em Críticos",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sua margem de crítico é aumentada em 1 em armas corpo a corpo.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"combatente-incansavel",
+
+        name:"Combatente Incansável",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Ao derrotar um inimigo, recupera 1 PA. Máximo de 1 vez por rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"executor",
+
+        name:"Executor",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +5 de dano contra alvos com a condição Machucado.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"duplo-golpe",
+
+        name:"Duplo Golpe",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        description:
+            "Realiza dois ataques consecutivos contra o mesmo alvo. O segundo ataque recebe -5 no teste de ataque.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"rompedor-de-defesas",
+
+        name:"Rompedor de Defesas",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Ignora redução de dano mundano ao bloquear por completo.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"carrasco",
+
+        name:"Carrasco",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Quando causa um Acerto Crítico, aplica a condição Debilitado ao alvo.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"golpe-demolidor",
+
+        name:"Golpe Demolidor",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Ao atacar objetos ou estruturas, recebe +2 dados de dano.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"revidar",
+
+        name:"Revidar",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:2,
+            pa:1
+        },
+
+        description:
+            "Reação. Ao realizar um Contra-ataque com sucesso, recebe apenas metade do dano do ataque que o atingiu.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"devolver-ataque",
+
+        name:"Devolver Ataque",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:3,
+            pa:1
+        },
+
+        description:
+            "Reação. Ao realizar um Contra-ataque, dispute seu teste diretamente contra o teste de ataque do inimigo. Se superar o teste inimigo, acerta o alvo e não recebe dano.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"retribuir",
+
+        name:"Retribuir",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        description:
+            "Passiva. Quando um aliado adjacente sofrer um ataque, pode desferir um ataque contra o alvo como reação. Limite: 1 vez por rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"parede-humana",
+
+        name:"Parede Humana",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Você é considerado uma cobertura. Aliados atrás de você recebem cobertura parcial contra disparos, mas você recebe parte desse dano.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"levantar-escudo",
+
+        name:"Levantar Escudo",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        requirement:
+            "Escudo Pesado",
+
+        description:
+            "Recebe Resistência a dano de Projéteis e Balístico pela metade até o início da sua próxima rodada. Requer Escudo Pesado.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"protetor",
+
+        name:"Protetor",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        description:
+            "Protege um aliado adjacente. Enquanto protege, todos os ataques contra o aliado são direcionados a você e o custo para ameaças atacarem o aliado protegido aumenta em +1 PA.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"golpes-potentes",
+
+        name:"Golpes Potentes",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sempre que acertar um ataque, empurra o alvo 1 posição. Em um Acerto Crítico, empurra 2 posições. Não funciona contra criaturas com o dobro da sua estatura.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"tecnica-secreta",
+
+        name:"Técnica Secreta",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Adiciona uma propriedade especial ao próximo ataque. Amplo: atinge um alvo adicional ao alcance corpo a corpo. Preciso: ignora 5 de Defesa concedida por efeitos temporários.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"tecnica-sublime",
+
+        name:"Técnica Sublime",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Recebe +2 na margem de ameaça. Máximo de +4 na margem de ameaça.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"maquina-de-matar",
+
+        name:"Máquina de Matar",
+
+        permanentCost:{
+            type:"pd",
+            value:6
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sua arma recebe +1 na margem de ameaça e seu dano aumenta em 1 passo.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"potencia-maxima",
+
+        name:"Potência Máxima",
+
+        permanentCost:{
+            type:"pd",
+            value:6
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        description:
+            "Uma vez por cena, durante 1 rodada, todos os bônus de ataque e dano são dobrados.",
+
+        upgrade:null
     }
+
+    [
+    {
+        id:"lobo-solitario",
+
+        name:"Lobo Solitário",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Enquanto estiver sem aliados em combate, recebe +15 PV Temporários, +1 dado de dano, +1 PA Máximo, +3 Defesa e RD 5.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"incansavel",
+
+        name:"Incansável",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"pd",
+            value:1
+        },
+
+        description:
+            "Ao acertar um ataque desarmado, realiza outro ataque sem consumir PA. Cada ataque adicional custa 1 PD e recebe -3 cumulativo. Ao errar, a sequência termina. Limite: 1 vez por rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"tiro-certeiro",
+
+        name:"Tiro Certeiro",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Soma AGI ao dano de armas de disparo e ignora penalidades por atacar alvos envolvidos em combate corpo a corpo.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"ricochete",
+
+        name:"Ricochete",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:2,
+            pa:1
+        },
+
+        description:
+            "O disparo ricocheteia em superfícies para atingir ângulos impossíveis. O alvo é considerado Desprevenido, mas o dano do disparo é reduzido pela metade.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"segurar-o-gatilho",
+
+        name:"Segurar o Gatilho",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"variable",
+            resource:"pd",
+            valuePerUse:2
+        },
+
+        description:
+            "Pode realizar ataques adicionais com armas de fogo sem consumir PA. Cada ataque adicional custa 2 PD. O máximo de ataques adicionais por rodada é igual à AGI do personagem.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"disparo-surpresa",
+
+        name:"Disparo Surpresa",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +5 em ataques realizados contra alvos que ainda não tenham agido na rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"atirador-de-elite",
+
+        name:"Atirador de Elite",
+
+        permanentCost:{
+            type:"pd",
+            value:6
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Ignora metade da cobertura utilizada pelo alvo e recebe +1 na margem de ameaça com armas de disparo.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"atirar-para-matar",
+
+        name:"Atirar para Matar",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"pa",
+            value:2
+        },
+
+        description:
+            "Se o disparo resultar em crítico, o dano é maximizado automaticamente. Além disso, soma AGI ×2 ao dano.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"corrida-imparavel",
+
+        name:"Corrida Imparável",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +1 posição ao se mover.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"arrancada",
+
+        name:"Arrancada",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Move-se até o dobro do deslocamento sem gastar PA adicional. Limite: 1 vez por rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"passo-veloz",
+
+        name:"Passo Veloz",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Ignora Terreno Difícil e recebe +5 em testes para escapar de agarrões ou imobilizações.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"movimento-fantasma",
+
+        name:"Movimento Fantasma",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Até o fim da rodada recebe +10 em testes de Discreto e não provoca ataques de oportunidade ao se mover.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"resistente",
+
+        name:"Resistente",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +5 PV Máximos e 5 de RD mundano.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"pele-dura",
+
+        name:"Pele Dura",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:3,
+            pa:1
+        },
+
+        description:
+            "Reduz um dano recebido pela metade. Limite: 1 vez por rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"casca-grossa",
+
+        name:"Casca Grossa",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +1 PV por nível e soma VIG ao Bloqueio.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"corpo-treinado",
+
+        name:"Corpo Treinado",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +5 em testes de Fortitude e ignora a primeira condição Enfraquecido recebida em cada cena.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"segunda-respiracao",
+
+        name:"Segunda Respiração",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:2,
+            pa:1
+        },
+
+        description:
+            "Recupera 10 PV. Pode ser utilizada um número de vezes igual ao VIG.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"cai-dentro",
+
+        name:"Cai Dentro",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:3,
+            pa:1
+        },
+
+        description:
+            "Reação. Força um inimigo a direcionar seu ataque contra você. Limite: 1 vez a cada 2 rodadas.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"sempre-alerta",
+
+        name:"Sempre Alerta",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Ao escolher Esquivar, reduz o dano recebido em AGI ×2.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"esquiva-aprimorada",
+
+        name:"Esquiva Aprimorada",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +5 nos testes de Esquiva.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"inabalavel",
+
+        name:"Inabalável",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Não sofre penalidades por estar Caído ou ser Empurrado.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"defesa-perfeita",
+
+        name:"Defesa Perfeita",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Ao ser atingido, ignora penalidades associadas ao ataque recebido.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"guarda-alta",
+
+        name:"Guarda Alta",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Enquanto não realizar ataques, recebe +5 Defesa e soma VIG na RD.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"desvio-absoluto",
+
+        name:"Desvio Absoluto",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"mixed-variable",
+            pd:3,
+            pa:{
+                normal:2,
+                critical:3
+            }
+        },
+
+        description:
+            "Pode gastar 2 PA para esquivar completamente de um ataque. Contra Acertos Críticos, o custo aumenta para 3 PA. O uso também custa 3 PD.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"adaptacao-rapida",
+
+        name:"Adaptação Rápida",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Ao sofrer dano de um tipo específico, recebe RD 5 contra esse tipo de dano por 2 rodadas.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"inquebravel",
+
+        name:"Inquebrável",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Enquanto estiver abaixo de 50% dos PV máximos, recebe +5 Defesa e RD 5.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"suportar-a-dor",
+
+        name:"Suportar a Dor",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Enquanto estiver na condição Machucado, recebe +5 em testes de Fortitude e Vontade.",
+
+        upgrade:null
+    }
+
+]
 
 ];
 
@@ -4443,25 +5501,17 @@ const cards =
 const DEFAULT_ASSIMILATIONS = [
 
     {
-
         id:"presas",
-
         name:"Presas",
 
         permanentCost:{
-
             type:"pv",
-
             value:5
-
         },
 
         activationCost:{
-
             type:"pa",
-
             value:1
-
         },
 
         activationType:"Ativação",
@@ -4470,8 +5520,1847 @@ const DEFAULT_ASSIMILATIONS = [
 
         description:
             "Cria garras e presas monstruosas. Enquanto estiverem ativas, seus ataques desarmados causam +1 dado de dano."
+    },
 
+
+    {
+        id:"lamina-de-sangue",
+        name:"Lâmina de Sangue",
+
+        permanentCost:{
+            type:"pv",
+            value:5
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Cria uma espada formada por sangue coagulado que causa 2d8 + FOR de dano de Sangue."
+    },
+
+
+    {
+        id:"celulas-regenerativas",
+        name:"Células Regenerativas",
+
+        permanentCost:{
+            type:"pv",
+            value:5
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Recupera 2d6 PV no início de cada rodada."
+    },
+
+
+    {
+        id:"espinhoso",
+        name:"Espinhoso",
+
+        permanentCost:{
+            type:"pv",
+            value:5
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Enquanto estiver ativo, sempre que sofrer um ataque corpo a corpo, o atacante recebe 2d6 de dano de Sangue."
+    },
+
+
+    {
+        id:"devorar",
+        name:"Devorar",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Após acertar um ataque corpo a corpo, pode ativar esta habilidade para recuperar 2d10 PV."
+    },
+
+
+    {
+        id:"sangue-compartilhado",
+        name:"Sangue Compartilhado",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Pode transferir seus próprios PV para recuperar PV de um aliado em até 1 posição."
+    },
+
+
+    {
+        id:"musculos-intensificados",
+        name:"Músculos Intensificados",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Recebe +1 em FOR e +3 em testes de Manobra."
+    },
+
+
+    {
+        id:"peitoral-de-ferro",
+        name:"Peitoral de Ferro",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Recebe +1 em VIG e +3 em testes de Fortitude."
+    },
+
+
+    {
+        id:"asas-profanas",
+        name:"Asas Profanas",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Cria asas demoníacas. Seu deslocamento passa a ser 4 posições e você ignora terreno difícil."
+    },
+
+
+    {
+        id:"insensibilidade-a-dor",
+        name:"Insensibilidade à Dor",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Uma vez por cena, reduza um dano recebido em 30."
+    },
+
+
+    {
+        id:"camada-extra",
+        name:"Camada Extra",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "No início de cada Cena de Combate recebe 20 PV temporários."
+    },
+
+
+    {
+        id:"sentir-emocao",
+        name:"Sentir Emoção",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pd",
+            value:4
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Descobre exatamente qual emoção domina um alvo no momento."
+    },
+
+
+    {
+        id:"consumir-e-transformar",
+        name:"Consumir e Transformar",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Uma vez por cena, redistribua seus pontos de atributos, transferindo-os livremente para FOR e VIG até o fim da cena."
+    },
+
+
+    {
+        id:"gula",
+        name:"Gula",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Consome 1 ponto de FOR ou VIG do alvo, adicionando esse ponto ao seu próprio atributo enquanto durar a cena."
+    },
+
+
+    {
+        id:"inveja",
+        name:"Inveja",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Copia a habilidade mais recentemente utilizada por um aliado, podendo utilizá-la apenas uma vez."
+    },
+
+
+    {
+        id:"ira",
+        name:"Ira",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:1
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Seu próximo ataque causa +2d8 de dano. Até o início do seu próximo turno, você não pode utilizar as reações Esquivar ou Bloquear."
+    },
+
+
+    {
+        id:"luxuria",
+        name:"Luxúria",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Recebe +5 em testes de interação. Uma vez por cena, pode dobrar todos os bônus aplicados em um único teste de interação."
+    },
+
+
+    {
+        id:"preguica",
+        name:"Preguiça",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Pode reutilizar 1 PA não gasto na rodada anterior."
+    },
+
+
+    {
+        id:"orgulho",
+        name:"Orgulho",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Enquanto não receber cura ou proteção de aliados, recebe Resistência a dano Mundano e de Sangue."
+    },
+
+
+    {
+        id:"ganancia",
+        name:"Ganância",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:{
+            type:"pa",
+            value:3
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Rouba uma habilidade ou ritual utilizado por uma ameaça. Enquanto não utilizar a habilidade roubada, o alvo também não poderá utilizá-la."
+    },
+
+
+    {
+        id:"vinganca",
+        name:"Vingança",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Sempre que um aliado morrer durante a cena, seu próximo ataque possui Acerto Crítico garantido."
+    },
+
+
+    {
+        id:"instinto-predatorio",
+        name:"Instinto Predatório",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Sempre que uma criatura entrar na sua posição ou iniciar o turno adjacente a você, pode realizar imediatamente um ataque corpo a corpo contra ela. Limite: 1 vez por rodada."
+    },
+
+
+    {
+        id:"elo-carmesim",
+        name:"Elo Carmesim",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Enquanto houver um aliado em até 1 posição de você, ambos recebem +5 na Defesa. Sempre que um dos dois sofrer dano, o outro recebe +5 no próximo ataque contra o agressor."
+    },
+
+
+    {
+        id:"crescimento-anomalo",
+        name:"Crescimento Anômalo",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Sempre que perder permanentemente um membro do corpo, ele cresce novamente após um descanso longo. O novo membro possui aparência grotesca e paranormal, funciona normalmente e não pode ser perdido novamente da mesma forma."
+    },
+
+
+    {
+        id:"frenesi",
+        name:"Frenesi",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        activationCost:null,
+
+        activationType:"Passiva",
+
+        active:true,
+
+        description:
+            "Sempre que reduzir uma criatura a 0 PV, entra em um estado de Frenesi, recuperando imediatamente 2d8 PV. Limite: 1 vez por rodada."
     }
+
+    [
+    {
+        id:"surto-de-adrenalina",
+
+        name:"Surto de Adrenalina",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"pd",
+            value:4
+        },
+
+        description:
+            "Recebe +1 PA temporário até o final da rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"surto-de-acao",
+
+        name:"Surto de Ação",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Uma vez por cena, recebe +2 PA temporários. Esses PA devem ser utilizados na rodada atual.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"reposicionamento",
+
+        name:"Reposicionamento",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"variable",
+            resource:"pa",
+            valuePerUse:1
+        },
+
+        description:
+            "Para cada 1 PA gasto, move um aliado em até 1 posição.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"resgate",
+
+        name:"Resgate",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Pode se deslocar até 1 posição sem gastar PA. Além disso, recebe bônus em cura igual a INT ×2.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"inspirar-confianca",
+
+        name:"Inspirar Confiança",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:2,
+            pa:1
+        },
+
+        description:
+            "Reação. Ao ver um aliado realizar um teste, ele pode rerrolar o teste.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"prontidao",
+
+        name:"Prontidão",
+
+        permanentCost:{
+            type:"pd",
+            value:6
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. No início da cena, todos os aliados recebem +1 PA temporário no início da rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"brecha-na-guarda",
+
+        name:"Brecha na Guarda",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Reação. Quando um aliado adjacente acerta um ataque, você pode realizar um ataque adicional sem consumir PA. Limite: 1 vez por rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"comandar",
+
+        name:"Comandar",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Concede 1 PA seu a um aliado em até 2 posições.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"oficial-comandante",
+
+        name:"Oficial Comandante",
+
+        permanentCost:{
+            type:"pd",
+            value:6
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:5,
+            pa:3
+        },
+
+        description:
+            "Uma vez por cena, aliados recebem +1 PA temporário e PD temporários. O total de PD distribuído não pode ultrapassar seu nível.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"valentao",
+
+        name:"Valentão",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pd",
+            value:1
+        },
+
+        description:
+            "Pode utilizar FOR no lugar de PRE em testes de Intimidação e realizar o teste como ação livre.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"contatos-oportunos",
+
+        name:"Contatos Oportunos",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:4,
+            pa:1
+        },
+
+        description:
+            "Convoca um aliado temporário. O aliado chega em aproximadamente 10 minutos.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"determinacao-fisica",
+
+        name:"Determinação Física",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Ao realizar testes de Investigação, pode usar FOR ou AGI no lugar de INT.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"so-mais-um-passo",
+
+        name:"Só Mais um Passo...",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pd",
+            value:5
+        },
+
+        description:
+            "Ao atingir 0 PV, permanece com 1 PV em vez de cair. Pode usar um número de vezes igual ao VIG. Não funciona contra Morte Letal.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"determinacao",
+
+        name:"Determinação",
+
+        permanentCost:{
+            type:"pd",
+            value:7
+        },
+
+        useCost:{
+            type:"pd",
+            value:5
+        },
+
+        description:
+            "Sobrevive a um dano que causaria Morte Letal. Limite: 1 vez por cena.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"chagas-da-resistencia",
+
+        name:"Chagas da Resistência",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Uma vez por cena, ao atingir 0 PD, sofre 5 PV de dano e permanece com 1 PD.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"segunda-chance",
+
+        name:"Segunda Chance",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Uma vez por cena, ao cair a 0 PV, ainda pode realizar 1 ação antes de cair.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"paramedico",
+
+        name:"Paramédico",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:2,
+            pa:1
+        },
+
+        description:
+            "Cura 2d10 PV.",
+
+        upgrade:
+            "Para cada +3 PD adicionais gastos, a cura aumenta em +2d10 PV."
+    },
+
+
+    {
+        id:"equipe-de-trauma",
+
+        name:"Equipe de Trauma",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        description:
+            "Remove uma condição negativa do alvo.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"reanimacao",
+
+        name:"Reanimação",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:10,
+            pa:2
+        },
+
+        description:
+            "Revive um personagem na mesma cena. Pode ser utilizado um número de vezes igual ao INT. Não funciona em casos de Morte Letal.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"dorminhoco",
+
+        name:"Dorminhoco",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Em cenas de descanso, recupera o dobro baseado no conforto oferecido.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"recuperando-folego",
+
+        name:"Recuperando Fôlego",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. A cada 10 pontos de dano causado, ganha 1 PD temporário. O máximo de PD temporário acumulado é igual ao seu nível.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"reciclar-energia",
+
+        name:"Reciclar Energia",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        description:
+            "Ao falhar ao conjurar um ritual, recupera metade do PD gasto.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"reserva-oculta",
+
+        name:"Reserva Oculta",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. No início do combate, recebe PD temporários iguais ao PRE.",
+
+        upgrade:null
+    }
+
+    [
+    {
+        id:"escolhido-pelo-outro-lado",
+
+        name:"Escolhido Pelo Outro Lado",
+
+        permanentCost:{
+            type:"mixed-permanent",
+            pv:7,
+            pd:4
+        },
+
+        useCost:{
+            type:"variable"
+        },
+
+        description:
+            "Adquire pontos elementais de Sangue, Morte, Energia e Conhecimento. Começa com 3 pontos elementais. A cada nível ímpar desbloqueia 1 slot de ponto comprável por 2 PV. É necessário para Assimilações.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"abrir-fenda",
+
+        name:"Abrir Fenda",
+
+        permanentCost:{
+            type:"pv",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Sacrifica 2 pontos elementais para adquirir 1 ponto em Medo. Libera os caminhos e Assimilações de Medo. Não consome slot de habilidade.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"elemento-favorito",
+
+        name:"Elemento Favorito",
+
+        permanentCost:{
+            type:"pv",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Recebe +1 ponto elemental imediatamente e outro no nível 10. Apenas 1 elemento pode ser desbloqueado por esta habilidade.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"nos-olhos-do-monstro",
+
+        name:"Nos Olhos do Monstro",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pd",
+            value:3
+        },
+
+        description:
+            "Recebe +5 em testes de resistência mental.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"camuflar-ocultismo",
+
+        name:"Camuflar Ocultismo",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Oculta símbolos e manifestações ao conjurar rituais. Também permite conjurar sem gestos.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"criar-selo",
+
+        name:"Criar Selo",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"ritual-plus-pd",
+            pd:2
+        },
+
+        description:
+            "Armazena um ritual em um item de combate. O uso custa 2 PD além do custo normal do ritual.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"especialista-em-elemento",
+
+        name:"Especialista em Elemento",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Seus rituais recebem +2 na DT.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"conjurador-talentoso",
+
+        name:"Conjurador Talentoso",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +5 em testes de conjuração.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"guiado-pelo-paranormal",
+
+        name:"Guiado pelo Paranormal",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Recebe uma ação extra de investigação.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"identificacao-paranormal",
+
+        name:"Identificação Paranormal",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +10 em testes de Ocultismo que não envolvem conjuração.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"improvisar-componentes",
+
+        name:"Improvisar Componentes",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Cria componentes ou oferendas improvisadas.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"conjuracao-rapida",
+
+        name:"Conjuração Rápida",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"pd",
+            value:3
+        },
+
+        description:
+            "Reduz o custo de rituais de 4 PA para 3 PA.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"treinamento-rigoroso",
+
+        name:"Treinamento Rigoroso",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Escolha uma opção: Arma recebe +4 de dano e +1 na margem crítica; ou Escudo recebe +2 Defesa e +3 RD. Ao adquirir duas vezes, recebe +1 FOR, VIG ou AGI.",
+
+        upgrade:
+            "Ao adquirir esta habilidade duas vezes, recebe +1 em FOR, VIG ou AGI."
+    },
+
+
+    {
+        id:"elemento-resistente",
+
+        name:"Elemento Resistente",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe RD 2 para cada ponto elemental em um elemento.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"contrato-paranormal",
+
+        name:"Contrato Paranormal",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        requirement:
+            "5 pontos elementais em um elemento",
+
+        description:
+            "Faz um vínculo com uma entidade do Outro Lado. A entidade pode auxiliar conjurações, mas exige algo em troca definido pelo mestre. Apenas 1 contrato pode existir; se for quebrado, não pode fazer outro.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"possuido",
+
+        name:"Possuído",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        requirement:
+            "10 pontos elementais",
+
+        description:
+            "Permite manifestação parcial de uma entidade no corpo. Concede rituais instantâneos, imunidade elemental, +20 PV temporários e +10 PD temporários. Os efeitos negativos são definidos pelo mestre.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"adepto-paranormal",
+
+        name:"Adepto Paranormal",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Pode transferir até 3 pontos elementais entre elementos ao final de uma missão. Não ultrapassa limites e só pode ser usado 1 vez por missão.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"dor-e-uma-bencao",
+
+        name:"Dor é uma Benção",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sempre que sofrer 10 de dano em um único golpe, ganha +1 ponto elemental temporário. Esses pontos podem ser acumulados e utilizados normalmente em rituais.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"disparo-letal",
+
+        name:"Disparo Letal",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +2 na margem de ameaça com armas de disparo.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"ritual-gravado",
+
+        name:"Ritual Gravado",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Uma vez por cena, pode reutilizar um ritual já conjurado sem custo adicional de PD. O ritual ainda respeita os limites de pontos elementais e PD.",
+
+        upgrade:null
+    }
+
+    [
+    {
+        id:"carteirada",
+
+        name:"Carteirada",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Ganha treinamento em Diplomacia ou Artifício. Se já for treinado, recebe +5 no teste. Também possui acesso a documentos e autoridade oficial.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"mente-disciplinada",
+
+        name:"Mente Disciplinada",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +5 em testes de Vontade.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"observador",
+
+        name:"Observador",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +5 em testes de Percepção.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"conhecimento-amplo",
+
+        name:"Conhecimento Amplo",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Escolha duas perícias. Ao realizar um teste com uma dessas perícias, pode adicionar 1d6 ao teste.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"sortudo",
+
+        name:"Sortudo",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"pd",
+            value:2
+        },
+
+        description:
+            "Role novamente um teste recém realizado. Deve utilizar o novo resultado. Limite: 1 vez por rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"presenca-marcante",
+
+        name:"Presença Marcante",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +5 em testes de Intimidação ou Interação.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"lider-nato",
+
+        name:"Líder Nato",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:{
+            type:"mixed",
+            pd:2,
+            pa:1
+        },
+
+        description:
+            "Escolha um aliado que possa ouvir você. Ele recebe +5 em um teste realizado até o início do seu próximo turno.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"especialista",
+
+        name:"Especialista",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Escolha uma perícia baseada em INT. Recebe +10 nessa perícia até o fim da cena.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"primeiros-socorros",
+
+        name:"Primeiros Socorros",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:{
+            type:"pa",
+            value:1
+        },
+
+        description:
+            "Realize um teste de Medicina. Em caso de sucesso, o alvo recupera 5 PV. Em um crítico, recupera 10 PV.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"improvisador",
+
+        name:"Improvisador",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Pode utilizar Especialização sem possuir as ferramentas adequadas. Sofre apenas -2 em vez de não poder realizar o teste.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"sobrevivente",
+
+        name:"Sobrevivente",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Recebe +5 em testes de Sobrevivência e necessita de apenas metade da comida e água normalmente exigidas.",
+
+        upgrade:null
+    },
+
+
+    /*======================================================
+    =                  NOVAS HABILIDADES
+    ======================================================*/
+
+    {
+        id:"pressao-constante",
+
+        name:"Pressão Constante",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sempre que acertar 2 ataques consecutivos contra o mesmo alvo, a partir do 3º ataque seus ataques causam +1 dado de dano até errar um ataque ou trocar de alvo.",
+
+        upgrade:null
+    },
+
+
+    /*
+        Existe outro Executor anteriormente.
+        ID diferente para não haver conflito.
+    */
+
+    {
+        id:"executor-2",
+
+        name:"Executor",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sempre que derrotar uma ameaça, seu próximo ataque até o final da rodada recebe +1 dado de dano. Limite: 1 vez por rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"ferimento-profundo",
+
+        name:"Ferimento Profundo",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sempre que obtiver um Acerto Crítico, o alvo recebe a condição Sangramento.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"instinto-de-combate",
+
+        name:"Instinto de Combate",
+
+        permanentCost:{
+            type:"pd",
+            value:3
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sempre que um inimigo errar um ataque contra você, recebe +5 no próximo ataque contra esse inimigo.",
+
+        upgrade:null
+    },
+
+
+    /*
+        Existe outro Carrasco anteriormente.
+        ID diferente para não haver conflito.
+    */
+
+    {
+        id:"carrasco-2",
+
+        name:"Carrasco",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sempre que obtiver um Acerto Crítico, recebe +1 PA temporário. Limite: 1 vez por rodada.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"mira-persistente",
+
+        name:"Mira Persistente",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Caso permaneça uma rodada inteira sem realizar ataques com armas de disparo, seu próximo disparo recebe +10 no teste de ataque.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"escudo-vivo",
+
+        name:"Escudo Vivo",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Enquanto permanecer adjacente a um aliado, ele recebe +3 em Defesa.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"reflexo-instantaneo",
+
+        name:"Reflexo Instantâneo",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sempre que realizar uma Esquiva com sucesso, pode mover 1 posição imediatamente sem consumir PA.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"cacada",
+
+        name:"Caçada",
+
+        permanentCost:{
+            type:"pd",
+            value:4
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Sempre que um inimigo sair voluntariamente do seu alcance, ele recebe -5 em Esquiva até o início do próximo turno.",
+
+        upgrade:null
+    },
+
+
+    {
+        id:"eficiencia",
+
+        name:"Eficiência",
+
+        permanentCost:{
+            type:"pd",
+            value:5
+        },
+
+        useCost:null,
+
+        description:
+            "Passiva. Ao utilizar uma habilidade, pode reduzir pela metade seu custo em PD e PA, arredondando para cima. O custo nunca pode ser reduzido para 0. Pode ser utilizada um número de vezes igual ao INT por cena.",
+
+        upgrade:null
+    }
+
+]
+]
+]
 
 ];
 
