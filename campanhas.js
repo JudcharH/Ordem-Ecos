@@ -618,7 +618,7 @@ function enterCampaign(id){
     );
 
     window.location.href =
-        `mesa.html?campaign=${encodeURIComponent(id)}`;
+        `mesa-login.html?campaign=${encodeURIComponent(id)}`;
 
 }
 
