@@ -1,0 +1,1304 @@
+/*==========================================================
+=                  CAMPANHAS.JS - PARTE 1
+==========================================================*/
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    initCampaigns();
+
+});
+
+
+/*==========================================================
+=                  ESTADO
+==========================================================*/
+
+let campaigns = [];
+
+const STORAGE_KEY = "ordem_campaigns";
+
+
+/*==========================================================
+=                  ELEMENTOS
+==========================================================*/
+
+const campaignList = document.getElementById("campaignList");
+
+const createCampaignButton = document.getElementById("createCampaign");
+
+const searchCampaignInput = document.getElementById("searchCampaign");
+
+const createCampaignModal = document.getElementById("createCampaignModal");
+
+const campaignNameInput = document.getElementById("campaignName");
+
+const campaignDescriptionInput = document.getElementById("campaignDescription");
+
+const campaignBackgroundInput = document.getElementById("campaignBackground");
+
+const saveCampaignButton = document.getElementById("saveCampaign");
+
+const cancelCampaignButton = document.getElementById("cancelCampaign");
+
+
+/*==========================================================
+=                  INICIALIZAÇÃO
+==========================================================*/
+
+function initCampaigns(){
+
+    loadCampaigns();
+
+    renderCampaigns();
+
+    bindCampaignEvents();
+
+}
+
+
+/*==========================================================
+=                  EVENTOS
+==========================================================*/
+
+function bindCampaignEvents(){
+
+    if(createCampaignButton){
+
+        createCampaignButton.addEventListener(
+            "click",
+            openCreateCampaign
+        );
+
+    }
+
+    if(cancelCampaignButton){
+
+        cancelCampaignButton.addEventListener(
+            "click",
+            closeCreateCampaign
+        );
+
+    }
+
+    if(saveCampaignButton){
+
+        saveCampaignButton.addEventListener(
+            "click",
+            createCampaign
+        );
+
+    }
+
+    if(searchCampaignInput){
+
+        searchCampaignInput.addEventListener(
+            "input",
+            event => {
+
+                renderCampaigns(
+                    event.target.value
+                );
+
+            }
+        );
+
+    }
+
+    if(createCampaignModal){
+
+        createCampaignModal.addEventListener(
+            "click",
+            event => {
+
+                if(event.target === createCampaignModal){
+
+                    closeCreateCampaign();
+
+                }
+
+            }
+        );
+
+    }
+
+}
+
+
+/*==========================================================
+=                  ABRIR MODAL
+==========================================================*/
+
+function openCreateCampaign(){
+
+    if(!createCampaignModal){
+
+        return;
+
+    }
+
+    clearCampaignForm();
+
+    createCampaignModal.classList.remove("hidden");
+
+    setTimeout(() => {
+
+        campaignNameInput?.focus();
+
+    }, 50);
+
+}
+
+
+/*==========================================================
+=                  FECHAR MODAL
+==========================================================*/
+
+function closeCreateCampaign(){
+
+    if(!createCampaignModal){
+
+        return;
+
+    }
+
+    createCampaignModal.classList.add("hidden");
+
+    clearCampaignForm();
+
+}
+
+
+/*==========================================================
+=                  LIMPAR FORMULÁRIO
+==========================================================*/
+
+function clearCampaignForm(){
+
+    if(campaignNameInput){
+
+        campaignNameInput.value = "";
+
+    }
+
+    if(campaignDescriptionInput){
+
+        campaignDescriptionInput.value = "";
+
+    }
+
+    if(campaignBackgroundInput){
+
+        campaignBackgroundInput.value = "";
+
+    }
+
+}
+
+
+/*==========================================================
+=                  CRIAR CAMPANHA
+==========================================================*/
+
+async function createCampaign(){
+
+    const name =
+        campaignNameInput?.value.trim() || "";
+
+    const description =
+        campaignDescriptionInput?.value.trim() || "";
+
+    if(!name){
+
+        alert("Digite um nome para a campanha.");
+
+        campaignNameInput?.focus();
+
+        return;
+
+    }
+
+    let background = "";
+
+    const file =
+        campaignBackgroundInput?.files?.[0];
+
+    if(file){
+
+        background = await fileToBase64(file);
+
+    }
+
+    const campaign = {
+
+        id:createId(),
+
+        name,
+
+        description,
+
+        background,
+
+        players:[],
+
+        enemies:[],
+
+        npcs:[],
+
+        scene:"",
+
+        music:"",
+
+        createdAt:Date.now(),
+
+        updatedAt:Date.now()
+
+    };
+
+    campaigns.unshift(campaign);
+
+    saveCampaigns();
+
+    renderCampaigns();
+
+    closeCreateCampaign();
+
+}
+
+
+/*==========================================================
+=                  GERAR ID
+==========================================================*/
+
+function createId(){
+
+    if(
+        typeof crypto !== "undefined" &&
+        crypto.randomUUID
+    ){
+
+        return crypto.randomUUID();
+
+    }
+
+    return (
+        Date.now().toString(36) +
+        Math.random().toString(36).slice(2)
+    );
+
+}
+
+
+/*==========================================================
+=                  IMAGEM -> BASE64
+==========================================================*/
+
+function fileToBase64(file){
+
+    return new Promise((resolve, reject) => {
+
+        const reader = new FileReader();
+
+        reader.onload = () => {
+
+            resolve(reader.result);
+
+        };
+
+        reader.onerror = reject;
+
+        reader.readAsDataURL(file);
+
+    });
+
+}
+
+
+/*==========================================================
+=                  SALVAR
+==========================================================*/
+
+function saveCampaigns(){
+
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(campaigns)
+    );
+
+}
+
+
+/*==========================================================
+=                  CARREGAR
+==========================================================*/
+
+function loadCampaigns(){
+
+    try{
+
+        const saved =
+            localStorage.getItem(STORAGE_KEY);
+
+        campaigns = saved
+            ? JSON.parse(saved)
+            : [];
+
+        if(!Array.isArray(campaigns)){
+
+            campaigns = [];
+
+        }
+
+    }
+    catch(error){
+
+        console.error(
+            "Erro ao carregar campanhas:",
+            error
+        );
+
+        campaigns = [];
+
+    }
+
+}
+
+/*==========================================================
+=              CAMPANHAS.JS - PARTE 2
+==========================================================*/
+
+/*==========================================================
+=                  RENDERIZAR CAMPANHAS
+==========================================================*/
+
+function renderCampaigns(search = ""){
+
+    if(!campaignList){
+
+        return;
+
+    }
+
+    const term = search
+        .trim()
+        .toLowerCase();
+
+    const filteredCampaigns = campaigns.filter(campaign => {
+
+        const name =
+            campaign.name?.toLowerCase() || "";
+
+        const description =
+            campaign.description?.toLowerCase() || "";
+
+        return (
+            name.includes(term) ||
+            description.includes(term)
+        );
+
+    });
+
+    campaignList.innerHTML = "";
+
+    if(filteredCampaigns.length === 0){
+
+        renderEmptyCampaigns(term);
+
+        return;
+
+    }
+
+    filteredCampaigns.forEach(campaign => {
+
+        const card =
+            createCampaignCard(campaign);
+
+        campaignList.appendChild(card);
+
+    });
+
+}
+
+
+/*==========================================================
+=                  ESTADO VAZIO
+==========================================================*/
+
+function renderEmptyCampaigns(searchTerm = ""){
+
+    const empty = document.createElement("div");
+
+    empty.className = "empty-campaigns";
+
+    if(searchTerm){
+
+        empty.innerHTML = `
+            <div class="icon">🔎</div>
+
+            <h3>Nenhuma campanha encontrada</h3>
+
+            <p>
+                Nenhuma campanha corresponde à pesquisa
+                "<strong>${escapeHTML(searchTerm)}</strong>".
+            </p>
+        `;
+
+    }
+    else{
+
+        empty.innerHTML = `
+            <div class="icon">🗡</div>
+
+            <h3>Nenhuma campanha criada</h3>
+
+            <p>
+                Crie sua primeira campanha para começar.
+            </p>
+        `;
+
+    }
+
+    campaignList.appendChild(empty);
+
+}
+
+
+/*==========================================================
+=                  CRIAR CARD
+==========================================================*/
+
+function createCampaignCard(campaign){
+
+    const card =
+        document.createElement("article");
+
+    card.className = "campaign-card";
+
+    card.dataset.campaignId = campaign.id;
+
+    const cover =
+        document.createElement("div");
+
+    cover.className = "campaign-cover";
+
+    if(campaign.background){
+
+        cover.style.backgroundImage =
+            `url("${campaign.background}")`;
+
+        cover.style.backgroundSize = "cover";
+
+        cover.style.backgroundPosition = "center";
+
+        cover.textContent = "";
+
+    }
+    else{
+
+        cover.textContent = "🗡";
+
+    }
+
+    const info =
+        document.createElement("div");
+
+    info.className = "campaign-info";
+
+    const playersCount =
+        Array.isArray(campaign.players)
+            ? campaign.players.length
+            : 0;
+
+    info.innerHTML = `
+        <h2>${escapeHTML(campaign.name)}</h2>
+
+        <p>
+            ${playersCount}
+            ${playersCount === 1 ? "Jogador" : "Jogadores"}
+        </p>
+
+        ${
+            campaign.description
+                ? `<p>${escapeHTML(campaign.description)}</p>`
+                : `<p>Sem descrição.</p>`
+        }
+    `;
+
+    const buttons =
+        document.createElement("div");
+
+    buttons.className = "campaign-buttons";
+
+    const enterButton =
+        document.createElement("button");
+
+    enterButton.className = "enter-button";
+
+    enterButton.textContent = "Entrar";
+
+    enterButton.addEventListener(
+        "click",
+        () => enterCampaign(campaign.id)
+    );
+
+    const editButton =
+        document.createElement("button");
+
+    editButton.className = "edit-button";
+
+    editButton.textContent = "Editar";
+
+    editButton.addEventListener(
+        "click",
+        () => editCampaign(campaign.id)
+    );
+
+    const deleteButton =
+        document.createElement("button");
+
+    deleteButton.className = "delete-button";
+
+    deleteButton.textContent = "Excluir";
+
+    deleteButton.addEventListener(
+        "click",
+        () => deleteCampaign(campaign.id)
+    );
+
+    buttons.append(
+        enterButton,
+        editButton,
+        deleteButton
+    );
+
+    card.append(
+        cover,
+        info,
+        buttons
+    );
+
+    return card;
+
+}
+
+
+/*==========================================================
+=                  ENTRAR NA CAMPANHA
+==========================================================*/
+
+function enterCampaign(id){
+
+    const campaign =
+        campaigns.find(
+            campaign => campaign.id === id
+        );
+
+    if(!campaign){
+
+        return;
+
+    }
+
+    localStorage.setItem(
+        "ordem_current_campaign",
+        id
+    );
+
+    window.location.href =
+        `mesa.html?campaign=${encodeURIComponent(id)}`;
+
+}
+
+
+/*==========================================================
+=                  EDITAR CAMPANHA
+==========================================================*/
+
+async function editCampaign(id){
+
+    const campaign =
+        campaigns.find(
+            campaign => campaign.id === id
+        );
+
+    if(!campaign){
+
+        return;
+
+    }
+
+    const newName = prompt(
+        "Nome da campanha:",
+        campaign.name
+    );
+
+    if(newName === null){
+
+        return;
+
+    }
+
+    const name =
+        newName.trim();
+
+    if(!name){
+
+        alert(
+            "O nome da campanha não pode ficar vazio."
+        );
+
+        return;
+
+    }
+
+    const newDescription = prompt(
+        "Descrição da campanha:",
+        campaign.description || ""
+    );
+
+    if(newDescription === null){
+
+        return;
+
+    }
+
+    campaign.name = name;
+
+    campaign.description =
+        newDescription.trim();
+
+    campaign.updatedAt =
+        Date.now();
+
+    saveCampaigns();
+
+    renderCampaigns(
+        searchCampaignInput?.value || ""
+    );
+
+}
+
+
+/*==========================================================
+=                  EXCLUIR CAMPANHA
+==========================================================*/
+
+function deleteCampaign(id){
+
+    const campaign =
+        campaigns.find(
+            campaign => campaign.id === id
+        );
+
+    if(!campaign){
+
+        return;
+
+    }
+
+    const confirmed = confirm(
+        `Excluir a campanha "${campaign.name}"?\n\nEssa ação não poderá ser desfeita.`
+    );
+
+    if(!confirmed){
+
+        return;
+
+    }
+
+    campaigns = campaigns.filter(
+        campaign => campaign.id !== id
+    );
+
+    saveCampaigns();
+
+    renderCampaigns(
+        searchCampaignInput?.value || ""
+    );
+
+}
+
+
+/*==========================================================
+=                  PROTEÇÃO HTML
+==========================================================*/
+
+function escapeHTML(value){
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+
+/*==========================================================
+=                  ESC FECHA MODAL
+==========================================================*/
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if(
+            event.key === "Escape" &&
+            createCampaignModal &&
+            !createCampaignModal.classList.contains("hidden")
+        ){
+
+            closeCreateCampaign();
+
+        }
+
+    }
+);
+
+
+/*==========================================================
+=                  API GLOBAL
+==========================================================*/
+
+window.CampaignAPI = {
+
+    getAll(){
+
+        return [...campaigns];
+
+    },
+
+    getById(id){
+
+        return campaigns.find(
+            campaign => campaign.id === id
+        ) || null;
+
+    },
+
+    reload(){
+
+        loadCampaigns();
+
+        renderCampaigns();
+
+    }
+
+};
+
+/*==========================================================
+=              CAMPANHAS.JS - PARTE 3
+==========================================================*/
+
+/*==========================================================
+=          CRIAÇÃO SEM MODAL (FALLBACK)
+==========================================================*/
+
+function createCampaignFallback(){
+
+    const name = prompt(
+        "Nome da campanha:"
+    );
+
+    if(name === null){
+
+        return;
+
+    }
+
+    const cleanName = name.trim();
+
+    if(!cleanName){
+
+        alert(
+            "Digite um nome para a campanha."
+        );
+
+        return;
+
+    }
+
+    const description = prompt(
+        "Descrição da campanha:",
+        ""
+    );
+
+    const campaign = {
+
+        id:createId(),
+
+        name:cleanName,
+
+        description:
+            description?.trim() || "",
+
+        background:"",
+
+        players:[],
+
+        enemies:[],
+
+        npcs:[],
+
+        scene:"",
+
+        music:"",
+
+        inviteCode:createInviteCode(),
+
+        createdAt:Date.now(),
+
+        updatedAt:Date.now()
+
+    };
+
+    campaigns.unshift(campaign);
+
+    saveCampaigns();
+
+    renderCampaigns();
+
+}
+
+
+/*==========================================================
+=          BOTÃO NOVA CAMPANHA
+==========================================================*/
+
+function openCreateCampaign(){
+
+    if(createCampaignModal){
+
+        clearCampaignForm();
+
+        createCampaignModal
+            .classList
+            .remove("hidden");
+
+        setTimeout(() => {
+
+            campaignNameInput?.focus();
+
+        },50);
+
+        return;
+
+    }
+
+    createCampaignFallback();
+
+}
+
+
+/*==========================================================
+=              CÓDIGO DE CONVITE
+==========================================================*/
+
+function createInviteCode(){
+
+    const chars =
+        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    let code = "";
+
+    for(let i=0;i<8;i++){
+
+        const index =
+            Math.floor(
+                Math.random() * chars.length
+            );
+
+        code += chars[index];
+
+    }
+
+    return code;
+
+}
+
+
+/*==========================================================
+=              GARANTIR CÓDIGOS ANTIGOS
+==========================================================*/
+
+function ensureInviteCodes(){
+
+    let changed = false;
+
+    campaigns.forEach(campaign => {
+
+        if(!campaign.inviteCode){
+
+            campaign.inviteCode =
+                createInviteCode();
+
+            changed = true;
+
+        }
+
+    });
+
+    if(changed){
+
+        saveCampaigns();
+
+    }
+
+}
+
+
+/*==========================================================
+=              COPIAR CONVITE
+==========================================================*/
+
+async function copyInviteCode(id){
+
+    const campaign =
+        campaigns.find(
+            campaign => campaign.id === id
+        );
+
+    if(!campaign){
+
+        return;
+
+    }
+
+    try{
+
+        await navigator.clipboard.writeText(
+            campaign.inviteCode
+        );
+
+        alert(
+            `Código copiado: ${campaign.inviteCode}`
+        );
+
+    }
+    catch(error){
+
+        prompt(
+            "Copie o código da campanha:",
+            campaign.inviteCode
+        );
+
+    }
+
+}
+
+
+/*==========================================================
+=              ADICIONAR BOTÃO CONVITE
+==========================================================*/
+
+const originalCreateCampaignCard =
+    createCampaignCard;
+
+createCampaignCard = function(campaign){
+
+    const card =
+        originalCreateCampaignCard(campaign);
+
+    const buttons =
+        card.querySelector(
+            ".campaign-buttons"
+        );
+
+    if(buttons){
+
+        const inviteButton =
+            document.createElement("button");
+
+        inviteButton.className =
+            "invite-button";
+
+        inviteButton.textContent =
+            "Convidar";
+
+        inviteButton.addEventListener(
+            "click",
+            () => copyInviteCode(
+                campaign.id
+            )
+        );
+
+        buttons.insertBefore(
+            inviteButton,
+            buttons.lastElementChild
+        );
+
+    }
+
+    return card;
+
+};
+
+
+/*==========================================================
+=              CSS DOS NOVOS BOTÕES
+==========================================================*/
+
+function injectCampaignStyles(){
+
+    if(
+        document.getElementById(
+            "campaignDynamicStyles"
+        )
+    ){
+
+        return;
+
+    }
+
+    const style =
+        document.createElement("style");
+
+    style.id =
+        "campaignDynamicStyles";
+
+    style.textContent = `
+
+        .invite-button{
+
+            background:#202029;
+
+            color:white;
+
+            border:1px solid var(--border);
+
+        }
+
+        .invite-button:hover{
+
+            border-color:var(--primary);
+
+            background:#292934;
+
+        }
+
+        .delete-button{
+
+            background:#561A1A;
+
+            color:#FFD6D6;
+
+            border:1px solid #772929;
+
+        }
+
+        .delete-button:hover{
+
+            background:#7B2525;
+
+            border-color:#A33B3B;
+
+        }
+
+    `;
+
+    document.head.appendChild(style);
+
+}
+
+
+/*==========================================================
+=              CAMPANHA ATUAL
+==========================================================*/
+
+function getCurrentCampaignId(){
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    return (
+        params.get("campaign") ||
+        localStorage.getItem(
+            "ordem_current_campaign"
+        )
+    );
+
+}
+
+
+/*==========================================================
+=              BUSCAR PELO CÓDIGO
+==========================================================*/
+
+function getCampaignByInviteCode(code){
+
+    if(!code){
+
+        return null;
+
+    }
+
+    const normalized =
+        code.trim().toUpperCase();
+
+    return campaigns.find(
+        campaign =>
+            campaign.inviteCode ===
+            normalized
+    ) || null;
+
+}
+
+
+/*==========================================================
+=              ENTRAR POR CONVITE
+==========================================================*/
+
+function joinCampaignByCode(code){
+
+    const campaign =
+        getCampaignByInviteCode(code);
+
+    if(!campaign){
+
+        return false;
+
+    }
+
+    localStorage.setItem(
+        "ordem_current_campaign",
+        campaign.id
+    );
+
+    window.location.href =
+        `mesa.html?campaign=${encodeURIComponent(
+            campaign.id
+        )}`;
+
+    return true;
+
+}
+
+
+/*==========================================================
+=              ATUALIZAR CAMPANHA
+==========================================================*/
+
+function updateCampaign(id, changes){
+
+    const index =
+        campaigns.findIndex(
+            campaign =>
+                campaign.id === id
+        );
+
+    if(index === -1){
+
+        return false;
+
+    }
+
+    campaigns[index] = {
+
+        ...campaigns[index],
+
+        ...changes,
+
+        id:campaigns[index].id,
+
+        updatedAt:Date.now()
+
+    };
+
+    saveCampaigns();
+
+    renderCampaigns(
+        searchCampaignInput?.value || ""
+    );
+
+    return true;
+
+}
+
+
+/*==========================================================
+=              INICIALIZAÇÃO EXTRA
+==========================================================*/
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        ensureInviteCodes();
+
+        injectCampaignStyles();
+
+    }
+);
+
+
+/*==========================================================
+=              API COMPLETA
+==========================================================*/
+
+window.CampaignAPI = {
+
+    getAll(){
+
+        return [...campaigns];
+
+    },
+
+    getById(id){
+
+        return campaigns.find(
+            campaign =>
+                campaign.id === id
+        ) || null;
+
+    },
+
+    getByInviteCode(code){
+
+        return getCampaignByInviteCode(
+            code
+        );
+
+    },
+
+    getCurrentId(){
+
+        return getCurrentCampaignId();
+
+    },
+
+    joinByCode(code){
+
+        return joinCampaignByCode(
+            code
+        );
+
+    },
+
+    update(id,changes){
+
+        return updateCampaign(
+            id,
+            changes
+        );
+
+    },
+
+    remove(id){
+
+        deleteCampaign(id);
+
+    },
+
+    reload(){
+
+        loadCampaigns();
+
+        ensureInviteCodes();
+
+        renderCampaigns();
+
+    }
+
+};
