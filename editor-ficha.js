@@ -5,8 +5,13 @@
 document.addEventListener(
     "DOMContentLoaded",
     initCharacterEditor
+
+    
 );
 
+characterAbilitiesState = [];
+
+characterAssimilationsState = [];
 
 /*==========================================================
 =                       STORAGE
@@ -34,6 +39,10 @@ let characterPhotoBase64 = "";
 let linkedCampaignId = null;
 
 let characterBodyState = {};
+
+let characterAbilitiesState = [];
+
+let characterAssimilationsState = [];
 
 
 /*==========================================================
@@ -1045,11 +1054,15 @@ function saveCharacter(){
         skills:
             oldCharacter.skills || [],
 
-        abilities:
-            oldCharacter.abilities || [],
+abilities:
+    structuredCloneSafe(
+        characterAbilitiesState
+    ),
 
-        assimilations:
-            oldCharacter.assimilations || [],
+assimilations:
+    structuredCloneSafe(
+        characterAssimilationsState
+    ),
 
         inventory:
             oldCharacter.inventory || [],
@@ -1404,6 +1417,22 @@ function loadCharacterIntoEditor(){
             "true";
 
     }
+
+    characterAbilitiesState =
+    structuredCloneSafe(
+        editingCharacter.abilities ||
+        []
+    );
+
+characterAssimilationsState =
+    structuredCloneSafe(
+        editingCharacter.assimilations ||
+        []
+    );
+
+renderAbilityEditorList();
+
+renderAssimilationEditorList();
 
 });
 
@@ -1860,28 +1889,78 @@ function calculateAutomaticStats(){
     const level =
         Math.max(
             1,
-            Number(characterLevel?.value) || 1
+            Number(
+                characterLevel?.value
+            ) || 1
         );
 
     const vig =
         Math.max(
             0,
-            Number(attributeVIG?.value) || 0
+            Number(
+                attributeVIG?.value
+            ) || 0
         );
 
     const pre =
         Math.max(
             0,
-            Number(attributePRE?.value) || 0
+            Number(
+                attributePRE?.value
+            ) || 0
         );
 
 
     /*======================================================
-    =                    PV CLÁSSICO
+    =              PV BASE
     ======================================================*/
 
-    const calculatedPV =
+    const basePV =
         (7 + vig) * level;
+
+
+    /*======================================================
+    =              CUSTOS PERMANENTES DE PV
+    ======================================================*/
+
+    const permanentPVCost =
+        characterAssimilationsState
+            .reduce(
+                (total,assimilation) => {
+
+                    if(
+                        assimilation
+                            .permanentCost
+                            ?.type !== "pv"
+                    ){
+
+                        return total;
+
+                    }
+
+                    return (
+                        total +
+                        (
+                            Number(
+                                assimilation
+                                    .permanentCost
+                                    .value
+                            ) || 0
+                        )
+                    );
+
+                },
+                0
+            );
+
+
+    const calculatedPV =
+        Math.max(
+            0,
+            basePV -
+            permanentPVCost
+        );
+
 
     if(characterPVMax){
 
@@ -1891,12 +1970,75 @@ function calculateAutomaticStats(){
     }
 
 
+    /*
+        Se o máximo diminuir e o atual
+        ficar acima dele, ajustamos.
+
+        Se o máximo aumentar, NÃO cura.
+    */
+
+    if(
+        characterPV &&
+        Number(characterPV.value) >
+        calculatedPV
+    ){
+
+        characterPV.value =
+            calculatedPV;
+
+    }
+
+
     /*======================================================
-    =                       PD
+    =              PD BASE
     ======================================================*/
 
-    const calculatedPD =
+    const basePD =
         (4 + pre) * level;
+
+
+    /*======================================================
+    =              CUSTOS PERMANENTES DE PD
+    ======================================================*/
+
+    const permanentPDCost =
+        characterAbilitiesState
+            .reduce(
+                (total,ability) => {
+
+                    if(
+                        ability
+                            .permanentCost
+                            ?.type !== "pd"
+                    ){
+
+                        return total;
+
+                    }
+
+                    return (
+                        total +
+                        (
+                            Number(
+                                ability
+                                    .permanentCost
+                                    .value
+                            ) || 0
+                        )
+                    );
+
+                },
+                0
+            );
+
+
+    const calculatedPD =
+        Math.max(
+            0,
+            basePD -
+            permanentPDCost
+        );
+
 
     if(characterPDMax){
 
@@ -1906,16 +2048,44 @@ function calculateAutomaticStats(){
     }
 
 
+    if(
+        characterPD &&
+        Number(characterPD.value) >
+        calculatedPD
+    ){
+
+        characterPD.value =
+            calculatedPD;
+
+    }
+
+
     /*======================================================
-    =                       PA
+    =              PA
     ======================================================*/
 
     const calculatedPA =
-        3 + Math.floor(level / 10);
+        3 +
+        Math.floor(
+            level / 10
+        );
+
 
     if(characterPAMax){
 
         characterPAMax.value =
+            calculatedPA;
+
+    }
+
+
+    if(
+        characterPA &&
+        Number(characterPA.value) >
+        calculatedPA
+    ){
+
+        characterPA.value =
             calculatedPA;
 
     }
@@ -1928,7 +2098,6 @@ function calculateAutomaticStats(){
     calculateBodyMaximums();
 
 }
-
 
 /*==========================================================
 =              PV AUTOMÁTICO DAS PARTES
@@ -3581,6 +3750,1304 @@ function escapeCharacterEditorHTML(
         .replaceAll(
             "'",
             "&#039;"
+        );
+
+}
+
+/*==========================================================
+=              SISTEMA DE HABILIDADES
+==========================================================*/
+
+const DEFAULT_ABILITIES = [
+
+    {
+
+        id:"ataque-especial",
+
+        name:"Ataque Especial",
+
+        permanentCost:{
+
+            type:"pd",
+
+            value:3
+
+        },
+
+        useCost:{
+
+            type:"pd",
+
+            value:2
+
+        },
+
+        description:
+            "Ao realizar um ataque, escolha +5 no teste de ataque ou +5 no dano causado.",
+
+        upgrade:
+            "Para cada +2 PD gastos, recebe +5 adicional, podendo dividir livremente entre ataque e dano."
+
+    }
+
+];
+
+
+function ensureCharacterAbilities(){
+
+    if(
+        !Array.isArray(
+            characterAbilitiesState
+        )
+    ){
+
+        characterAbilitiesState = [];
+
+    }
+
+}
+
+
+/*==========================================================
+=              ADICIONAR HABILIDADE
+==========================================================*/
+
+function addAbilityToCharacter(
+    abilityId
+){
+
+
+    ensureCharacterAbilities();
+
+
+    const ability =
+        DEFAULT_ABILITIES.find(
+            item =>
+                item.id === abilityId
+        );
+
+
+    if(!ability){
+
+        return false;
+
+    }
+
+const alreadyHas =
+    characterAbilitiesState.some(
+            item =>
+                item.id === ability.id
+        );
+
+
+    if(alreadyHas){
+
+        showCharacterEditorMessage(
+            "Habilidade já adquirida",
+            `${ability.name} já pertence ao personagem.`
+        );
+
+        return false;
+
+    }
+
+
+    /*======================================================
+    =              CUSTO PERMANENTE
+    ======================================================*/
+
+    if(
+        ability.permanentCost?.type ===
+        "pd"
+    ){
+
+        const cost =
+            Number(
+                ability.permanentCost.value
+            ) || 0;
+
+
+        const currentMax =
+            Number(
+                characterPDMax?.value
+            ) || 0;
+
+
+        if(currentMax < cost){
+
+            showCharacterEditorMessage(
+                "PD insuficiente",
+                `Você precisa de ${cost} PD máximos para adquirir ${ability.name}.`
+            );
+
+            return false;
+
+        }
+
+
+        characterPDMax.value =
+            Math.max(
+                0,
+                currentMax - cost
+            );
+
+
+        /*
+            Se o PD atual ficar acima do novo máximo,
+            reduzimos o atual também.
+        */
+
+        if(
+            Number(
+                characterPD?.value
+            ) >
+            Number(
+                characterPDMax.value
+            )
+        ){
+
+            characterPD.value =
+                characterPDMax.value;
+
+        }
+
+    }
+
+
+    characterAbilitiesState.push({
+
+        
+
+        id:
+            ability.id,
+
+        name:
+            ability.name,
+
+        description:
+            ability.description,
+
+        upgrade:
+            ability.upgrade,
+
+        permanentCost:
+            ability.permanentCost,
+
+        useCost:
+            ability.useCost,
+
+        acquiredAt:
+            Date.now()
+
+    });
+
+
+    showCharacterEditorMessage(
+        "Habilidade adquirida",
+        `${ability.name} foi adicionada à ficha.`
+    );
+
+
+    renderAbilityEditorList();
+
+    return true;
+
+}
+ calculateAutomaticStats();
+
+/*==========================================================
+=              USAR HABILIDADE
+==========================================================*/
+
+function useCharacterAbility(
+    abilityId
+){
+
+    if(!editingCharacter){
+
+        return false;
+
+    }
+
+
+    const ability =
+        editingCharacter.abilities?.find(
+            item =>
+                item.id === abilityId
+        );
+
+
+    if(!ability){
+
+        return false;
+
+    }
+
+
+    const costType =
+        ability.useCost?.type;
+
+
+    const cost =
+        Number(
+            ability.useCost?.value
+        ) || 0;
+
+
+    if(costType === "pd"){
+
+        const currentPD =
+            Number(
+                characterPD?.value
+            ) || 0;
+
+
+        if(currentPD < cost){
+
+            showCharacterEditorMessage(
+                "PD insuficiente",
+                `Você precisa de ${cost} PD para usar ${ability.name}.`
+            );
+
+            return false;
+
+        }
+
+
+        characterPD.value =
+            currentPD - cost;
+
+    }
+
+
+    if(costType === "pv"){
+
+        const currentPV =
+            Number(
+                characterPV?.value
+            ) || 0;
+
+
+        if(currentPV < cost){
+
+            showCharacterEditorMessage(
+                "PV insuficiente",
+                `Você precisa de ${cost} PV para usar ${ability.name}.`
+            );
+
+            return false;
+
+        }
+
+
+        characterPV.value =
+            currentPV - cost;
+
+    }
+
+
+    if(costType === "pa"){
+
+        const currentPA =
+            Number(
+                characterPA?.value
+            ) || 0;
+
+
+        if(currentPA < cost){
+
+            showCharacterEditorMessage(
+                "PA insuficiente",
+                `Você precisa de ${cost} PA para usar ${ability.name}.`
+            );
+
+            return false;
+
+        }
+
+
+        characterPA.value =
+            currentPA - cost;
+
+    }
+
+
+    showCharacterEditorMessage(
+        ability.name,
+        `Habilidade utilizada. Custo: ${cost} ${String(costType).toUpperCase()}.`
+    );
+
+
+    return true;
+
+}
+
+
+/*==========================================================
+=              RENDERIZAR HABILIDADES
+==========================================================*/
+
+function renderAbilityEditorList(){
+
+    const container =
+        document.getElementById(
+            "abilitiesEditorList"
+        );
+
+
+    if(!container){
+
+        return;
+
+    }
+
+
+    const abilities =
+        editingCharacter?.abilities || [];
+
+
+    if(abilities.length === 0){
+
+        container.innerHTML = `
+
+            <div class="editor-empty-state">
+
+                <span>◇</span>
+
+                <p>
+                    Nenhuma habilidade adicionada.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        abilities
+            .map(ability => `
+
+                <div class="ability-editor-card">
+
+                    <h3>
+                        ${escapeCharacterEditorHTML(
+                            ability.name
+                        )}
+                    </h3>
+
+                    <p>
+                        ${escapeCharacterEditorHTML(
+                            ability.description || ""
+                        )}
+                    </p>
+
+                    ${
+                        ability.upgrade
+                            ? `
+                                <p>
+                                    <strong>Aprimoramento:</strong>
+                                    ${escapeCharacterEditorHTML(
+                                        ability.upgrade
+                                    )}
+                                </p>
+                            `
+                            : ""
+                    }
+
+                    ${
+                        ability.useCost
+                            ? `
+                                <button
+                                    type="button"
+                                    class="primary-button use-ability-button"
+                                    data-ability="${escapeCharacterEditorHTML(
+                                        ability.id
+                                    )}"
+                                >
+
+                                    Usar •
+                                    ${Number(
+                                        ability.useCost.value
+                                    )}
+                                    ${String(
+                                        ability.useCost.type
+                                    ).toUpperCase()}
+
+                                </button>
+                            `
+                            : ""
+                    }
+
+                </div>
+
+            `)
+            .join("");
+
+
+    container
+        .querySelectorAll(
+            ".use-ability-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    useCharacterAbility(
+                        button.dataset.ability
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+
+/*==========================================================
+=              BOTÃO + HABILIDADE
+==========================================================*/
+
+document
+    .getElementById(
+        "addAbilityEditor"
+    )
+    ?.addEventListener(
+        "click",
+        openAbilitySelector
+    );
+
+
+/*==========================================================
+=              SELETOR DE HABILIDADES
+==========================================================*/
+
+function openAbilitySelector(){
+
+    document
+        .getElementById(
+            "abilitySelectorModal"
+        )
+        ?.remove();
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "abilitySelectorModal";
+
+    modal.className =
+        "editor-message";
+
+
+    const cards =
+        DEFAULT_ABILITIES
+            .map(ability => `
+
+                <button
+                    type="button"
+                    class="ability-choice-card"
+                    data-ability="${ability.id}"
+                >
+
+                    <strong>
+                        ${escapeCharacterEditorHTML(
+                            ability.name
+                        )}
+                    </strong>
+
+                    <span>
+                        Custo permanente:
+                        ${ability.permanentCost.value}
+                        ${ability.permanentCost.type.toUpperCase()}
+                    </span>
+
+                    <p>
+                        ${escapeCharacterEditorHTML(
+                            ability.description
+                        )}
+                    </p>
+
+                </button>
+
+            `)
+            .join("");
+
+
+    modal.innerHTML = `
+
+        <div class="prosthetic-editor-modal">
+
+            <span class="section-label">
+                HABILIDADES
+            </span>
+
+            <h2>
+                Adicionar Habilidade
+            </h2>
+
+            <div class="editor-dynamic-list">
+
+                ${cards}
+
+            </div>
+
+            <button
+                type="button"
+                id="closeAbilitySelector"
+                class="secondary-button"
+                style="width:100%;margin-top:18px;"
+            >
+
+                Fechar
+
+            </button>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    modal
+        .querySelectorAll(
+            ".ability-choice-card"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const success =
+                        addAbilityToCharacter(
+                            button.dataset.ability
+                        );
+
+
+                    if(success){
+
+                        modal.remove();
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    modal
+        .querySelector(
+            "#closeAbilitySelector"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+            }
+        );
+
+}
+
+/*==========================================================
+=              ASSIMILAÇÕES DISPONÍVEIS
+==========================================================*/
+
+const DEFAULT_ASSIMILATIONS = [
+
+    {
+
+        id:"presas",
+
+        name:"Presas",
+
+        permanentCost:{
+
+            type:"pv",
+
+            value:5
+
+        },
+
+        activationCost:{
+
+            type:"pa",
+
+            value:1
+
+        },
+
+        activationType:"Ativação",
+
+        active:false,
+
+        description:
+            "Cria garras e presas monstruosas. Enquanto estiverem ativas, seus ataques desarmados causam +1 dado de dano."
+
+    }
+
+];
+
+
+/*==========================================================
+=              GARANTIR ASSIMILAÇÕES
+==========================================================*/
+
+function ensureCharacterAssimilations(){
+
+    if(
+        !Array.isArray(
+            characterAssimilationsState
+        )
+    ){
+
+        characterAssimilationsState = [];
+
+    }
+
+}
+
+
+/*==========================================================
+=              ADQUIRIR ASSIMILAÇÃO
+==========================================================*/
+
+function addAssimilationToCharacter(
+    assimilationId
+){
+
+    ensureCharacterAssimilations();
+
+
+    const assimilation =
+        DEFAULT_ASSIMILATIONS.find(
+            item =>
+                item.id ===
+                assimilationId
+        );
+
+
+    if(!assimilation){
+
+        return false;
+
+    }
+
+
+    const alreadyHas =
+        characterAssimilationsState
+            .some(
+                item =>
+                    item.id ===
+                    assimilation.id
+            );
+
+
+    if(alreadyHas){
+
+        showCharacterEditorMessage(
+            "Assimilação já adquirida",
+            `${assimilation.name} já pertence ao personagem.`
+        );
+
+        return false;
+
+    }
+
+
+    /*======================================================
+    =              VERIFICAR PV BASE
+    ======================================================*/
+
+    const level =
+        Math.max(
+            1,
+            Number(
+                characterLevel?.value
+            ) || 1
+        );
+
+    const vig =
+        Math.max(
+            0,
+            Number(
+                attributeVIG?.value
+            ) || 0
+        );
+
+
+    const basePV =
+        (7 + vig) * level;
+
+
+    const currentPermanentCost =
+        characterAssimilationsState
+            .reduce(
+                (total,item) => {
+
+                    if(
+                        item
+                            .permanentCost
+                            ?.type !== "pv"
+                    ){
+
+                        return total;
+
+                    }
+
+                    return (
+                        total +
+                        (
+                            Number(
+                                item
+                                    .permanentCost
+                                    .value
+                            ) || 0
+                        )
+                    );
+
+                },
+                0
+            );
+
+
+    const newCost =
+        Number(
+            assimilation
+                .permanentCost
+                ?.value
+        ) || 0;
+
+
+    if(
+        basePV -
+        currentPermanentCost -
+        newCost <= 0
+    ){
+
+        showCharacterEditorMessage(
+            "PV insuficiente",
+            `Você não possui PV máximo suficiente para adquirir ${assimilation.name}.`
+        );
+
+        return false;
+
+    }
+
+
+    characterAssimilationsState.push({
+
+        id:
+            assimilation.id,
+
+        name:
+            assimilation.name,
+
+        description:
+            assimilation.description,
+
+        permanentCost:
+            structuredCloneSafe(
+                assimilation.permanentCost
+            ),
+
+        activationCost:
+            structuredCloneSafe(
+                assimilation.activationCost
+            ),
+
+        activationType:
+            assimilation.activationType,
+
+        active:false,
+
+        acquiredAt:
+            Date.now()
+
+    });
+
+
+    calculateAutomaticStats();
+
+    renderAssimilationEditorList();
+
+
+    showCharacterEditorMessage(
+        "Assimilação adquirida",
+        `${assimilation.name} foi adquirida. Seu PV máximo foi reduzido permanentemente em ${newCost}.`
+    );
+
+
+    return true;
+
+}
+
+/*==========================================================
+=              ATIVAR / DESATIVAR ASSIMILAÇÃO
+==========================================================*/
+
+function toggleAssimilation(
+    assimilationId
+){
+
+    const assimilation =
+        characterAssimilationsState
+            .find(
+                item =>
+                    item.id ===
+                    assimilationId
+            );
+
+
+    if(!assimilation){
+
+        return;
+
+    }
+
+
+    /*======================================================
+    =              DESATIVAR
+    ======================================================*/
+
+    if(assimilation.active){
+
+        assimilation.active =
+            false;
+
+        renderAssimilationEditorList();
+
+
+        showCharacterEditorMessage(
+            assimilation.name,
+            "Assimilação desativada."
+        );
+
+
+        return;
+
+    }
+
+
+    /*======================================================
+    =              ATIVAR
+    ======================================================*/
+
+    const cost =
+        Number(
+            assimilation
+                .activationCost
+                ?.value
+        ) || 0;
+
+
+    const type =
+        assimilation
+            .activationCost
+            ?.type;
+
+
+    if(type === "pa"){
+
+        const currentPA =
+            Number(
+                characterPA?.value
+            ) || 0;
+
+
+        if(currentPA < cost){
+
+            showCharacterEditorMessage(
+                "PA insuficiente",
+                `Você precisa de ${cost} PA para ativar ${assimilation.name}.`
+            );
+
+            return;
+
+        }
+
+
+        characterPA.value =
+            currentPA - cost;
+
+    }
+
+
+    assimilation.active =
+        true;
+
+
+    renderAssimilationEditorList();
+
+
+    showCharacterEditorMessage(
+        assimilation.name,
+        `${assimilation.name} foi ativada por ${cost} PA.`
+    );
+
+}
+
+/*==========================================================
+=              LISTA DE ASSIMILAÇÕES
+==========================================================*/
+
+function renderAssimilationEditorList(){
+
+    const container =
+        document.getElementById(
+            "assimilationsEditorList"
+        );
+
+
+    if(!container){
+
+        return;
+
+    }
+
+
+    if(
+        characterAssimilationsState
+            .length === 0
+    ){
+
+        container.innerHTML = `
+
+            <div class="editor-empty-state">
+
+                <span>◈</span>
+
+                <p>
+                    Nenhuma assimilação adicionada.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        characterAssimilationsState
+            .map(
+                assimilation => `
+
+                <div
+                    class="assimilation-editor-card
+                    ${
+                        assimilation.active
+                            ? "active"
+                            : ""
+                    }"
+                >
+
+                    <div class="assimilation-editor-header">
+
+                        <div>
+
+                            <h3>
+                                ${escapeCharacterEditorHTML(
+                                    assimilation.name
+                                )}
+                            </h3>
+
+                            <span class="assimilation-editor-type">
+
+                                ${
+                                    assimilation.active
+                                        ? "ATIVA"
+                                        : escapeCharacterEditorHTML(
+                                            assimilation.activationType ||
+                                            "Assimilação"
+                                        )
+                                }
+
+                            </span>
+
+                        </div>
+
+
+                        <span class="assimilation-editor-cost">
+
+                            ${
+                                Number(
+                                    assimilation
+                                        .permanentCost
+                                        ?.value
+                                ) || 0
+                            }
+                            PV
+
+                        </span>
+
+                    </div>
+
+
+                    <p class="assimilation-editor-description">
+
+                        ${escapeCharacterEditorHTML(
+                            assimilation.description ||
+                            ""
+                        )}
+
+                    </p>
+
+
+                    <button
+                        type="button"
+                        class="${
+                            assimilation.active
+                                ? "secondary-button"
+                                : "primary-button"
+                        } assimilation-toggle-button"
+                        data-assimilation="${escapeCharacterEditorHTML(
+                            assimilation.id
+                        )}"
+                    >
+
+                        ${
+                            assimilation.active
+                                ? "Desativar"
+                                : `Ativar • ${
+                                    Number(
+                                        assimilation
+                                            .activationCost
+                                            ?.value
+                                    ) || 0
+                                } PA`
+                        }
+
+                    </button>
+
+                </div>
+
+            `
+            )
+            .join("");
+
+
+    container
+        .querySelectorAll(
+            ".assimilation-toggle-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    toggleAssimilation(
+                        button.dataset
+                            .assimilation
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+/*==========================================================
+=              BOTÃO + ASSIMILAÇÃO
+==========================================================*/
+
+document
+    .getElementById(
+        "addAssimilationEditor"
+    )
+    ?.addEventListener(
+        "click",
+        openAssimilationSelector
+    );
+
+
+/*==========================================================
+=              SELETOR DE ASSIMILAÇÕES
+==========================================================*/
+
+function openAssimilationSelector(){
+
+    document
+        .getElementById(
+            "assimilationSelectorModal"
+        )
+        ?.remove();
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "assimilationSelectorModal";
+
+    modal.className =
+        "editor-message";
+
+
+    const cards =
+        DEFAULT_ASSIMILATIONS
+            .map(
+                assimilation => `
+
+                <button
+                    type="button"
+                    class="ability-choice-card assimilation-choice-card"
+                    data-assimilation="${assimilation.id}"
+                >
+
+                    <strong>
+                        ${escapeCharacterEditorHTML(
+                            assimilation.name
+                        )}
+                    </strong>
+
+                    <span>
+
+                        Custo:
+                        ${
+                            assimilation
+                                .permanentCost
+                                .value
+                        }
+                        PV
+
+                        •
+
+                        Ativação:
+                        ${
+                            assimilation
+                                .activationCost
+                                .value
+                        }
+                        PA
+
+                    </span>
+
+                    <p>
+                        ${escapeCharacterEditorHTML(
+                            assimilation.description
+                        )}
+                    </p>
+
+                </button>
+
+            `
+            )
+            .join("");
+
+
+    modal.innerHTML = `
+
+        <div class="prosthetic-editor-modal">
+
+            <span class="section-label">
+
+                ASSIMILAÇÕES
+
+            </span>
+
+            <h2>
+
+                Adicionar Assimilação
+
+            </h2>
+
+
+            <div class="editor-dynamic-list">
+
+                ${cards}
+
+            </div>
+
+
+            <button
+                type="button"
+                id="closeAssimilationSelector"
+                class="secondary-button"
+                style="
+                    width:100%;
+                    margin-top:18px;
+                "
+            >
+
+                Fechar
+
+            </button>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    modal
+        .querySelectorAll(
+            ".assimilation-choice-card"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const success =
+                        addAssimilationToCharacter(
+                            button.dataset
+                                .assimilation
+                        );
+
+
+                    if(success){
+
+                        modal.remove();
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    modal
+        .querySelector(
+            "#closeAssimilationSelector"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+            }
         );
 
 }
