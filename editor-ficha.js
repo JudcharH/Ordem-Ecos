@@ -311,18 +311,26 @@ function initCharacterEditor(){
     bindBodyConditionEvents();
 
 
-    if(!editingCharacter){
+    if(editingCharacter){
+
+        loadCharacterIntoEditor();
+
+    }
+    else{
 
         initializeBodyStates();
+
+        calculateAutomaticStats();
 
     }
 
 
     updateLifeSystem();
 
-    calculateAutomaticStats();
-
 }
+
+
+
 
 
 /*==========================================================
@@ -422,6 +430,11 @@ function discoverEditingCharacter(){
     }
 
     loadCharacterIntoEditor();
+initializeBodyStates();
+
+calculateAutomaticStats();
+
+    updateLifeSystem();
 
 }
 
@@ -1549,6 +1562,25 @@ function loadCharacterIntoEditor(){
 
     }
 
+    [
+    bodyHead,
+    bodyChest,
+    bodyLeftArm,
+    bodyRightArm,
+    bodyLeftLeg,
+    bodyRightLeg
+
+].forEach(input=>{
+
+    if(input){
+
+        input.dataset.initialized =
+            "true";
+
+    }
+
+});
+
 
     /*======================================================
 =                       ATRIBUTOS
@@ -1819,7 +1851,6 @@ document.addEventListener(
     }
 );
 
-
 /*==========================================================
 =              STATUS AUTOMÁTICOS
 ==========================================================*/
@@ -1829,25 +1860,19 @@ function calculateAutomaticStats(){
     const level =
         Math.max(
             1,
-            Number(
-                characterLevel?.value
-            ) || 1
+            Number(characterLevel?.value) || 1
         );
 
     const vig =
         Math.max(
             0,
-            Number(
-                attributeVIG?.value
-            ) || 0
+            Number(attributeVIG?.value) || 0
         );
 
     const pre =
         Math.max(
             0,
-            Number(
-                attributePRE?.value
-            ) || 0
+            Number(attributePRE?.value) || 0
         );
 
 
@@ -1857,7 +1882,6 @@ function calculateAutomaticStats(){
 
     const calculatedPV =
         (7 + vig) * level;
-
 
     if(characterPVMax){
 
@@ -1874,7 +1898,6 @@ function calculateAutomaticStats(){
     const calculatedPD =
         (4 + pre) * level;
 
-
     if(characterPDMax){
 
         characterPDMax.value =
@@ -1887,19 +1910,8 @@ function calculateAutomaticStats(){
     =                       PA
     ======================================================*/
 
-    /*
-        Nível 1–9  = 3 PA
-        Nível 10–19 = 4 PA
-        Nível 20–29 = 5 PA
-        etc.
-    */
-
     const calculatedPA =
-        3 +
-        Math.floor(
-            level / 10
-        );
-
+        3 + Math.floor(level / 10);
 
     if(characterPAMax){
 
@@ -1914,283 +1926,6 @@ function calculateAutomaticStats(){
     ======================================================*/
 
     calculateBodyMaximums();
-}
-
-
-/*==========================================================
-=              PV DAS PARTES DO CORPO
-==========================================================*/
-
-/*==========================================================
-=              PV DAS PARTES DO CORPO
-==========================================================*/
-
-function calculateBodyMaximums(vig){
-
-    const bodyValues = {
-
-        head:
-            2 + vig,
-
-        chest:
-            2 + vig,
-
-        leftArm:
-            1 + vig,
-
-        rightArm:
-            1 + vig,
-
-        leftLeg:
-            1 + vig,
-
-        rightLeg:
-            1 + vig
-
-    };
-
-
-    updateBodyPartMaximum(
-        "head",
-        bodyHead,
-        bodyValues.head
-    );
-
-    updateBodyPartMaximum(
-        "chest",
-        bodyChest,
-        bodyValues.chest
-    );
-
-    updateBodyPartMaximum(
-        "leftArm",
-        bodyLeftArm,
-        bodyValues.leftArm
-    );
-
-    updateBodyPartMaximum(
-        "rightArm",
-        bodyRightArm,
-        bodyValues.rightArm
-    );
-
-    updateBodyPartMaximum(
-        "leftLeg",
-        bodyLeftLeg,
-        bodyValues.leftLeg
-    );
-
-    updateBodyPartMaximum(
-        "rightLeg",
-        bodyRightLeg,
-        bodyValues.rightLeg
-    );
-
-    function updateBodyPartMaximum(
-    partName,
-    input,
-    calculatedMax
-){
-
-    if(!input){
-
-        return;
-
-    }
-
-
-    const state =
-        characterBodyState[
-            partName
-        ] || {
-
-            type:"natural"
-
-        };
-
-
-    /*======================================================
-    =                    AUSENTE
-    ======================================================*/
-
-    if(state.type === "missing"){
-
-        input.dataset.max = "0";
-
-        input.disabled = true;
-
-        input.value = "";
-
-        return;
-
-    }
-
-
-    /*==========================================================
-=              INSTALAR PRÓTESE
-==========================================================*/
-
-function installProsthetic(
-    partName
-){
-
-    const part =
-        detachableBodyParts[
-            partName
-        ];
-
-
-    if(!part){
-
-        return;
-
-    }
-
-
-    const nameInput =
-        document.getElementById(
-            "prostheticName"
-        );
-
-    const pvInput =
-        document.getElementById(
-            "prostheticPV"
-        );
-
-
-    const name =
-        nameInput?.value.trim() ||
-        "Prótese";
-
-
-    const maxPV =
-        Math.max(
-            1,
-            Number(
-                pvInput?.value
-            ) || 1
-        );
-
-
-    characterBodyState[
-        partName
-    ] = {
-
-        type:"prosthetic",
-
-        name:name,
-
-        currentPV:maxPV,
-
-        maxPV:maxPV
-
-    };
-
-
-    part.input.disabled =
-        false;
-
-    part.input.value =
-        maxPV;
-
-    part.input.dataset.max =
-        maxPV;
-
-    part.input.dataset.initialized =
-        "true";
-
-
-    document
-        .getElementById(
-            "prostheticCreatorModal"
-        )
-        ?.remove();
-
-
-    renderBodyStates();
-
-
-    showCharacterEditorMessage(
-        "Prótese instalada",
-        `${name} foi instalada em ${part.label} com ${maxPV} PV.`
-    );
-
-}
-
-    /*======================================================
-    =                    NATURAL
-    ======================================================*/
-
-    input.disabled = false;
-
-    const oldMax =
-        Number(
-            input.dataset.max
-        ) || 0;
-
-
-    input.dataset.max =
-        calculatedMax;
-
-
-    /*
-        Primeira vez que o membro é criado:
-        começa cheio.
-    */
-
-    if(
-        input.dataset.initialized !==
-        "true"
-    ){
-
-        input.value =
-            calculatedMax;
-
-        input.dataset.initialized =
-            "true";
-
-        return;
-
-    }
-
-
-    /*
-        Se o máximo diminuir e o atual
-        ficar acima dele, reduzimos.
-    */
-
-    const current =
-        Number(
-            input.value
-        ) || 0;
-
-
-    if(current > calculatedMax){
-
-        input.value =
-            calculatedMax;
-
-    }
-
-
-    /*
-        Se o máximo aumentar:
-        NÃO CURA.
-
-        Exemplo:
-
-        atual 4 / máximo 7
-
-        sobe nível
-
-        atual continua 4
-        máximo vira 10
-    */
-
-}
-
-
-    renderBodyStates();
 
 }
 
@@ -2204,19 +1939,14 @@ function calculateBodyMaximums(){
     const level =
         Math.max(
             1,
-            Number(
-                characterLevel?.value
-            ) || 1
+            Number(characterLevel?.value) || 1
         );
 
     const vig =
         Math.max(
             0,
-            Number(
-                attributeVIG?.value
-            ) || 0
+            Number(attributeVIG?.value) || 0
         );
-
 
     const vigByLevel =
         vig * level;
@@ -2288,6 +2018,211 @@ function calculateBodyMaximums(){
 
 
 /*==========================================================
+=              ATUALIZAR MÁXIMO DO MEMBRO
+==========================================================*/
+
+function updateBodyPartMaximum(
+    partName,
+    input,
+    calculatedMax
+){
+
+    if(!input){
+
+        return;
+
+    }
+
+    const state =
+        characterBodyState[partName] || {
+            type:"natural"
+        };
+
+
+    /*======================================================
+    =                    AUSENTE
+    ======================================================*/
+
+    if(state.type === "missing"){
+
+        input.dataset.max = "0";
+
+        input.disabled = true;
+
+        input.value = "";
+
+        return;
+
+    }
+
+
+    /*======================================================
+    =                    PRÓTESE
+    ======================================================*/
+
+    if(state.type === "prosthetic"){
+
+        const prostheticMax =
+            Math.max(
+                1,
+                Number(state.maxPV) || 1
+            );
+
+        input.dataset.max =
+            prostheticMax;
+
+        input.disabled =
+            false;
+
+        if(state.currentPV === undefined){
+
+            state.currentPV =
+                prostheticMax;
+
+        }
+
+        input.value =
+            state.currentPV;
+
+        return;
+
+    }
+
+
+    /*======================================================
+    =                    NATURAL
+    ======================================================*/
+
+    input.disabled =
+        false;
+
+    input.dataset.max =
+        calculatedMax;
+
+
+    /*
+        Membro novo começa com o PV cheio.
+    */
+
+    if(
+        input.dataset.initialized !==
+        "true"
+    ){
+
+        input.value =
+            calculatedMax;
+
+        input.dataset.initialized =
+            "true";
+
+        return;
+
+    }
+
+
+    /*
+        Se o máximo diminuir,
+        o atual não pode continuar acima dele.
+    */
+
+    const current =
+        Number(input.value) || 0;
+
+    if(current > calculatedMax){
+
+        input.value =
+            calculatedMax;
+
+    }
+
+}
+
+
+/*==========================================================
+=              INSTALAR PRÓTESE
+==========================================================*/
+
+function installProsthetic(
+    partName
+){
+
+    const part =
+        detachableBodyParts[partName];
+
+    if(!part){
+
+        return;
+
+    }
+
+
+    const nameInput =
+        document.getElementById(
+            "prostheticName"
+        );
+
+    const pvInput =
+        document.getElementById(
+            "prostheticPV"
+        );
+
+
+    const name =
+        nameInput?.value.trim() ||
+        "Prótese";
+
+
+    const maxPV =
+        Math.max(
+            1,
+            Number(pvInput?.value) || 1
+        );
+
+
+    characterBodyState[partName] = {
+
+        type:"prosthetic",
+
+        name:name,
+
+        currentPV:maxPV,
+
+        maxPV:maxPV
+
+    };
+
+
+    part.input.disabled =
+        false;
+
+    part.input.value =
+        maxPV;
+
+    part.input.dataset.max =
+        maxPV;
+
+    part.input.dataset.initialized =
+        "true";
+
+
+    document
+        .getElementById(
+            "prostheticCreatorModal"
+        )
+        ?.remove();
+
+
+    renderBodyStates();
+
+
+    showCharacterEditorMessage(
+        "Prótese instalada",
+        `${name} foi instalada em ${part.label} com ${maxPV} PV.`
+    );
+
+}
+
+/*==========================================================
 =              EVENTOS DOS CÁLCULOS
 ==========================================================*/
 
@@ -2312,7 +2247,7 @@ function bindAutomaticStatEvents(){
 
 
 /*==========================================================
-=              LIMITES DO PV ATUAL
+=              LIMITAR PV / PD / PA ATUAL
 ==========================================================*/
 
 function bindCurrentValueLimits(){
@@ -2410,150 +2345,7 @@ function bindCurrentValueLimits(){
 
 
 /*==========================================================
-=              MEMBRO EM 0 = INUTILIZADO
-==========================================================*/
-
-function bindBodyConditionEvents(){
-
-    const bodyInputs = [
-
-        {
-            name:"head",
-            label:"Cabeça",
-            input:bodyHead
-        },
-
-        {
-            name:"chest",
-            label:"Torso",
-            input:bodyChest
-        },
-
-        {
-            name:"leftArm",
-            label:"Braço Esquerdo",
-            input:bodyLeftArm
-        },
-
-        {
-            name:"rightArm",
-            label:"Braço Direito",
-            input:bodyRightArm
-        },
-
-        {
-            name:"leftLeg",
-            label:"Perna Esquerda",
-            input:bodyLeftLeg
-        },
-
-        {
-            name:"rightLeg",
-            label:"Perna Direita",
-            input:bodyRightLeg
-        }
-
-    ];
-
-
-    bodyInputs.forEach(part => {
-
-        part.input?.addEventListener(
-            "input",
-            () => {
-
-                updateBodyPartCondition(
-                    part.name,
-                    part.label,
-                    part.input
-                );
-
-            }
-        );
-
-    });
-
-}
-
-
-/*==========================================================
-=              ESTADO DO MEMBRO
-==========================================================*/
-
-function updateBodyPartCondition(
-    partName,
-    label,
-    input
-){
-
-    if(!input){
-
-        return;
-
-    }
-
-    const current =
-        Number(
-            input.value
-        ) || 0;
-
-
-    const max =
-        Number(
-            input.dataset.max
-        ) || current;
-
-
-    if(current < 0){
-
-        input.value = 0;
-
-    }
-
-
-    if(current > max){
-
-        input.value = max;
-
-    }
-
-
-    const row =
-        input.closest(
-            ".body-member-row"
-        ) ||
-        input.closest(
-            ".status-card"
-        );
-
-
-    if(
-        Number(input.value) <= 0
-    ){
-
-        row?.classList.add(
-            "body-part-disabled"
-        );
-
-        input.dataset.condition =
-            "disabled";
-
-    }
-    else{
-
-        row?.classList.remove(
-            "body-part-disabled"
-        );
-
-        input.dataset.condition =
-            "normal";
-
-    }
-
-}
-
-/*==========================================================
-=              SISTEMA DE MEMBROS
+=              PARTES QUE PODEM SER REMOVIDAS
 ==========================================================*/
 
 const detachableBodyParts = {
@@ -2594,7 +2386,74 @@ const detachableBodyParts = {
 
 
 /*==========================================================
-=              INICIALIZAR ESTADO DOS MEMBROS
+=              EVENTOS DOS MEMBROS
+==========================================================*/
+
+function bindBodyConditionEvents(){
+
+    const parts = [
+
+        {
+            name:"head",
+            label:"Cabeça",
+            input:bodyHead
+        },
+
+        {
+            name:"chest",
+            label:"Torso",
+            input:bodyChest
+        },
+
+        {
+            name:"leftArm",
+            label:"Braço Esquerdo",
+            input:bodyLeftArm
+        },
+
+        {
+            name:"rightArm",
+            label:"Braço Direito",
+            input:bodyRightArm
+        },
+
+        {
+            name:"leftLeg",
+            label:"Perna Esquerda",
+            input:bodyLeftLeg
+        },
+
+        {
+            name:"rightLeg",
+            label:"Perna Direita",
+            input:bodyRightLeg
+        }
+
+    ];
+
+
+    parts.forEach(part => {
+
+        part.input?.addEventListener(
+            "input",
+            () => {
+
+                updateBodyPartCondition(
+                    part.name,
+                    part.label,
+                    part.input
+                );
+
+            }
+        );
+
+    });
+
+}
+
+
+/*==========================================================
+=              INICIALIZAR ESTADOS DO CORPO
 ==========================================================*/
 
 function initializeBodyStates(){
@@ -2609,12 +2468,14 @@ function initializeBodyStates(){
     ){
 
         characterBodyState =
-            structuredCloneSafe(saved);
+            structuredCloneSafe(
+                saved
+            );
 
     }
 
 
-    const allParts = [
+    const parts = [
 
         "head",
         "chest",
@@ -2626,11 +2487,17 @@ function initializeBodyStates(){
     ];
 
 
-    allParts.forEach(part => {
+    parts.forEach(part => {
 
-        if(!characterBodyState[part]){
+        if(
+            !characterBodyState[
+                part
+            ]
+        ){
 
-            characterBodyState[part] = {
+            characterBodyState[
+                part
+            ] = {
 
                 type:"natural"
 
@@ -2647,7 +2514,7 @@ function initializeBodyStates(){
 
 
 /*==========================================================
-=              CLONE SEGURO
+=              CLONAR OBJETO
 ==========================================================*/
 
 function structuredCloneSafe(value){
@@ -2659,10 +2526,12 @@ function structuredCloneSafe(value){
         );
 
     }
-    catch{
+    catch(error){
 
         return JSON.parse(
-            JSON.stringify(value)
+            JSON.stringify(
+                value
+            )
         );
 
     }
@@ -2671,7 +2540,7 @@ function structuredCloneSafe(value){
 
 
 /*==========================================================
-=              RENDERIZAR ESTADO DOS MEMBROS
+=              RENDERIZAR CORPO
 ==========================================================*/
 
 function renderBodyStates(){
@@ -2691,15 +2560,11 @@ function renderBodyStates(){
     );
 
 
-    updateBodyPartCondition(
-        "head",
-        "Cabeça",
+    updateSimpleBodyPartVisual(
         bodyHead
     );
 
-    updateBodyPartCondition(
-        "chest",
-        "Torso",
+    updateSimpleBodyPartVisual(
         bodyChest
     );
 
@@ -2707,16 +2572,12 @@ function renderBodyStates(){
 
 
 /*==========================================================
-=              RENDERIZAR MEMBRO
+=              CABEÇA / TORSO
 ==========================================================*/
 
-function renderDetachableBodyPart(
-    partName,
-    data
+function updateSimpleBodyPartVisual(
+    input
 ){
-
-    const input =
-        data.input;
 
     if(!input){
 
@@ -2729,6 +2590,58 @@ function renderDetachableBodyPart(
         input.closest(
             ".body-member-row"
         );
+
+
+    if(!row){
+
+        return;
+
+    }
+
+
+    row.classList.remove(
+        "body-part-disabled"
+    );
+
+
+    if(
+        Number(input.value) <= 0
+    ){
+
+        row.classList.add(
+            "body-part-disabled"
+        );
+
+    }
+
+}
+
+
+/*==========================================================
+=              RENDERIZAR BRAÇO / PERNA
+==========================================================*/
+
+function renderDetachableBodyPart(
+    partName,
+    data
+){
+
+    const input =
+        data.input;
+
+
+    if(!input){
+
+        return;
+
+    }
+
+
+    const row =
+        input.closest(
+            ".body-member-row"
+        );
+
 
     if(!row){
 
@@ -2787,15 +2700,24 @@ function renderDetachableBodyPart(
             "body-part-missing"
         );
 
-        input.disabled = true;
+        input.disabled =
+            true;
 
-        input.value = "";
+        input.value =
+            "";
+
+        input.dataset.max =
+            "0";
+
 
         controls.innerHTML = `
 
             <span class="body-state-badge missing">
+
                 AUSENTE
+
             </span>
+
 
             <button
                 type="button"
@@ -2805,6 +2727,7 @@ function renderDetachableBodyPart(
                 Regenerar
 
             </button>
+
 
             <button
                 type="button"
@@ -2831,94 +2754,90 @@ function renderDetachableBodyPart(
     =                    PRÓTESE
     ======================================================*/
 
-   if(state.type === "prosthetic"){
+    if(state.type === "prosthetic"){
 
-    row.classList.add(
-        "body-part-prosthetic"
-    );
-
-    input.disabled = false;
-
-    const maxPV =
-        Math.max(
-            1,
-            Number(
-                state.maxPV
-            ) || 1
+        row.classList.add(
+            "body-part-prosthetic"
         );
 
-    input.dataset.max =
-        maxPV;
 
-    input.dataset.initialized =
-        "true";
+        input.disabled =
+            false;
 
 
-    if(
-        state.currentPV === undefined
-    ){
+        const maxPV =
+            Math.max(
+                1,
+                Number(
+                    state.maxPV
+                ) || 1
+            );
 
-        state.currentPV =
+
+        if(
+            state.currentPV ===
+            undefined
+        ){
+
+            state.currentPV =
+                maxPV;
+
+        }
+
+
+        input.dataset.max =
             maxPV;
 
+        input.dataset.initialized =
+            "true";
+
+        input.value =
+            state.currentPV;
+
+
+        controls.innerHTML = `
+
+            <span class="body-state-badge prosthetic">
+
+                ${escapeCharacterEditorHTML(
+                    state.name ||
+                    "Prótese"
+                )}
+
+                • ${Number(
+                    state.currentPV
+                )}/${maxPV}
+
+            </span>
+
+
+            <button
+                type="button"
+                class="body-action-button remove-prosthetic"
+                data-part="${partName}">
+
+                Remover
+
+            </button>
+
+        `;
+
+
+        bindBodyControlButtons(
+            controls
+        );
+
+        return;
+
     }
-
-
-    input.value =
-        state.currentPV;
-
-
-    controls.innerHTML = `
-
-        <span class="body-state-badge prosthetic">
-
-            ${escapeCharacterEditorHTML(
-                state.name ||
-                "PRÓTESE"
-            )}
-
-            • ${Number(
-                state.currentPV
-            )}/${maxPV}
-
-        </span>
-
-        <button
-            type="button"
-            class="body-action-button remove-prosthetic"
-            data-part="${partName}">
-
-            Remover
-
-        </button>
-
-    `;
-
-
-    bindBodyControlButtons(
-        controls
-    );
-
-    return;
-
-}
-function escapeCharacterEditorHTML(value){
-
-    return String(value)
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
-
-}
 
 
     /*======================================================
     =                    NATURAL
     ======================================================*/
 
-    input.disabled = false;
+    input.disabled =
+        false;
 
 
     const current =
@@ -2954,6 +2873,7 @@ function escapeCharacterEditorHTML(value){
 
         </span>
 
+
         <button
             type="button"
             class="body-action-button dismember"
@@ -2972,8 +2892,186 @@ function escapeCharacterEditorHTML(value){
 
 }
 
+
 /*==========================================================
-=              EVENTOS DOS BOTÕES DO CORPO
+=              ESTADO DO MEMBRO
+==========================================================*/
+
+function updateBodyPartCondition(
+    partName,
+    label,
+    input
+){
+
+    if(!input){
+
+        return;
+
+    }
+
+
+    const state =
+        characterBodyState[
+            partName
+        ] || {
+
+            type:"natural"
+
+        };
+
+
+    if(state.type === "missing"){
+
+        return;
+
+    }
+
+
+    let current =
+        Number(
+            input.value
+        ) || 0;
+
+
+    const max =
+        Math.max(
+            0,
+            Number(
+                input.dataset.max
+            ) || 0
+        );
+
+
+    current =
+        Math.max(
+            0,
+            Math.min(
+                current,
+                max
+            )
+        );
+
+
+    input.value =
+        current;
+
+
+    /*======================================================
+    =                    PRÓTESE
+    ======================================================*/
+
+    if(state.type === "prosthetic"){
+
+        state.currentPV =
+            current;
+
+
+        /*
+            Prótese chega a zero:
+            é destruída.
+        */
+
+        if(current <= 0){
+
+            const prostheticName =
+                state.name ||
+                "A prótese";
+
+
+            characterBodyState[
+                partName
+            ] = {
+
+                type:"missing"
+
+            };
+
+
+            input.value =
+                "";
+
+            input.disabled =
+                true;
+
+
+            renderBodyStates();
+
+
+            showCharacterEditorMessage(
+                "Prótese destruída",
+                `${prostheticName} chegou a 0 PV e foi destruída.`
+            );
+
+
+            return;
+
+        }
+
+
+        renderDetachableBodyPart(
+            partName,
+            detachableBodyParts[
+                partName
+            ]
+        );
+
+        return;
+
+    }
+
+
+    /*======================================================
+    =                    NATURAL
+    ======================================================*/
+
+    const row =
+        input.closest(
+            ".body-member-row"
+        );
+
+
+    if(current <= 0){
+
+        row?.classList.add(
+            "body-part-disabled"
+        );
+
+        input.dataset.condition =
+            "disabled";
+
+    }
+    else{
+
+        row?.classList.remove(
+            "body-part-disabled"
+        );
+
+        input.dataset.condition =
+            "normal";
+
+    }
+
+
+    if(
+        detachableBodyParts[
+            partName
+        ]
+    ){
+
+        renderDetachableBodyPart(
+            partName,
+            detachableBodyParts[
+                partName
+            ]
+        );
+
+    }
+
+}
+
+
+/*==========================================================
+=              BOTÕES DOS MEMBROS
 ==========================================================*/
 
 function bindBodyControlButtons(
@@ -3063,6 +3161,7 @@ function dismemberBodyPart(
             partName
         ];
 
+
     if(!part){
 
         return;
@@ -3079,9 +3178,14 @@ function dismemberBodyPart(
     };
 
 
-    part.input.value = "";
+    part.input.value =
+        "";
 
-    part.input.disabled = true;
+    part.input.disabled =
+        true;
+
+    part.input.dataset.max =
+        "0";
 
 
     renderBodyStates();
@@ -3089,7 +3193,7 @@ function dismemberBodyPart(
 
     showCharacterEditorMessage(
         "Membro desmembrado",
-        `${part.label} foi removido. Agora ele pode ser regenerado ou substituído por uma prótese.`
+        `${part.label} foi removido.`
     );
 
 }
@@ -3108,6 +3212,7 @@ function regenerateBodyPart(
             partName
         ];
 
+
     if(!part){
 
         return;
@@ -3115,16 +3220,13 @@ function regenerateBodyPart(
     }
 
 
-    characterBodyState[
-        partName
-    ] = {
-
-        type:"natural"
-
-    };
-
-
-    part.input.disabled = false;
+    const level =
+        Math.max(
+            1,
+            Number(
+                characterLevel?.value
+            ) || 1
+        );
 
 
     const vig =
@@ -3136,25 +3238,59 @@ function regenerateBodyPart(
         );
 
 
-    const naturalMax =
-        (
-            partName === "leftArm" ||
-            partName === "rightArm" ||
-            partName === "leftLeg" ||
-            partName === "rightLeg"
-        )
-            ? 1 + vig
-            : 2 + vig;
+    /*
+        Todos os membros removíveis possuem:
 
+        1 + (VIG × Nível)
+    */
+
+  let naturalMax;
+
+if(
+
+    partName === "leftArm" ||
+
+    partName === "rightArm" ||
+
+    partName === "leftLeg" ||
+
+    partName === "rightLeg"
+
+){
+
+    naturalMax =
+        1 + (
+            vig * level
+        );
+
+}
+else{
+
+    naturalMax =
+        2 + (
+            vig * level
+        );
+
+}
+
+
+    characterBodyState[
+        partName
+    ] = {
+
+        type:"natural"
+
+    };
+
+
+    part.input.disabled =
+        false;
 
     part.input.dataset.max =
         naturalMax;
 
-
-    /*
-        Regenerar traz o membro de volta
-        com o PV natural máximo.
-    */
+    part.input.dataset.initialized =
+        "true";
 
     part.input.value =
         naturalMax;
@@ -3165,7 +3301,286 @@ function regenerateBodyPart(
 
     showCharacterEditorMessage(
         "Membro regenerado",
-        `${part.label} foi restaurado.`
+        `${part.label} foi completamente regenerado.`
     );
+
+}
+
+
+/*==========================================================
+=              REMOVER PRÓTESE
+==========================================================*/
+
+function removeProsthetic(
+    partName
+){
+
+    const part =
+        detachableBodyParts[
+            partName
+        ];
+
+
+    if(!part){
+
+        return;
+
+    }
+
+
+    characterBodyState[
+        partName
+    ] = {
+
+        type:"missing"
+
+    };
+
+
+    part.input.value =
+        "";
+
+    part.input.disabled =
+        true;
+
+    part.input.dataset.max =
+        "0";
+
+
+    renderBodyStates();
+
+
+    showCharacterEditorMessage(
+        "Prótese removida",
+        `${part.label} agora está sem membro.`
+    );
+
+}
+
+
+/*==========================================================
+=              MODAL PARA CRIAR PRÓTESE
+==========================================================*/
+
+function openProstheticCreator(
+    partName
+){
+
+    const part =
+        detachableBodyParts[
+            partName
+        ];
+
+
+    if(!part){
+
+        return;
+
+    }
+
+
+    document
+        .getElementById(
+            "prostheticCreatorModal"
+        )
+        ?.remove();
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "prostheticCreatorModal";
+
+    modal.className =
+        "editor-message";
+
+
+    modal.innerHTML = `
+
+        <div class="prosthetic-editor-modal">
+
+            <span class="section-label">
+
+                PRÓTESE
+
+            </span>
+
+
+            <h2>
+
+                ${escapeCharacterEditorHTML(
+                    part.label
+                )}
+
+            </h2>
+
+
+            <p>
+
+                Defina o nome e o PV máximo da prótese.
+
+            </p>
+
+
+            <div class="field">
+
+                <label for="prostheticName">
+
+                    Nome
+
+                </label>
+
+                <input
+                    type="text"
+                    id="prostheticName"
+                    maxlength="60"
+                    placeholder="Ex: Braço Mecânico">
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="prostheticPV">
+
+                    PV Máximo
+
+                </label>
+
+                <input
+                    type="number"
+                    id="prostheticPV"
+                    min="1"
+                    value="5">
+
+            </div>
+
+
+            <div class="prosthetic-modal-actions">
+
+                <button
+                    type="button"
+                    id="cancelProsthetic"
+                    class="secondary-button">
+
+                    Cancelar
+
+                </button>
+
+
+                <button
+                    type="button"
+                    id="confirmProsthetic"
+                    class="primary-button">
+
+                    Instalar
+
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    modal
+        .querySelector(
+            "#cancelProsthetic"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+            }
+        );
+
+
+    modal
+        .querySelector(
+            "#confirmProsthetic"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                installProsthetic(
+                    partName
+                );
+
+            }
+        );
+
+
+    modal.addEventListener(
+        "click",
+        event => {
+
+            if(event.target === modal){
+
+                modal.remove();
+
+            }
+
+        }
+    );
+
+
+    setTimeout(
+        () => {
+
+            modal
+                .querySelector(
+                    "#prostheticName"
+                )
+                ?.focus();
+
+        },
+        30
+    );
+
+}
+
+
+/*==========================================================
+=              ESCAPE HTML
+==========================================================*/
+
+function escapeCharacterEditorHTML(
+    value
+){
+
+    return String(value)
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
 
 }
