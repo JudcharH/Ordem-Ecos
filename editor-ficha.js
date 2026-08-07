@@ -4885,7 +4885,20 @@ function renderAssimilationEditorList(){
 
                     </button>
 
+<button
+    type="button"
+    class="remove-content-button remove-assimilation-button"
+    data-assimilation="${escapeCharacterEditorHTML(
+        assimilation.id
+    )}"
+>
+
+    Remover
+
+</button>
+
                 </div>
+
 
             `
             )
@@ -4973,41 +4986,58 @@ function openAssimilationSelector(){
         "editor-message";
 
 
+    const cards =
+        DEFAULT_ASSIMILATIONS
+            .map(
+                assimilation => `
 
+                <button
+                    type="button"
+                    class="ability-choice-card assimilation-choice-card"
+                    data-assimilation="${escapeCharacterEditorHTML(
+                        assimilation.id
+                    )}"
+                >
 
-    DEFAULT_ASSIMILATIONS
-        .map(
-            assimilation => `
+                    <strong>
+                        🩸
+                        ${escapeCharacterEditorHTML(
+                            assimilation.name
+                        )}
+                    </strong>
 
-            <button
-                type="button"
-                class="ability-choice-card assimilation-choice-card"
-                data-assimilation="${assimilation.id}"
-            >
+                    <span>
 
-                <strong>
-                    🩸 ${escapeCharacterEditorHTML(
-                        assimilation.name
-                    )}
-                </strong>
+                        ${Number(
+                            assimilation
+                                .permanentCost
+                                ?.value
+                        ) || 0}
+                        PV permanente
 
-                <span>
-                    ${assimilation.permanentCost.value} PV permanente
-                    •
-                    ${assimilation.activationCost.value} PA para ativar
-                </span>
+                        •
 
-                <p>
-                    ${escapeCharacterEditorHTML(
-                        assimilation.description
-                    )}
-                </p>
+                        ${Number(
+                            assimilation
+                                .activationCost
+                                ?.value
+                        ) || 0}
+                        PA para ativar
 
-            </button>
+                    </span>
 
-        `
-        )
-        .join("");
+                    <p>
+                        ${escapeCharacterEditorHTML(
+                            assimilation.description ||
+                            ""
+                        )}
+                    </p>
+
+                </button>
+
+            `
+            )
+            .join("");
 
 
     modal.innerHTML = `
@@ -5068,14 +5098,35 @@ function openAssimilationSelector(){
                 "click",
                 () => {
 
-                    const success =
+                    const result =
                         addAssimilationToCharacter(
                             button.dataset
                                 .assimilation
                         );
 
 
-                    if(success){
+                    /*
+                        Vida clássica:
+                        a Assimilação é adicionada
+                        imediatamente.
+                    */
+
+                    if(result === true){
+
+                        modal.remove();
+
+                        return;
+
+                    }
+
+
+                    /*
+                        Partes do corpo:
+                        precisamos fechar este modal
+                        para abrir o seletor do membro.
+                    */
+
+                    if(result === "waiting"){
 
                         modal.remove();
 
@@ -5099,6 +5150,20 @@ function openAssimilationSelector(){
 
             }
         );
+
+
+    modal.addEventListener(
+        "click",
+        event => {
+
+            if(event.target === modal){
+
+                modal.remove();
+
+            }
+
+        }
+    );
 
 }
 
