@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+Editor de Ficha • ORDEM
+</title>
+
+<link
+rel="stylesheet"
+href="global.css">
+
+<link
+rel="stylesheet"
+href="editor-ficha.css">
+
+<link
+rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link
+rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="background">
+
+<div class="background-overlay"></div>
+
+<div class="particles"></div>
+
+</div>
+
+<main class="character-editor-page">
+
+<!--======================================================
+                    CABEÇALHO
+=======================================================-->
+
+<header class="character-editor-header">
+
+<div class="character-editor-header-left">
+
+<a
+href="ficha.html"
+class="back-button-editor">
+
+← Voltar
+
+</a>
+
+<div>
+
+<span class="editor-eyebrow">
+PERSONAGEM
+</span>
+
+<h1>
+NOVA FICHA
+</h1>
+
+</div>
+
+</div>
+
+<div class="editor-status">
+
+<span class="status-dot"></span>
+
+<span>
+Não salvo
+</span>
+
+</div>
+
+</header>
+
+<!--======================================================
+                BLOCO PRINCIPAL
+=======================================================-->
+
+<section class="character-main-card">
+
+<!--======================================================
+                    FOTO
+=======================================================-->
+
+<div class="character-photo-column">
+
+<div class="character-photo-preview">
+
+<div class="character-photo-placeholder">
+
+<span>
+👤
+</span>
+
+<strong>
+Adicionar Foto
+</strong>
+
+<small>
+PNG, JPG ou WEBP
+</small>
+
+</div>
+
+</div>
+
+<label
+for="characterPhotoInput"
+class="secondary-button character-photo-button">
+
+Selecionar Foto
+
+</label>
+
+<input
+type="file"
+id="characterPhotoInput"
+accept="image/png,image/jpeg,image/webp"
+hidden>
+
+<!--======================================================
+                    PA
+=======================================================-->
+
+<div class="character-resource-card">
+
+<span class="resource-label">
+PA
+</span>
+
+<div class="resource-value">
+
+<input
+type="number"
+id="characterPA"
+value="3">
+
+<span>
+/
+</span>
+
+<input
+type="number"
+id="characterPAMax"
+value="3">
+
+</div>
+
+</div>
+
+</div>
+
+<!--======================================================
+                INFORMAÇÕES
+=======================================================-->
+
+<div class="character-main-info">
+
+<div class="section-heading">
+
+<span class="section-label">
+INFORMAÇÕES
+</span>
+
+<h2>
+Dados do Personagem
+</h2>
+
+</div>
+
+<div class="character-info-grid">
+
+<div class="field character-name-field">
+
+<label for="characterEditorName">
+
+Nome
+
+</label>
+
+<input
+type="text"
+id="characterEditorName"
+placeholder="Nome do personagem">
+
+</div>
+
+<div class="field">
+
+<label for="characterLevel">
+
+Nível
+
+</label>
+
+<input
+type="number"
+id="characterLevel"
+min="1"
+value="1">
+
+</div>
+
+<div class="field">
+
+<label for="characterOrigin">
+
+Origem
+
+</label>
+
+<input
+type="text"
+id="characterOrigin"
+placeholder="Origem">
+
+</div>
+
+<div class="field">
+
+<label for="characterAge">
+
+Idade
+
+</label>
+
+<input
+type="number"
+id="characterAge"
+min="0">
+
+</div>
+
+</div>
+
+<!--======================================================
+                SISTEMA DE VIDA
+=======================================================-->
+
+<div class="life-mode-field">
+
+<label for="lifeMode">
+
+Sistema de Vida
+
+</label>
+
+<select id="lifeMode">
+
+<option value="classic">
+PV Clássico
+</option>
+
+<option value="body">
+Partes do Corpo
+</option>
+
+</select>
+
+</div>
+
+<!--======================================================
+                PV CLÁSSICO
+=======================================================-->
+
+<div
+id="classicLifeSystem"
+class="life-system-panel">
+
+<div class="status-grid">
+
+<div class="status-card">
+
+<span>
+PV Atual
+</span>
+
+<input
+type="number"
+id="characterPV">
+
+</div>
+
+<div class="status-card">
+
+<span>
+PV Máximo
+</span>
+
+<input
+type="number"
+id="characterPVMax">
+
+</div>
+
+<div class="status-card">
+
+<span>
+PV Temporário
+</span>
+
+<input
+type="number"
+id="characterPVTemp"
+value="0">
+
+</div>
+
+</div>
+
+</div>
+
+<!--======================================================
+                PD
+=======================================================-->
+
+<div class="status-grid pd-grid">
+
+<div class="status-card">
+
+<span>
+PD Atual
+</span>
+
+<input
+type="number"
+id="characterPD">
+
+</div>
+
+<div class="status-card">
+
+<span>
+PD Máximo
+</span>
+
+<input
+type="number"
+id="characterPDMax">
+
+</div>
+
+<div class="status-card">
+
+<span>
+PD Temporário
+</span>
+
+<input
+type="number"
+id="characterPDTemp"
+value="0">
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                PARTES DO CORPO
+=======================================================-->
+
+<div
+id="bodyLifeSystem"
+class="life-system-panel hidden">
+
+<div class="body-system-layout">
+
+<!--==============================
+            IMAGEM
+===============================-->
+
+<div class="body-system-image">
+
+<img
+src="assets/body.png"
+id="bodySystemImage"
+alt="Corpo">
+
+</div>
+
+<!--==============================
+            INFORMAÇÕES
+===============================-->
+
+<div class="body-system-info">
+
+<div class="section-heading">
+
+<span class="section-label">
+CORPO
+</span>
+
+<h2>
+Informações do Corpo
+</h2>
+
+</div>
+
+<div
+id="bodyInfoPanel"
+class="body-info-panel">
+
+Selecione uma parte do corpo para visualizar suas informações.
+
+</div>
+
+</div>
+
+<!--==============================
+            MEMBROS
+===============================-->
+
+<div class="body-members">
+
+<div class="body-member-row">
+
+<span>
+Cabeça
+</span>
+
+<input
+type="number"
+id="bodyHead">
+
+</div>
+
+<div class="body-member-row">
+
+<span>
+Peito
+</span>
+
+<input
+type="number"
+id="bodyChest">
+
+</div>
+
+<div class="body-member-row">
+
+<span>
+Abdômen
+</span>
+
+<input
+type="number"
+id="bodyAbdomen">
+
+</div>
+
+<div class="body-member-row">
+
+<span>
+Braço Esq.
+</span>
+
+<input
+type="number"
+id="bodyLeftArm">
+
+</div>
+
+<div class="body-member-row">
+
+<span>
+Braço Dir.
+</span>
+
+<input
+type="number"
+id="bodyRightArm">
+
+</div>
+
+<div class="body-member-row">
+
+<span>
+Perna Esq.
+</span>
+
+<input
+type="number"
+id="bodyLeftLeg">
+
+</div>
+
+<div class="body-member-row">
+
+<span>
+Perna Dir.
+</span>
+
+<input
+type="number"
+id="bodyRightLeg">
+
+</div>
+
+<div class="status-card body-temp-card">
+
+<span>
+PV Temporário
+</span>
+
+<input
+type="number"
+id="bodyTemporaryPV"
+value="0">
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<!--======================================================
+                    ATRIBUTOS
+=======================================================-->
+
+<section class="editor-section-card">
+
+<div class="section-heading">
+
+<span class="section-label">
+ATRIBUTOS
+</span>
+
+<h2>
+Atributos do Personagem
+</h2>
+
+</div>
+
+<div class="attributes-grid">
+
+<div class="attribute-card">
+
+<span>
+FOR
+</span>
+
+<input
+type="number"
+id="attributeFOR"
+value="1">
+
+</div>
+
+<div class="attribute-card">
+
+<span>
+AGI
+</span>
+
+<input
+type="number"
+id="attributeAGI"
+value="1">
+
+</div>
+
+<div class="attribute-card">
+
+<span>
+INT
+</span>
+
+<input
+type="number"
+id="attributeINT"
+value="1">
+
+</div>
+
+<div class="attribute-card">
+
+<span>
+VIG
+</span>
+
+<input
+type="number"
+id="attributeVIG"
+value="1">
+
+</div>
+
+<div class="attribute-card">
+
+<span>
+PRE
+</span>
+
+<input
+type="number"
+id="attributePRE"
+value="1">
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                    PERÍCIAS
+=======================================================-->
+
+<section class="editor-section-card">
+
+<div class="section-heading">
+
+<span class="section-label">
+PERÍCIAS
+</span>
+
+<h2>
+Perícias
+</h2>
+
+</div>
+
+<div class="skills-table">
+
+<div class="skills-table-header">
+
+<span>
+Perícia
+</span>
+
+<span>
+Atributo
+</span>
+
+<span>
+Treino
+</span>
+
+<span>
+Bônus
+</span>
+
+<span>
+Penal.
+</span>
+
+<span>
+Total
+</span>
+
+</div>
+
+<div
+id="skillsEditorList"
+class="skills-editor-list">
+
+<!-- JavaScript futuramente -->
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                ATAQUES RÁPIDOS
+=======================================================-->
+
+<section class="editor-section-card">
+
+<div class="section-heading">
+
+<span class="section-label">
+ATAQUES
+</span>
+
+<h2>
+Ataques Rápidos
+</h2>
+
+<p class="section-description">
+Configure até quatro ataques para acesso rápido durante a campanha.
+</p>
+
+</div>
+
+<div class="quick-attacks-grid">
+
+<!-- ATAQUE 1 -->
+
+<div class="quick-attack-card">
+
+<div class="quick-attack-header">
+
+<span class="quick-attack-slot">
+1
+</span>
+
+<h3>
+Ataque 1
+</h3>
+
+</div>
+
+<div class="field">
+
+<label for="attack1Name">
+Nome
+</label>
+
+<input
+type="text"
+id="attack1Name"
+placeholder="Ex: Machado">
+
+</div>
+
+<div class="field">
+
+<label for="attack1Icon">
+Ícone / Imagem
+</label>
+
+<input
+type="file"
+id="attack1Icon"
+accept="image/*">
+
+</div>
+
+<div class="quick-attack-values">
+
+<div class="field">
+
+<label for="attack1Roll">
+Ataque
+</label>
+
+<input
+type="text"
+id="attack1Roll"
+placeholder="Ex: 1d20 + 5">
+
+</div>
+
+<div class="field">
+
+<label for="attack1Damage">
+Dano
+</label>
+
+<input
+type="text"
+id="attack1Damage"
+placeholder="Ex: 2d8 + FOR">
+
+</div>
+
+</div>
+
+</div>
+
+<!-- ATAQUE 2 -->
+
+<div class="quick-attack-card">
+
+<div class="quick-attack-header">
+
+<span class="quick-attack-slot">
+2
+</span>
+
+<h3>
+Ataque 2
+</h3>
+
+</div>
+
+<div class="field">
+
+<label for="attack2Name">
+Nome
+</label>
+
+<input
+type="text"
+id="attack2Name"
+placeholder="Ex: Pistola">
+
+</div>
+
+<div class="field">
+
+<label for="attack2Icon">
+Ícone / Imagem
+</label>
+
+<input
+type="file"
+id="attack2Icon"
+accept="image/*">
+
+</div>
+
+<div class="quick-attack-values">
+
+<div class="field">
+
+<label for="attack2Roll">
+Ataque
+</label>
+
+<input
+type="text"
+id="attack2Roll">
+
+</div>
+
+<div class="field">
+
+<label for="attack2Damage">
+Dano
+</label>
+
+<input
+type="text"
+id="attack2Damage">
+
+</div>
+
+</div>
+
+</div>
+
+<!-- ATAQUE 3 -->
+
+<div class="quick-attack-card">
+
+<div class="quick-attack-header">
+
+<span class="quick-attack-slot">
+3
+</span>
+
+<h3>
+Ataque 3
+</h3>
+
+</div>
+
+<div class="field">
+
+<label for="attack3Name">
+Nome
+</label>
+
+<input
+type="text"
+id="attack3Name">
+
+</div>
+
+<div class="field">
+
+<label for="attack3Icon">
+Ícone / Imagem
+</label>
+
+<input
+type="file"
+id="attack3Icon"
+accept="image/*">
+
+</div>
+
+<div class="quick-attack-values">
+
+<div class="field">
+
+<label for="attack3Roll">
+Ataque
+</label>
+
+<input
+type="text"
+id="attack3Roll">
+
+</div>
+
+<div class="field">
+
+<label for="attack3Damage">
+Dano
+</label>
+
+<input
+type="text"
+id="attack3Damage">
+
+</div>
+
+</div>
+
+</div>
+
+<!-- ATAQUE 4 -->
+
+<div class="quick-attack-card">
+
+<div class="quick-attack-header">
+
+<span class="quick-attack-slot">
+4
+</span>
+
+<h3>
+Ataque 4
+</h3>
+
+</div>
+
+<div class="field">
+
+<label for="attack4Name">
+Nome
+</label>
+
+<input
+type="text"
+id="attack4Name">
+
+</div>
+
+<div class="field">
+
+<label for="attack4Icon">
+Ícone / Imagem
+</label>
+
+<input
+type="file"
+id="attack4Icon"
+accept="image/*">
+
+</div>
+
+<div class="quick-attack-values">
+
+<div class="field">
+
+<label for="attack4Roll">
+Ataque
+</label>
+
+<input
+type="text"
+id="attack4Roll">
+
+</div>
+
+<div class="field">
+
+<label for="attack4Damage">
+Dano
+</label>
+
+<input
+type="text"
+id="attack4Damage">
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                HABILIDADES
+=======================================================-->
+
+<section class="editor-section-card">
+
+<div class="section-heading section-heading-actions">
+
+<div>
+
+<span class="section-label">
+HABILIDADES
+</span>
+
+<h2>
+Habilidades
+</h2>
+
+</div>
+
+<button
+type="button"
+id="addAbilityEditor"
+class="editor-add-button">
+
+＋
+
+</button>
+
+</div>
+
+<div
+id="abilitiesEditorList"
+class="editor-dynamic-list">
+
+<div class="editor-empty-state">
+
+<span>
+◇
+</span>
+
+<p>
+Nenhuma habilidade adicionada.
+</p>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                ASSIMILAÇÕES
+=======================================================-->
+
+<section class="editor-section-card">
+
+<div class="section-heading section-heading-actions">
+
+<div>
+
+<span class="section-label">
+ASSIMILAÇÕES
+</span>
+
+<h2>
+Assimilações
+</h2>
+
+</div>
+
+<button
+type="button"
+id="addAssimilationEditor"
+class="editor-add-button">
+
+＋
+
+</button>
+
+</div>
+
+<div
+id="assimilationsEditorList"
+class="editor-dynamic-list">
+
+<div class="editor-empty-state">
+
+<span>
+◈
+</span>
+
+<p>
+Nenhuma assimilação adicionada.
+</p>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                CONDIÇÕES
+=======================================================-->
+
+<section class="editor-section-card">
+
+<div class="section-heading section-heading-actions">
+
+<div>
+
+<span class="section-label">
+CONDIÇÕES
+</span>
+
+<h2>
+Condições
+</h2>
+
+</div>
+
+<button
+type="button"
+id="addConditionEditor"
+class="editor-add-button">
+
+＋
+
+</button>
+
+</div>
+
+<div
+id="conditionsEditorList"
+class="conditions-editor-list">
+
+<div class="editor-empty-state">
+
+<span>
+○
+</span>
+
+<p>
+Nenhuma condição ativa.
+</p>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                    INVENTÁRIO
+=======================================================-->
+
+<section class="editor-section-card">
+
+<div class="section-heading section-heading-actions">
+
+<div>
+
+<span class="section-label">
+INVENTÁRIO
+</span>
+
+<h2>
+Inventário
+</h2>
+
+</div>
+
+<button
+type="button"
+id="addInventoryEditor"
+class="editor-add-button">
+
+＋
+
+</button>
+
+</div>
+
+<div
+id="inventoryEditorList"
+class="editor-dynamic-list">
+
+<div class="editor-empty-state">
+
+<span>
+▣
+</span>
+
+<p>
+Nenhum item adicionado.
+</p>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                    GRIMÓRIO
+=======================================================-->
+
+<section class="editor-section-card">
+
+<div class="section-heading section-heading-actions">
+
+<div>
+
+<span class="section-label">
+GRIMÓRIO
+</span>
+
+<h2>
+Rituais
+</h2>
+
+</div>
+
+<button
+type="button"
+id="addRitualEditor"
+class="editor-add-button">
+
+＋
+
+</button>
+
+</div>
+
+<div class="grimoire-editor-layout">
+
+<div class="grimoire-editor-sidebar">
+
+<div class="field">
+
+<label for="grimoireSearch">
+
+Pesquisar Ritual
+
+</label>
+
+<input
+type="text"
+id="grimoireSearch"
+placeholder="Pesquisar...">
+
+</div>
+
+<div
+id="grimoireEditorList"
+class="grimoire-editor-list">
+
+<div class="editor-empty-state">
+
+<span>
+◇
+</span>
+
+<p>
+Nenhum ritual adicionado.
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+<div
+id="grimoireEditorView"
+class="grimoire-editor-view">
+
+<div class="editor-empty-state">
+
+<span>
+✦
+</span>
+
+<p>
+Selecione um ritual para visualizar suas informações.
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                VINCULAR À CAMPANHA
+=======================================================-->
+
+<section class="editor-section-card campaign-link-section">
+
+<div class="section-heading">
+
+<span class="section-label">
+CAMPANHA
+</span>
+
+<h2>
+Vincular Personagem
+</h2>
+
+<p class="section-description">
+Use o código de convite fornecido pelo mestre para adicionar esta ficha a uma campanha.
+</p>
+
+</div>
+
+<div class="campaign-link-layout">
+
+<div class="field campaign-code-field">
+
+<label for="characterCampaignCode">
+
+Código da Campanha
+
+</label>
+
+<input
+type="text"
+id="characterCampaignCode"
+maxlength="8"
+placeholder="XXXXXXXX"
+autocomplete="off">
+
+</div>
+
+<button
+type="button"
+id="linkCharacterCampaign"
+class="secondary-button link-campaign-button">
+
+Vincular à Campanha
+
+</button>
+
+</div>
+
+<div
+id="linkedCampaignInfo"
+class="linked-campaign-info hidden">
+
+<div class="linked-campaign-icon">
+
+🗡
+
+</div>
+
+<div>
+
+<span>
+Campanha vinculada
+</span>
+
+<strong id="linkedCampaignName">
+
+—
+
+</strong>
+
+</div>
+
+<button
+type="button"
+id="unlinkCharacterCampaign"
+class="text-button">
+
+Remover vínculo
+
+</button>
+
+</div>
+
+</section>
+
+<!--======================================================
+                BARRA DE SALVAMENTO
+=======================================================-->
+
+<footer class="character-editor-footer">
+
+<div class="character-editor-footer-info">
+
+<span>
+Preencha os dados da ficha e salve para adicioná-la à sua lista.
+</span>
+
+</div>
+
+<div class="character-editor-footer-actions">
+
+<a
+href="ficha.html"
+class="secondary-button editor-cancel-button">
+
+Cancelar
+
+</a>
+
+<button
+type="button"
+id="saveCharacterEditor"
+class="primary-button editor-save-button">
+
+Salvar Ficha
+
+</button>
+
+</div>
+
+</footer>
+
+</main>
+
+<!--======================================================
+                    MENSAGEM
+=======================================================-->
+
+<div
+id="characterEditorMessage"
+class="editor-message hidden">
+
+<div class="editor-message-content">
+
+<div
+id="characterEditorMessageIcon"
+class="editor-message-icon">
+
+✓
+
+</div>
+
+<h2 id="characterEditorMessageTitle">
+
+Ficha salva
+
+</h2>
+
+<p id="characterEditorMessageText">
+
+A ficha foi salva com sucesso.
+
+</p>
+
+<button
+type="button"
+id="closeCharacterEditorMessage"
+class="primary-button">
+
+Continuar
+
+</button>
+
+</div>
+
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+
+Nova Campanha • ORDEM
+
+</title>
+
+<link
+rel="stylesheet"
+href="global.css">
+
+<link
+rel="stylesheet"
+href="editor-campanha.css">
+
+<link
+rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link
+rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="background">
+
+<div class="background-overlay"></div>
+
+<div class="particles"></div>
+
+</div>
+
+<main class="campaign-editor-page">
+
+<!--======================================================
+                    CABEÇALHO
+=======================================================-->
+
+<header class="editor-header">
+
+<div class="editor-header-left">
+
+<a
+href="campanhas.html"
+class="back-button-editor">
+
+← Voltar
+
+</a>
+
+<div>
+
+<span class="editor-eyebrow">
+
+CAMPANHA
+
+</span>
+
+<h1 id="editorTitle">
+
+NOVA CAMPANHA
+
+</h1>
+
+</div>
+
+</div>
+
+<div class="editor-status">
+
+<span class="status-dot"></span>
+
+<span id="saveStatus">
+
+Não salvo
+
+</span>
+
+</div>
+
+</header>
+
+<!--======================================================
+                    CONTEÚDO
+=======================================================-->
+
+<div class="campaign-editor-layout">
+
+<!--======================================================
+                    FORMULÁRIO
+=======================================================-->
+
+<section class="editor-card campaign-main-editor">
+
+<div class="editor-card-header">
+
+<div>
+
+<span class="section-label">
+
+INFORMAÇÕES
+
+</span>
+
+<h2>
+
+Configuração da Campanha
+
+</h2>
+
+</div>
+
+</div>
+
+<div class="campaign-form">
+
+<div class="field">
+
+<label for="campaignEditorName">
+
+Nome da Campanha
+
+</label>
+
+<input
+type="text"
+id="campaignEditorName"
+maxlength="60"
+placeholder="Ex: O Laboratório Esquecido">
+
+</div>
+
+<div class="field">
+
+<label for="campaignEditorDescription">
+
+Descrição
+
+</label>
+
+<textarea
+id="campaignEditorDescription"
+maxlength="800"
+placeholder="Descreva a proposta, o cenário ou outras informações importantes da campanha.">
+
+</textarea>
+
+<div class="field-footer">
+
+<span>
+
+Opcional
+
+</span>
+
+<span id="descriptionCounter">
+
+0 / 800
+
+</span>
+
+</div>
+
+</div>
+
+<div class="editor-two-columns">
+
+<div class="field">
+
+<label for="campaignMaxPlayers">
+
+Máximo de Jogadores
+
+</label>
+
+<select id="campaignMaxPlayers">
+
+<option value="1">1 jogador</option>
+
+<option value="2">2 jogadores</option>
+
+<option value="3">3 jogadores</option>
+
+<option value="4" selected>4 jogadores</option>
+
+<option value="5">5 jogadores</option>
+
+<option value="6">6 jogadores</option>
+
+<option value="7">7 jogadores</option>
+
+<option value="8">8 jogadores</option>
+
+<option value="10">10 jogadores</option>
+
+<option value="12">12 jogadores</option>
+
+</select>
+
+</div>
+
+<div class="field">
+
+<label for="campaignVisibility">
+
+Visibilidade
+
+</label>
+
+<select id="campaignVisibility">
+
+<option value="private">
+
+Privada • Somente convite
+
+</option>
+
+<option value="public">
+
+Pública
+
+</option>
+
+</select>
+
+</div>
+
+</div>
+
+<!--======================================================
+                    CAPA
+=======================================================-->
+
+<div class="field">
+
+<label>
+
+Imagem da Campanha
+
+</label>
+
+<label
+for="campaignCoverInput"
+class="campaign-cover-upload">
+
+<div
+id="campaignCoverPreview"
+class="campaign-cover-preview">
+
+<div class="cover-placeholder">
+
+<span class="cover-icon">
+
+✦
+
+</span>
+
+<strong>
+
+Adicionar imagem
+
+</strong>
+
+<small>
+
+PNG, JPG ou WEBP
+
+</small>
+
+</div>
+
+</div>
+
+<input
+type="file"
+id="campaignCoverInput"
+accept="image/png,image/jpeg,image/webp"
+hidden>
+
+</label>
+
+<button
+type="button"
+id="removeCampaignCover"
+class="text-button hidden">
+
+Remover imagem
+
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                    PAINEL DIREITO
+=======================================================-->
+
+<aside class="campaign-editor-sidebar">
+
+<section class="editor-card invite-card">
+
+<span class="section-label">
+
+ACESSO
+
+</span>
+
+<h2>
+
+Código de Convite
+
+</h2>
+
+<p>
+
+Compartilhe este código para outros jogadores entrarem na campanha.
+
+</p>
+
+<div class="invite-code-box">
+
+<span id="campaignInviteCode">
+
+--------
+
+</span>
+
+<button
+type="button"
+id="copyInviteCode"
+title="Copiar código">
+
+⧉
+
+</button>
+
+</div>
+
+<button
+type="button"
+id="generateInviteCode"
+class="secondary-button full-button">
+
+Gerar Novo Código
+
+</button>
+
+</section>
+
+<!--======================================================
+                    JOGADORES
+=======================================================-->
+
+<section class="editor-card players-preview-card">
+
+<div class="editor-card-header compact">
+
+<div>
+
+<span class="section-label">
+
+PARTICIPANTES
+
+</span>
+
+<h2>
+
+Jogadores
+
+</h2>
+
+</div>
+
+<span
+id="campaignPlayerCounter"
+class="player-counter">
+
+0 / 4
+
+</span>
+
+</div>
+
+<div
+id="campaignPlayersPreview"
+class="players-preview">
+
+<div class="players-empty">
+
+<span>
+
+◇
+
+</span>
+
+<p>
+
+Nenhum jogador entrou ainda.
+
+</p>
+
+</div>
+
+</div>
+
+</section>
+
+</aside>
+
+</div>
+
+<!--======================================================
+                    BARRA INFERIOR
+=======================================================-->
+
+<footer class="editor-footer">
+
+<div class="editor-footer-info">
+
+<span>
+
+As alterações serão salvas quando você confirmar.
+
+</span>
+
+</div>
+
+<div class="editor-footer-actions">
+
+<a
+href="campanhas.html"
+class="secondary-button editor-cancel-button">
+
+Cancelar
+
+</a>
+
+<button
+type="button"
+id="saveCampaignEditor"
+class="primary-button editor-save-button">
+
+Salvar Campanha
+
+</button>
+
+</div>
+
+</footer>
+
+</main>
+
+<!--======================================================
+                    MENSAGEM
+=======================================================-->
+
+<div
+id="editorMessage"
+class="editor-message hidden">
+
+<div class="editor-message-content">
+
+<div
+id="editorMessageIcon"
+class="editor-message-icon">
+
+✓
+
+</div>
+
+<h2 id="editorMessageTitle">
+
+Campanha salva
+
+</h2>
+
+<p id="editorMessageText">
+
+Sua campanha foi salva com sucesso.
+
+</p>
+
+<button
+type="button"
+id="closeEditorMessage"
+class="primary-button">
+
+Continuar
+
+</button>
+
+</div>
+
+</div>
+
+<script src="editor-campanha.js"></script>
+
+</body>
+
+</html>
