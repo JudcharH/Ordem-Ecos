@@ -1950,10 +1950,11 @@ function calculateAutomaticStats(){
 
 
     const calculatedPV =
-        Math.max(
+    lifeMode?.value === "body"
+        ? basePV
+        : Math.max(
             0,
-            basePV -
-            permanentPVCost
+            basePV - permanentPVCost
         );
 
 
@@ -2116,27 +2117,69 @@ function calculateBodyMaximums(){
         vig * level;
 
 
-    const bodyValues = {
+   const bodyValues = {
 
-        head:
-            2 + vigByLevel,
+    head:
+        Math.max(
+            0,
+            2 +
+            vigByLevel -
+            getBodyPartPermanentPVCost(
+                "head"
+            )
+        ),
 
-        chest:
-            2 + vigByLevel,
+    chest:
+        Math.max(
+            0,
+            2 +
+            vigByLevel -
+            getBodyPartPermanentPVCost(
+                "chest"
+            )
+        ),
 
-        leftArm:
-            1 + vigByLevel,
+    leftArm:
+        Math.max(
+            0,
+            1 +
+            vigByLevel -
+            getBodyPartPermanentPVCost(
+                "leftArm"
+            )
+        ),
 
-        rightArm:
-            1 + vigByLevel,
+    rightArm:
+        Math.max(
+            0,
+            1 +
+            vigByLevel -
+            getBodyPartPermanentPVCost(
+                "rightArm"
+            )
+        ),
 
-        leftLeg:
-            1 + vigByLevel,
+    leftLeg:
+        Math.max(
+            0,
+            1 +
+            vigByLevel -
+            getBodyPartPermanentPVCost(
+                "leftLeg"
+            )
+        ),
 
-        rightLeg:
-            1 + vigByLevel
+    rightLeg:
+        Math.max(
+            0,
+            1 +
+            vigByLevel -
+            getBodyPartPermanentPVCost(
+                "rightLeg"
+            )
+        )
 
-    };
+};
 
 
     updateBodyPartMaximum(
@@ -4243,38 +4286,40 @@ function openAbilitySelector(){
         "editor-message";
 
 
-    const cards =
-        DEFAULT_ABILITIES
-            .map(ability => `
+const cards =
+    DEFAULT_ABILITIES
+        .map(
+            ability => `
 
-                <button
-                    type="button"
-                    class="ability-choice-card"
-                    data-ability="${ability.id}"
-                >
+            <button
+                type="button"
+                class="ability-choice-card"
+                data-ability="${ability.id}"
+            >
 
-                    <strong>
-                        ${escapeCharacterEditorHTML(
-                            ability.name
-                        )}
-                    </strong>
+                <strong>
+                    ✦ ${escapeCharacterEditorHTML(
+                        ability.name
+                    )}
+                </strong>
 
-                    <span>
-                        Custo permanente:
-                        ${ability.permanentCost.value}
-                        ${ability.permanentCost.type.toUpperCase()}
-                    </span>
+                <span>
+                    ${ability.permanentCost.value}
+                    ${ability.permanentCost.type.toUpperCase()}
+                    permanente
+                </span>
 
-                    <p>
-                        ${escapeCharacterEditorHTML(
-                            ability.description
-                        )}
-                    </p>
+                <p>
+                    ${escapeCharacterEditorHTML(
+                        ability.description
+                    )}
+                </p>
 
-                </button>
+            </button>
 
-            `)
-            .join("");
+        `
+        )
+        .join("");
 
 
     modal.innerHTML = `
@@ -4422,6 +4467,10 @@ function ensureCharacterAssimilations(){
 =              ADQUIRIR ASSIMILAÇÃO
 ==========================================================*/
 
+/*==========================================================
+=              ADQUIRIR ASSIMILAÇÃO
+==========================================================*/
+
 function addAssimilationToCharacter(
     assimilationId
 ){
@@ -4445,12 +4494,11 @@ function addAssimilationToCharacter(
 
 
     const alreadyHas =
-        characterAssimilationsState
-            .some(
-                item =>
-                    item.id ===
-                    assimilation.id
-            );
+        characterAssimilationsState.some(
+            item =>
+                item.id ===
+                assimilation.id
+        );
 
 
     if(alreadyHas){
@@ -4465,63 +4513,29 @@ function addAssimilationToCharacter(
     }
 
 
-    /*======================================================
-    =              VERIFICAR PV BASE
-    ======================================================*/
+    /*
+        VIDA POR PARTES:
 
-    const level =
-        Math.max(
-            1,
-            Number(
-                characterLevel?.value
-            ) || 1
+        escolhemos primeiro qual parte
+        sofrerá o custo permanente.
+    */
+
+    if(lifeMode?.value === "body"){
+
+        openAssimilationBodyCostSelector(
+            assimilation
         );
 
-    const vig =
-        Math.max(
-            0,
-            Number(
-                attributeVIG?.value
-            ) || 0
-        );
+        return "waiting";
+
+    }
 
 
-    const basePV =
-        (7 + vig) * level;
+    /*
+        VIDA CLÁSSICA
+    */
 
-
-    const currentPermanentCost =
-        characterAssimilationsState
-            .reduce(
-                (total,item) => {
-
-                    if(
-                        item
-                            .permanentCost
-                            ?.type !== "pv"
-                    ){
-
-                        return total;
-
-                    }
-
-                    return (
-                        total +
-                        (
-                            Number(
-                                item
-                                    .permanentCost
-                                    .value
-                            ) || 0
-                        )
-                    );
-
-                },
-                0
-            );
-
-
-    const newCost =
+    const cost =
         Number(
             assimilation
                 .permanentCost
@@ -4529,11 +4543,13 @@ function addAssimilationToCharacter(
         ) || 0;
 
 
-    if(
-        basePV -
-        currentPermanentCost -
-        newCost <= 0
-    ){
+    const currentMaximum =
+        Number(
+            characterPVMax?.value
+        ) || 0;
+
+
+    if(currentMaximum <= cost){
 
         showCharacterEditorMessage(
             "PV insuficiente",
@@ -4556,10 +4572,15 @@ function addAssimilationToCharacter(
         description:
             assimilation.description,
 
-        permanentCost:
-            structuredCloneSafe(
+        permanentCost:{
+
+            ...structuredCloneSafe(
                 assimilation.permanentCost
             ),
+
+            bodyPart:null
+
+        },
 
         activationCost:
             structuredCloneSafe(
@@ -4584,7 +4605,7 @@ function addAssimilationToCharacter(
 
     showCharacterEditorMessage(
         "Assimilação adquirida",
-        `${assimilation.name} foi adquirida. Seu PV máximo foi reduzido permanentemente em ${newCost}.`
+        `${assimilation.name} foi adquirida por ${cost} PV permanentes.`
     );
 
 
@@ -4901,56 +4922,40 @@ function openAssimilationSelector(){
         "editor-message";
 
 
-    const cards =
-        DEFAULT_ASSIMILATIONS
-            .map(
-                assimilation => `
+const cards =
+    DEFAULT_ASSIMILATIONS
+        .map(
+            assimilation => `
 
-                <button
-                    type="button"
-                    class="ability-choice-card assimilation-choice-card"
-                    data-assimilation="${assimilation.id}"
-                >
+            <button
+                type="button"
+                class="ability-choice-card assimilation-choice-card"
+                data-assimilation="${assimilation.id}"
+            >
 
-                    <strong>
-                        ${escapeCharacterEditorHTML(
-                            assimilation.name
-                        )}
-                    </strong>
+                <strong>
+                    🩸 ${escapeCharacterEditorHTML(
+                        assimilation.name
+                    )}
+                </strong>
 
-                    <span>
+                <span>
+                    ${assimilation.permanentCost.value} PV permanente
+                    •
+                    ${assimilation.activationCost.value} PA para ativar
+                </span>
 
-                        Custo:
-                        ${
-                            assimilation
-                                .permanentCost
-                                .value
-                        }
-                        PV
+                <p>
+                    ${escapeCharacterEditorHTML(
+                        assimilation.description
+                    )}
+                </p>
 
-                        •
+            </button>
 
-                        Ativação:
-                        ${
-                            assimilation
-                                .activationCost
-                                .value
-                        }
-                        PA
-
-                    </span>
-
-                    <p>
-                        ${escapeCharacterEditorHTML(
-                            assimilation.description
-                        )}
-                    </p>
-
-                </button>
-
-            `
-            )
-            .join("");
+        `
+        )
+        .join("");
 
 
     modal.innerHTML = `
@@ -5042,5 +5047,425 @@ function openAssimilationSelector(){
 
             }
         );
+
+}
+
+/*==========================================================
+=       ESCOLHER PARTE PARA CUSTO DA ASSIMILAÇÃO
+==========================================================*/
+
+function openAssimilationBodyCostSelector(
+    assimilation
+){
+
+    document
+        .getElementById(
+            "assimilationBodyCostModal"
+        )
+        ?.remove();
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "assimilationBodyCostModal";
+
+    modal.className =
+        "editor-message";
+
+
+    const cost =
+        Number(
+            assimilation
+                .permanentCost
+                ?.value
+        ) || 0;
+
+
+    const parts = [
+
+        {
+            id:"head",
+            name:"Cabeça",
+            input:bodyHead
+        },
+
+        {
+            id:"chest",
+            name:"Torso",
+            input:bodyChest
+        },
+
+        {
+            id:"leftArm",
+            name:"Braço Esquerdo",
+            input:bodyLeftArm
+        },
+
+        {
+            id:"rightArm",
+            name:"Braço Direito",
+            input:bodyRightArm
+        },
+
+        {
+            id:"leftLeg",
+            name:"Perna Esquerda",
+            input:bodyLeftLeg
+        },
+
+        {
+            id:"rightLeg",
+            name:"Perna Direita",
+            input:bodyRightLeg
+        }
+
+    ];
+
+
+    const availableParts =
+        parts.filter(part => {
+
+            const state =
+                characterBodyState[
+                    part.id
+                ] || {
+                    type:"natural"
+                };
+
+
+            /*
+                Não sacrificamos PV
+                de membro ausente ou prótese.
+            */
+
+            if(
+                state.type !== "natural"
+            ){
+
+                return false;
+
+            }
+
+
+            const naturalMax =
+                Number(
+                    part.input
+                        ?.dataset.max
+                ) || 0;
+
+
+            const alreadySacrificed =
+                getBodyPartPermanentPVCost(
+                    part.id
+                );
+
+
+            return (
+                naturalMax -
+                alreadySacrificed -
+                cost
+            ) > 0;
+
+        });
+
+
+    if(availableParts.length === 0){
+
+        showCharacterEditorMessage(
+            "PV insuficiente",
+            `Nenhuma parte do corpo possui PV suficiente para pagar o custo de ${cost} PV de ${assimilation.name}.`
+        );
+
+        return;
+
+    }
+
+
+    const buttons =
+        availableParts
+            .map(part => {
+
+                const baseMax =
+                    Number(
+                        part.input
+                            ?.dataset.max
+                    ) || 0;
+
+
+                const previousCost =
+                    getBodyPartPermanentPVCost(
+                        part.id
+                    );
+
+
+                const finalMax =
+                    baseMax -
+                    previousCost -
+                    cost;
+
+
+                return `
+
+                    <button
+                        type="button"
+                        class="assimilation-body-part-choice"
+                        data-part="${part.id}"
+                    >
+
+                        <strong>
+                            ${part.name}
+                        </strong>
+
+                        <span>
+                            ${baseMax - previousCost}
+                            →
+                            ${finalMax} PV
+                        </span>
+
+                    </button>
+
+                `;
+
+            })
+            .join("");
+
+
+    modal.innerHTML = `
+
+        <div class="prosthetic-editor-modal">
+
+            <span class="section-label">
+                CUSTO DA ASSIMILAÇÃO
+            </span>
+
+            <h2>
+                ${escapeCharacterEditorHTML(
+                    assimilation.name
+                )}
+            </h2>
+
+            <p>
+                Escolha qual parte do corpo perderá
+                ${cost} PV permanentemente.
+            </p>
+
+            <div class="assimilation-body-grid">
+
+                ${buttons}
+
+            </div>
+
+            <button
+                type="button"
+                id="cancelAssimilationBodyCost"
+                class="secondary-button"
+                style="width:100%;margin-top:18px;"
+            >
+
+                Cancelar
+
+            </button>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    modal
+        .querySelectorAll(
+            ".assimilation-body-part-choice"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    acquireBodyAssimilation(
+                        assimilation,
+                        button.dataset.part
+                    );
+
+                    modal.remove();
+
+                }
+            );
+
+        });
+
+
+    modal
+        .querySelector(
+            "#cancelAssimilationBodyCost"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+            }
+        );
+
+}
+
+/*==========================================================
+=          CUSTOS PERMANENTES POR PARTE
+==========================================================*/
+
+function getBodyPartPermanentPVCost(
+    partName
+){
+
+    return characterAssimilationsState
+        .reduce(
+            (total,assimilation) => {
+
+                if(
+                    assimilation
+                        .permanentCost
+                        ?.type !== "pv"
+                ){
+
+                    return total;
+
+                }
+
+
+                if(
+                    assimilation
+                        .permanentCost
+                        ?.bodyPart !==
+                    partName
+                ){
+
+                    return total;
+
+                }
+
+
+                return (
+                    total +
+                    (
+                        Number(
+                            assimilation
+                                .permanentCost
+                                .value
+                        ) || 0
+                    )
+                );
+
+            },
+            0
+        );
+
+}
+
+/*==========================================================
+=          ADQUIRIR ASSIMILAÇÃO NO CORPO
+==========================================================*/
+
+function acquireBodyAssimilation(
+    assimilation,
+    partName
+){
+
+    const cost =
+        Number(
+            assimilation
+                .permanentCost
+                ?.value
+        ) || 0;
+
+
+    characterAssimilationsState.push({
+
+        id:
+            assimilation.id,
+
+        name:
+            assimilation.name,
+
+        description:
+            assimilation.description,
+
+        permanentCost:{
+
+            ...structuredCloneSafe(
+                assimilation.permanentCost
+            ),
+
+            bodyPart:
+                partName
+
+        },
+
+        activationCost:
+            structuredCloneSafe(
+                assimilation.activationCost
+            ),
+
+        activationType:
+            assimilation.activationType,
+
+        active:false,
+
+        acquiredAt:
+            Date.now()
+
+    });
+
+
+    calculateAutomaticStats();
+
+    renderAssimilationEditorList();
+
+
+    showCharacterEditorMessage(
+        "Assimilação adquirida",
+        `${assimilation.name} consumiu ${cost} PV permanentemente de ${getBodyPartLabel(partName)}.`
+    );
+
+}
+
+function getBodyPartLabel(
+    partName
+){
+
+    const labels = {
+
+        head:
+            "Cabeça",
+
+        chest:
+            "Torso",
+
+        leftArm:
+            "Braço Esquerdo",
+
+        rightArm:
+            "Braço Direito",
+
+        leftLeg:
+            "Perna Esquerda",
+
+        rightLeg:
+            "Perna Direita"
+
+    };
+
+
+    return labels[partName] ||
+        "Parte do Corpo";
 
 }
