@@ -6033,9 +6033,9 @@ const DEFAULT_ASSIMILATIONS = [
 
         description:
             "Sempre que reduzir uma criatura a 0 PV, entra em um estado de Frenesi, recuperando imediatamente 2d8 PV. Limite: 1 vez por rodada."
-    }
+    },
 
-    [
+    
     {
         id:"surto-de-adrenalina",
 
@@ -6522,9 +6522,9 @@ const DEFAULT_ASSIMILATIONS = [
             "Passiva. No início do combate, recebe PD temporários iguais ao PRE.",
 
         upgrade:null
-    }
+    },
 
-    [
+    
     {
         id:"escolhido-pelo-outro-lado",
 
@@ -6930,9 +6930,9 @@ const DEFAULT_ASSIMILATIONS = [
             "Passiva. Uma vez por cena, pode reutilizar um ritual já conjurado sem custo adicional de PD. O ritual ainda respeita os limites de pontos elementais e PD.",
 
         upgrade:null
-    }
+    },
 
-    [
+    
     {
         id:"carteirada",
 
@@ -7358,9 +7358,7 @@ const DEFAULT_ASSIMILATIONS = [
         upgrade:null
     }
 
-]
-]
-]
+
 
 ];
 
