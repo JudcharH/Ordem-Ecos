@@ -714,13 +714,13 @@ function markUnsaved(){
 
 
 /*==========================================================
-=              SALVAR CAMPANHA
+=                    SALVAR CAMPANHA
 ==========================================================*/
 
 async function saveCampaign(){
 
     const name =
-        campaignName?.value.trim();
+        campaignName?.value.trim() || "";
 
     const description =
         campaignDescription?.value.trim() || "";
@@ -734,15 +734,26 @@ async function saveCampaign(){
         campaignVisibility?.value ||
         "private";
 
+    const masterPassword =
+        campaignMasterPassword?.value || "";
+
+    const masterPasswordConfirm =
+        campaignMasterPasswordConfirm?.value || "";
+
     const currentInviteCode =
         inviteCode?.textContent?.trim() ||
         createInviteCode();
+
+
+    /*======================================================
+    =                    VALIDAÇÕES
+    ======================================================*/
 
     if(!name){
 
         showEditorMessage(
             "Nome obrigatório",
-            "Digite um nome para a campanha antes de salvar."
+            "Digite um nome para a campanha."
         );
 
         campaignName?.focus();
@@ -750,6 +761,42 @@ async function saveCampaign(){
         return;
 
     }
+
+
+    if(masterPassword.length < 4){
+
+        showEditorMessage(
+            "Senha do mestre",
+            "A senha do mestre precisa ter pelo menos 4 caracteres."
+        );
+
+        campaignMasterPassword?.focus();
+
+        return;
+
+    }
+
+
+    if(
+        masterPassword !==
+        masterPasswordConfirm
+    ){
+
+        showEditorMessage(
+            "Senhas diferentes",
+            "A confirmação da senha do mestre está diferente."
+        );
+
+        campaignMasterPasswordConfirm?.focus();
+
+        return;
+
+    }
+
+
+    /*======================================================
+    =                    CAPA
+    ======================================================*/
 
     let cover =
         editingCampaign?.cover || "";
@@ -759,10 +806,34 @@ async function saveCampaign(){
 
     if(file){
 
-        cover =
-            await fileToBase64(file);
+        try{
+
+            cover =
+                await fileToBase64(file);
+
+        }
+        catch(error){
+
+            console.error(
+                "Erro ao carregar imagem:",
+                error
+            );
+
+            showEditorMessage(
+                "Erro na imagem",
+                "Não foi possível carregar a imagem da campanha."
+            );
+
+            return;
+
+        }
 
     }
+
+
+    /*======================================================
+    =                    EDITANDO
+    ======================================================*/
 
     if(editingCampaign){
 
@@ -781,8 +852,8 @@ async function saveCampaign(){
         editingCampaign.inviteCode =
             currentInviteCode;
 
-            editingCampaign.masterPassword =
-    masterPassword;
+        editingCampaign.masterPassword =
+            masterPassword;
 
         editingCampaign.cover =
             cover;
@@ -791,26 +862,33 @@ async function saveCampaign(){
             Date.now();
 
     }
+
+
+    /*======================================================
+    =                    NOVA CAMPANHA
+    ======================================================*/
+
     else{
 
         const newCampaign = {
 
             id:createCampaignId(),
 
-            name,
+            name:name,
 
-            description,
+            description:description,
 
-            maxPlayers,
+            maxPlayers:maxPlayers,
 
-            visibility,
-
-            masterPassword,
+            visibility:visibility,
 
             inviteCode:
                 currentInviteCode,
 
-            cover,
+            masterPassword:
+                masterPassword,
+
+            cover:cover,
 
             players:[],
 
@@ -822,11 +900,13 @@ async function saveCampaign(){
 
             music:"",
 
-            createdAt:
-                Date.now(),
+            musicVolume:.5,
 
-            updatedAt:
-                Date.now()
+            musicPlaying:false,
+
+            createdAt:Date.now(),
+
+            updatedAt:Date.now()
 
         };
 
@@ -834,44 +914,18 @@ async function saveCampaign(){
             newCampaign
         );
 
+        editingCampaign =
+            newCampaign;
+
     }
 
-    const masterPassword =
-    campaignMasterPassword?.value || "";
 
-const masterPasswordConfirm =
-    campaignMasterPasswordConfirm?.value || "";
-
-if(masterPassword.length < 4){
-
-    showEditorMessage(
-        "Senha inválida",
-        "A senha do mestre precisa ter pelo menos 4 caracteres."
-    );
-
-    campaignMasterPassword?.focus();
-
-    return;
-
-}
-
-if(
-    masterPassword !==
-    masterPasswordConfirm
-){
-
-    showEditorMessage(
-        "Senhas diferentes",
-        "A confirmação da senha do mestre não corresponde."
-    );
-
-    campaignMasterPasswordConfirm?.focus();
-
-    return;
-
-}
+    /*======================================================
+    =                    SALVAR
+    ======================================================*/
 
     saveCampaignsToStorage();
+
 
     if(saveStatus){
 
@@ -880,11 +934,18 @@ if(
 
     }
 
+
+    /*======================================================
+    =                    FINALIZAÇÃO
+    ======================================================*/
+
     showEditorMessage(
         editingCampaign
-            ? "Campanha atualizada"
+            ? "Campanha salva"
             : "Campanha criada",
-        "As alterações foram salvas com sucesso.",
+
+        "Sua campanha foi salva com sucesso.",
+
         true
     );
 
