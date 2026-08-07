@@ -3,20 +3,15 @@
 ==========================================================*/
 
 *{
-
-margin:0;
-
-padding:0;
-
-box-sizing:border-box;
-
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
 }
 
 :root{
-
---bg:#08080A;
-
---bg2:#101014;
+    --bg:#08080A;
+    --bg2:#101014;
+}
 
 --card:#17171C;
 
