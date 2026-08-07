@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+
+Mesa • ORDEM
+
+</title>
+
+<link
+rel="stylesheet"
+href="css/global.css">
+
+<link
+rel="stylesheet"
+href="css/mesa.css">
+
+<link
+rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link
+rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="background">
+
+<div class="background-overlay"></div>
+
+<div class="particles"></div>
+
+</div>
+
+<div class="tabletop">
+
+<!--======================================
+            MENU LATERAL PLAYER
+=======================================-->
+
+<aside class="sidebar player-sidebar">
+
+<div class="sidebar-header">
+
+<h2>
+
+MENU
+
+</h2>
+
+</div>
+
+<nav class="sidebar-menu">
+
+<button id="openCharacter">
+
+👤
+
+<span>Ficha</span>
+
+</button>
+
+<button id="openAttacks">
+
+⚔
+
+<span>Ataques</span>
+
+</button>
+
+<button id="openInventory">
+
+🎒
+
+<span>Inventário</span>
+
+</button>
+
+<button id="openConditions">
+
+🩸
+
+<span>Condições</span>
+
+</button>
+
+<button id="openGrimoire">
+
+📖
+
+<span>Grimório</span>
+
+</button>
+
+<button id="openDice">
+
+🎲
+
+<span>Dados</span>
+
+</button>
+
+<button id="openNotes">
+
+📝
+
+<span>Anotações</span>
+
+</button>
+
+<button id="leaveCampaign">
+
+🚪
+
+<span>Sair</span>
+
+</button>
+
+</nav>
+
+</aside>
+
+<!--======================================
+            ÁREA CENTRAL
+=======================================-->
+
+<main class="battlefield">
+
+<header class="battle-header">
+
+<h1>
+
+LABORATÓRIO SIGMA
+
+</h1>
+
+<p>
+
+Campanha em andamento
+
+</p>
+
+</header>
+
+<section
+id="sceneArea"
+class="scene-area">
+
+<div
+id="sceneImage"
+class="scene-image">
+
+<!-- Cenário -->
+
+</div>
+
+<!--======================================
+            CENÁRIO
+=======================================-->
+
+<div class="battlefield-grid">
+
+<!--======================================
+            JOGADORES
+=======================================-->
+
+<div class="players-column">
+
+<h2>
+
+JOGADORES
+
+</h2>
+
+<div class="position-slot" data-position="6">
+
+<span>Posição 6</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+<div class="position-slot" data-position="5">
+
+<span>Posição 5</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+<div class="position-slot" data-position="4">
+
+<span>Posição 4</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+<div class="position-slot" data-position="3">
+
+<span>Posição 3</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+<div class="position-slot" data-position="2">
+
+<span>Posição 2</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+<div class="position-slot" data-position="1">
+
+<span>Posição 1</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+</div>
+
+<!--======================================
+            CENÁRIO
+=======================================-->
+
+<div class="scene-center">
+
+<img
+
+id="currentScene"
+
+src="assets/scenes/default.jpg"
+
+alt="Cenário">
+
+</div>
+
+<!--======================================
+            AMEAÇAS
+=======================================-->
+
+<div class="enemies-column">
+
+<h2>
+
+AMEAÇAS
+
+</h2>
+
+<div class="position-slot" data-position="1">
+
+<span>Posição 1</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+<div class="position-slot" data-position="2">
+
+<span>Posição 2</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+<div class="position-slot" data-position="3">
+
+<span>Posição 3</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+<div class="position-slot" data-position="4">
+
+<span>Posição 4</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+<div class="position-slot" data-position="5">
+
+<span>Posição 5</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+<div class="position-slot" data-position="6">
+
+<span>Posição 6</span>
+
+<div class="token-slot"></div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================
+                CHAT
+=======================================-->
+
+<section class="chat-panel">
+
+<div class="chat-header">
+
+<h2>
+
+CHAT
+
+</h2>
+
+</div>
+
+<div
+id="chatMessages"
+class="chat-messages">
+
+<!-- Mensagens -->
+
+</div>
+
+<div class="chat-input">
+
+<input
+
+type="text"
+
+id="chatText"
+
+placeholder="Digite uma mensagem...">
+
+<button
+id="sendMessage">
+
+Enviar
+
+</button>
+
+</div>
+
+</section>
+
+</main>
+
+<!--======================================
+        MENU LATERAL DO MESTRE
+=======================================-->
+
+<aside class="sidebar master-sidebar">
+
+<div class="sidebar-header">
+
+<h2>
+
+MESTRE
+
+</h2>
+
+</div>
+
+<nav class="sidebar-menu">
+
+<button id="openEnemies">
+
+☠
+
+<span>Ameaças</span>
+
+</button>
+
+<button id="openNPCs">
+
+👥
+
+<span>NPCs</span>
+
+</button>
+
+<button id="openMap">
+
+🗺
+
+<span>Mapa</span>
+
+</button>
+
+<button id="openMusic">
+
+🎵
+
+<span>Música</span>
+
+</button>
+
+<button id="openMasterGrimoire">
+
+📖
+
+<span>Grimório</span>
+
+</button>
+
+<button id="openMasterDice">
+
+🎲
+
+<span>Dados</span>
+
+</button>
+
+<button id="openMasterNotes">
+
+📝
+
+<span>Anotações</span>
+
+</button>
+
+<button id="masterLeave">
+
+🚪
+
+<span>Sair</span>
+
+</button>
+
+</nav>
+
+</aside>
+
+</div>
+
+<!--======================================
+            PAINÉIS LATERAIS
+=======================================-->
+
+<div id="playerPanel" class="floating-panel hidden">
+
+</div>
+
+<div id="masterPanel" class="floating-panel hidden">
+
+</div>
+
+<div id="dicePanel" class="floating-panel hidden">
+
+</div>
+
+<!--======================================
+                MODAL UNIVERSAL
+=======================================-->
+
+<div
+id="modal"
+class="modal hidden">
+
+<div class="modal-content">
+
+<div class="modal-header">
+
+<h2 id="modalTitle">
+
+Painel
+
+</h2>
+
+<button
+id="closeModal"
+class="close-button">
+
+✕
+
+</button>
+
+</div>
+
+<div
+id="modalBody"
+class="modal-body">
+
+<!-- Conteúdo carregado via JavaScript -->
+
+</div>
+
+</div>
+
+</div>
+
+<!--======================================
+            MODAL DE CONFIRMAÇÃO
+=======================================-->
+
+<div
+id="confirmModal"
+class="modal hidden">
+
+<div class="modal-content small">
+
+<h2>
+
+Confirmação
+
+</h2>
+
+<p id="confirmText">
+
+Tem certeza?
+
+</p>
+
+<div class="confirm-buttons">
+
+<button
+id="confirmYes"
+class="primary-button">
+
+Confirmar
+
+</button>
+
+<button
+id="confirmNo"
+class="secondary-button">
+
+Cancelar
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<!--======================================
+            ÁUDIO DA CAMPANHA
+=======================================-->
+
+<audio
+id="campaignMusic"
+loop>
+
+</audio>
+
+<!--======================================
+            SCRIPTS
+=======================================-->
+
+<script src="js/global.js"></script>
+
+<script src="js/chat.js"></script>
+
+<script src="js/dados.js"></script>
+
+<script src="js/mesa.js"></script>
+
+<script src="js/player.js"></script>
+
+<script src="js/master.js"></script>
+
+</body>
+
+</html>

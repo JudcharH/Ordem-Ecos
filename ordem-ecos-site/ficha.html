@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+
+Fichas • ORDEM
+
+</title>
+
+<link
+rel="stylesheet"
+href="css/global.css">
+
+<link
+rel="stylesheet"
+href="css/ficha.css">
+
+<link
+rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link
+rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="background">
+
+<div class="background-overlay"></div>
+
+<div class="particles"></div>
+
+</div>
+
+<main class="sheet-page">
+
+<header class="page-header">
+
+<a
+href="index.html"
+class="back-button">
+
+← Voltar
+
+</a>
+
+<h1>
+
+FICHAS
+
+</h1>
+
+<p>
+
+Crie, edite e gerencie seus personagens.
+
+</p>
+
+</header>
+
+<section class="sheet-actions">
+
+<button
+id="newCharacter"
+class="primary-button">
+
+＋ Nova Ficha
+
+</button>
+
+<input
+
+type="text"
+
+id="searchCharacter"
+
+placeholder="Pesquisar ficha...">
+
+</section>
+
+<section
+id="characterList"
+class="character-list">
+
+<!--==================================
+            FICHA
+===================================-->
+
+<div class="character-card">
+
+<div class="character-photo">
+
+<img
+
+src="assets/profile/default.png"
+
+alt="Personagem">
+
+</div>
+
+<div class="character-info">
+
+<h2>
+
+Henri
+
+</h2>
+
+<p>
+
+Combatente
+
+</p>
+
+<p>
+
+Nível 5
+
+</p>
+
+</div>
+
+<div class="character-buttons">
+
+<button
+class="edit-button">
+
+Editar
+
+</button>
+
+<button
+class="campaign-button">
+
+Campanha
+
+</button>
+
+</div>
+
+</div>
+
+<!--==================================
+            FICHA
+===================================-->
+
+<div class="character-card">
+
+<div class="character-photo">
+
+<img
+
+src="assets/profile/default.png"
+
+alt="Personagem">
+
+</div>
+
+<div class="character-info">
+
+<h2>
+
+Maria
+
+</h2>
+
+<p>
+
+Ocultista
+
+</p>
+
+<p>
+
+Nível 4
+
+</p>
+
+</div>
+
+<div class="character-buttons">
+
+<button
+class="edit-button">
+
+Editar
+
+</button>
+
+<button
+class="campaign-button">
+
+Campanha
+
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+<!--==================================
+        MODAL NOVA FICHA
+===================================-->
+
+<div
+id="newCharacterModal"
+class="modal hidden">
+
+<div class="modal-content">
+
+<h2>
+
+Nova Ficha
+
+</h2>
+
+<div class="field">
+
+<label>
+
+Nome
+
+</label>
+
+<input
+type="text"
+id="characterName">
+
+</div>
+
+<div class="field">
+
+<label>
+
+Classe
+
+</label>
+
+<select
+id="characterClass">
+
+<option>
+
+Combatente
+
+</option>
+
+<option>
+
+Especialista
+
+</option>
+
+<option>
+
+Ocultista
+
+</option>
+
+</select>
+
+</div>
+
+<div class="field">
+
+<label>
+
+Origem
+
+</label>
+
+<input
+type="text"
+id="characterOrigin">
+
+</div>
+
+<div class="field">
+
+<label>
+
+Foto
+
+</label>
+
+<input
+type="file"
+id="characterPhoto"
+accept="image/*">
+
+</div>
+
+<div class="modal-buttons">
+
+<button
+id="createCharacter"
+class="primary-button">
+
+Criar Ficha
+
+</button>
+
+<button
+id="cancelCharacter"
+class="secondary-button">
+
+Cancelar
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script src="js/fichas.js"></script>
+
+</body>
+
+</html>

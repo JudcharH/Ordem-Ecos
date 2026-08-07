@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+
+Campanhas • ORDEM
+
+</title>
+
+<link
+rel="stylesheet"
+href="css/global.css">
+
+<link
+rel="stylesheet"
+href="css/campanhas.css">
+
+<link
+rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link
+rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="background">
+
+<div class="background-overlay"></div>
+
+<div class="particles"></div>
+
+</div>
+
+<main class="campaign-page">
+
+<header class="page-header">
+
+<a
+href="index.html"
+class="back-button">
+
+← Voltar
+
+</a>
+
+<h1>
+
+CAMPANHAS
+
+</h1>
+
+<p>
+
+Crie, organize e entre em campanhas.
+
+</p>
+
+</header>
+
+<section class="campaign-actions">
+
+<button
+id="createCampaign"
+class="primary-button">
+
+＋ Nova Campanha
+
+</button>
+
+<input
+
+type="text"
+
+id="searchCampaign"
+
+placeholder="Pesquisar campanha...">
+
+</section>
+
+<section
+id="campaignList"
+class="campaign-list">
+
+<!--======================================
+            CAMPANHA
+=======================================-->
+
+<div class="campaign-card">
+
+<div class="campaign-cover">
+
+🗡
+
+</div>
+
+<div class="campaign-info">
+
+<h2>
+
+Laboratório Sigma
+
+</h2>
+
+<p>
+
+4 Jogadores
+
+</p>
+
+<p>
+
+Sistema:
+ORDEM
+
+</p>
+
+</div>
+
+<div class="campaign-buttons">
+
+<button
+class="enter-button">
+
+Entrar
+
+</button>
+
+<button
+class="edit-button">
+
+Editar
+
+</button>
+
+</div>
+
+</div>
+
+<!--======================================
+            CAMPANHA
+=======================================-->
+
+<div class="campaign-card">
+
+<div class="campaign-cover">
+
+🩸
+
+</div>
+
+<div class="campaign-info">
+
+<h2>
+
+Mansão Blackwood
+
+</h2>
+
+<p>
+
+5 Jogadores
+
+</p>
+
+<p>
+
+Sistema:
+ORDEM
+
+</p>
+
+</div>
+
+<div class="campaign-buttons">
+
+<button
+class="enter-button">
+
+Entrar
+
+</button>
+
+<button
+class="edit-button">
+
+Editar
+
+</button>
+
+</div>
+
+</div>
+
+<!--======================================
+            CAMPANHA
+=======================================-->
+
+<div class="campaign-card">
+
+<div class="campaign-cover">
+
+⚡
+
+</div>
+
+<div class="campaign-info">
+
+<h2>
+
+Cidade Esquecida
+
+</h2>
+
+<p>
+
+3 Jogadores
+
+</p>
+
+<p>
+
+Sistema:
+ORDEM
+
+</p>
+
+</div>
+
+<div class="campaign-buttons">
+
+<button
+class="enter-button">
+
+Entrar
+
+</button>
+
+<button
+class="edit-button">
+
+Editar
+
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================
+        MODAL NOVA CAMPANHA
+=======================================-->
+
+<div
+id="createCampaignModal"
+class="modal hidden">
+
+<div class="modal-content">
+
+<h2>
+
+Nova Campanha
+
+</h2>
+
+<div class="field">
+
+<label>
+
+Nome
+
+</label>
+
+<input
+type="text"
+id="campaignName">
+
+</div>
+
+<div class="field">
+
+<label>
+
+Descrição
+
+</label>
+
+<textarea
+id="campaignDescription">
+
+</textarea>
+
+</div>
+
+<div class="field">
+
+<label>
+
+Imagem de Fundo
+
+</label>
+
+<input
+type="file"
+id="campaignBackground"
+accept="image/*">
+
+</div>
+
+<div class="modal-buttons">
+
+<button
+id="saveCampaign"
+class="primary-button">
+
+Criar Campanha
+
+</button>
+
+<button
+id="cancelCampaign"
+class="secondary-button">
+
+Cancelar
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script src="js/campanhas.js"></script>
+
+</body>
+
+</html>
