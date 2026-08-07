@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+
+Entrar na Campanha
+
+</title>
+
+<link
+rel="stylesheet"
+href="global.css">
+
+<link
+rel="stylesheet"
+href="mesa-login.css">
+
+<link
+rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link
+rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="background">
+
+<div class="background-overlay"></div>
+
+<div class="particles"></div>
+
+</div>
+
+<main class="campaign-login-page">
+
+<header class="campaign-login-header">
+
+<a
+href="campanhas.html"
+class="back-button-editor">
+
+← Voltar
+
+</a>
+
+<div>
+
+<span class="editor-eyebrow">
+
+CAMPANHA
+
+</span>
+
+<h1 id="campaignTitle">
+
+Laboratório Sigma
+
+</h1>
+
+<p id="campaignDescription">
+
+Preparando campanha...
+
+</p>
+
+</div>
+
+</header>
+
+<section class="campaign-login-layout">
+
+<div class="campaign-cover-card">
+
+<div
+id="campaignCover"
+class="campaign-cover-preview">
+
+<div class="cover-placeholder">
+
+<span>
+
+🗡
+
+</span>
+
+<strong>
+
+Sem imagem
+
+</strong>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="campaign-info-card">
+
+<div class="campaign-info-grid">
+
+<div class="info-box">
+
+<span>
+
+Jogadores
+
+</span>
+
+<strong id="campaignPlayers">
+
+0 / 4
+
+</strong>
+
+</div>
+
+<div class="info-box">
+
+<span>
+
+Código
+
+</span>
+
+<strong id="campaignInvite">
+
+ABCDEFGH
+
+</strong>
+
+</div>
+
+</div>
+
+<div class="campaign-role-box">
+
+<h2>
+
+Como deseja entrar?
+
+</h2>
+
+<p>
+
+Escolha se deseja participar como jogador ou controlar a campanha como mestre.
+
+</p>
+
+<button
+id="enterPlayer"
+class="primary-button">
+
+👤 Entrar como Jogador
+
+</button>
+
+<button
+id="enterMaster"
+class="secondary-button">
+
+👑 Entrar como Mestre
+
+</button>
+
+</div>
+
+<!--======================================================
+                SENHA DO MESTRE
+=======================================================-->
+
+<div
+id="masterPasswordPanel"
+class="master-password-panel hidden">
+
+<div class="master-password-content">
+
+<span class="editor-eyebrow">
+
+ACESSO DO MESTRE
+
+</span>
+
+<h2>
+
+Digite a senha
+
+</h2>
+
+<p>
+
+Apenas o mestre da campanha pode acessar os controles administrativos da mesa.
+
+</p>
+
+<div class="field">
+
+<label for="masterPasswordInput">
+
+Senha
+
+</label>
+
+<input
+type="password"
+id="masterPasswordInput"
+placeholder="Digite a senha do mestre"
+autocomplete="current-password">
+
+</div>
+
+<div
+id="masterPasswordError"
+class="master-password-error">
+
+</div>
+
+<div class="master-password-actions">
+
+<button
+type="button"
+id="cancelMasterLogin"
+class="secondary-button">
+
+Cancelar
+
+</button>
+
+<button
+type="button"
+id="confirmMasterLogin"
+class="primary-button">
+
+Entrar como Mestre
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                FICHA DO JOGADOR
+=======================================================-->
+
+<section
+id="playerCharacterPanel"
+class="player-character-panel hidden">
+
+<div class="player-character-card">
+
+<div class="player-character-header">
+
+<div>
+
+<span class="editor-eyebrow">
+
+PERSONAGEM
+
+</span>
+
+<h2>
+
+Escolha sua ficha
+
+</h2>
+
+<p>
+
+Selecione a ficha que será utilizada nesta campanha.
+
+</p>
+
+</div>
+
+<button
+type="button"
+id="closeCharacterPanel"
+class="panel-close-button">
+
+✕
+
+</button>
+
+</div>
+
+<div
+id="availableCharacters"
+class="available-characters">
+
+<div class="characters-loading">
+
+Carregando fichas...
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<!--======================================================
+                MENSAGEM
+=======================================================-->
+
+<div
+id="loginMessage"
+class="editor-message hidden">
+
+<div class="editor-message-content">
+
+<div
+id="loginMessageIcon"
+class="editor-message-icon">
+
+!
+
+</div>
+
+<h2 id="loginMessageTitle">
+
+Aviso
+
+</h2>
+
+<p id="loginMessageText">
+
+Mensagem.
+
+</p>
+
+<button
+type="button"
+id="closeLoginMessage"
+class="primary-button">
+
+Continuar
+
+</button>
+
+</div>
+
+</div>
+
+<script src="mesa-login.js"></script>
+
+</body>
+
+</html>

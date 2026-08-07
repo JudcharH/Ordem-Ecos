@@ -1,256 +1,499 @@
 /*==========================================================
-=                    MESA VIRTUAL
+=                    MESA - PARTE 1
 ==========================================================*/
 
-.tabletop{
+/*==========================================================
+=                    APP DA MESA
+==========================================================*/
 
-display:grid;
-
-grid-template-columns:280px 1fr 280px;
-
-gap:25px;
+.table-app{
 
 width:100%;
 
 height:100vh;
 
-padding:20px;
+display:grid;
+
+grid-template-columns:210px 1fr;
 
 overflow:hidden;
 
 }
 
+
 /*==========================================================
-=                    SIDEBARS
+=                    MENU LATERAL
 ==========================================================*/
 
-.sidebar{
+.table-sidebar{
 
-background:linear-gradient(
-180deg,
-#181820,
-#121218
-);
-
-border:1px solid var(--border);
-
-border-radius:22px;
+height:100vh;
 
 display:flex;
 
 flex-direction:column;
 
-padding:22px;
+background:linear-gradient(
+180deg,
+#17171F,
+#101015
+);
 
-box-shadow:var(--shadow);
+border-right:1px solid var(--border);
 
-overflow-y:auto;
+box-shadow:
+10px 0 30px rgba(0,0,0,.22);
+
+z-index:30;
 
 }
 
-.sidebar-header{
+.table-sidebar-brand{
 
-margin-bottom:25px;
+display:grid;
 
-padding-bottom:18px;
+grid-template-columns:48px 1fr;
+
+gap:12px;
+
+align-items:center;
+
+padding:20px 16px;
 
 border-bottom:1px solid var(--border);
 
 }
 
-.sidebar-header h2{
+.table-sidebar-symbol{
 
-font-family:'Orbitron',sans-serif;
+width:46px;
 
-font-size:28px;
+height:46px;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+border-radius:13px;
+
+background:#251146;
+
+border:1px solid #593492;
+
+font-size:24px;
 
 color:var(--primaryLight);
 
-text-align:center;
+box-shadow:
+0 0 18px rgba(123,44,255,.16);
+
+}
+
+.table-sidebar-brand > div:last-child{
+
+display:flex;
+
+flex-direction:column;
+
+gap:3px;
+
+}
+
+.table-sidebar-brand span{
+
+font-family:'Orbitron',sans-serif;
+
+font-size:13px;
+
+font-weight:800;
 
 letter-spacing:2px;
 
+color:var(--primaryLight);
+
 }
+
+.table-sidebar-brand strong{
+
+font-size:12px;
+
+color:var(--text3);
+
+text-transform:uppercase;
+
+}
+
 
 /*==========================================================
 =                    MENU
 ==========================================================*/
 
-.sidebar-menu{
+.table-menu{
+
+flex:1;
 
 display:flex;
 
 flex-direction:column;
 
-gap:12px;
+gap:8px;
+
+padding:16px 12px;
+
+overflow-y:auto;
 
 }
 
-.sidebar-menu button{
+.table-menu-button{
+
+width:100%;
+
+min-height:50px;
+
+display:grid;
+
+grid-template-columns:36px 1fr;
+
+gap:10px;
+
+align-items:center;
+
+padding:8px 12px;
+
+border-radius:13px;
+
+background:transparent;
+
+border:1px solid transparent;
+
+color:var(--text2);
+
+text-align:left;
+
+font-size:14px;
+
+font-weight:650;
+
+transition:.2s;
+
+}
+
+.table-menu-button:hover{
+
+background:#1E1E28;
+
+border-color:#373744;
+
+color:white;
+
+transform:translateX(3px);
+
+}
+
+.table-menu-button.active{
+
+background:#251542;
+
+border-color:#5A338F;
+
+color:white;
+
+}
+
+.table-menu-icon{
+
+width:34px;
+
+height:34px;
 
 display:flex;
 
 align-items:center;
 
-gap:15px;
+justify-content:center;
 
-width:100%;
+border-radius:10px;
 
-padding:16px;
+background:#1B1B24;
 
-border-radius:14px;
-
-background:#1C1C25;
-
-border:1px solid transparent;
-
-color:white;
-
-font-size:16px;
-
-font-weight:600;
-
-text-align:left;
-
-transition:.25s;
+font-size:18px;
 
 }
 
-.sidebar-menu button span{
+.table-menu-button.active .table-menu-icon{
 
-flex:1;
+background:#32145F;
 
-}
-
-.sidebar-menu button:hover{
-
-background:#262632;
-
-border-color:var(--primary);
-
-transform:translateX(4px);
+color:var(--primaryLight);
 
 }
 
-.sidebar-menu button:active{
+.table-menu-label{
 
-transform:scale(.98);
+white-space:nowrap;
 
 }
+
+.table-sidebar-footer{
+
+padding:12px;
+
+border-top:1px solid var(--border);
+
+}
+
+.table-menu-button.danger{
+
+color:#FFB0B0;
+
+}
+
+.table-menu-button.danger:hover{
+
+background:#291616;
+
+border-color:#653030;
+
+}
+
 
 /*==========================================================
-=                    ÁREA CENTRAL
+=                    ÁREA PRINCIPAL
 ==========================================================*/
 
-.battlefield{
+.table-main{
 
-display:flex;
+min-width:0;
 
-flex-direction:column;
+height:100vh;
 
-gap:22px;
+display:grid;
 
-height:100%;
+grid-template-rows:auto minmax(0,1fr) auto;
+
+gap:12px;
+
+padding:12px;
 
 overflow:hidden;
 
 }
 
-.battle-header{
 
-background:linear-gradient(
-180deg,
-#1A1A22,
-#14141B
-);
+/*==========================================================
+=                    CABEÇALHO
+==========================================================*/
+
+.table-header{
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+gap:20px;
+
+min-height:66px;
+
+padding:10px 16px;
+
+background:rgba(19,19,27,.94);
 
 border:1px solid var(--border);
 
-border-radius:20px;
-
-padding:20px;
-
-text-align:center;
+border-radius:17px;
 
 box-shadow:var(--shadow);
 
+backdrop-filter:blur(10px);
+
 }
 
-.battle-header h1{
+.table-header-info{
 
-font-family:'Orbitron',sans-serif;
+display:flex;
 
-font-size:34px;
+flex-direction:column;
+
+gap:4px;
+
+min-width:0;
+
+}
+
+.table-header-label{
+
+font-size:10px;
+
+font-weight:800;
+
+letter-spacing:2px;
 
 color:var(--primaryLight);
 
-margin-bottom:8px;
+}
+
+.table-header h1{
+
+font-family:'Orbitron',sans-serif;
+
+font-size:23px;
+
+letter-spacing:1px;
+
+color:white;
+
+white-space:nowrap;
+
+overflow:hidden;
+
+text-overflow:ellipsis;
 
 }
 
-.battle-header p{
+.table-header-actions{
+
+display:flex;
+
+align-items:center;
+
+gap:10px;
+
+}
+
+.table-role-badge{
+
+height:42px;
+
+display:flex;
+
+align-items:center;
+
+gap:9px;
+
+padding:0 14px;
+
+border-radius:999px;
+
+background:#1A1A23;
+
+border:1px solid var(--border);
+
+font-size:12px;
 
 color:var(--text2);
 
+}
+
+.table-role-badge span{
+
 font-size:16px;
 
+color:var(--primaryLight);
+
 }
+
+.table-header-button{
+
+width:42px;
+
+height:42px;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+border-radius:12px;
+
+background:#1A1A23;
+
+border:1px solid var(--border);
+
+color:white;
+
+font-size:18px;
+
+}
+
+.table-header-button:hover{
+
+border-color:var(--primary);
+
+background:#242430;
+
+}
+
 
 /*==========================================================
 =                    CENÁRIO
 ==========================================================*/
 
-.scene-area{
+.scene-shell{
 
-flex:1;
-
-display:flex;
-
-overflow:hidden;
-
-}
-
-.battlefield-grid{
-
-display:grid;
-
-grid-template-columns:180px 1fr 180px;
-
-gap:20px;
-
-width:100%;
-
-height:100%;
-
-}
-
-/*==========================================================
-=                    CENTRO
-==========================================================*/
-
-.scene-center{
+min-height:0;
 
 position:relative;
 
-display:flex;
-
-justify-content:center;
-
-align-items:center;
-
-background:#101015;
+overflow:hidden;
 
 border:1px solid var(--border);
 
 border-radius:22px;
 
-overflow:hidden;
+box-shadow:
+0 0 28px rgba(0,0,0,.38);
 
-box-shadow:var(--shadow);
+background:#09090D;
 
 }
 
-.scene-center img{
+.table-scene{
+
+position:relative;
+
+width:100%;
+
+height:100%;
+
+min-height:540px;
+
+overflow:hidden;
+
+isolation:isolate;
+
+background:#09090D;
+
+}
+
+
+/*==========================================================
+=                    FUNDO DO CENÁRIO
+==========================================================*/
+
+.scene-background{
+
+position:absolute;
+
+inset:0;
+
+z-index:0;
+
+background:#0C0C11;
+
+background-size:cover;
+
+background-position:center;
+
+background-repeat:no-repeat;
+
+}
+
+.scene-background img{
 
 width:100%;
 
@@ -258,19 +501,1286 @@ height:100%;
 
 object-fit:cover;
 
-user-select:none;
+display:block;
+
+}
+
+.scene-placeholder{
+
+position:absolute;
+
+inset:0;
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+
+justify-content:center;
+
+gap:10px;
+
+text-align:center;
+
+padding:30px;
+
+color:var(--text3);
+
+}
+
+.scene-placeholder span{
+
+font-size:55px;
+
+color:var(--primaryLight);
+
+opacity:.8;
+
+}
+
+.scene-placeholder strong{
+
+font-family:'Orbitron',sans-serif;
+
+font-size:20px;
+
+color:white;
+
+}
+
+.scene-placeholder small{
+
+max-width:430px;
+
+font-size:13px;
+
+line-height:1.6;
+
+}
+
+.scene-dark-overlay{
+
+position:absolute;
+
+inset:0;
+
+z-index:1;
+
+pointer-events:none;
+
+background:
+
+linear-gradient(
+90deg,
+rgba(0,0,0,.30) 0%,
+rgba(0,0,0,.04) 30%,
+rgba(0,0,0,.04) 70%,
+rgba(0,0,0,.30) 100%
+),
+
+linear-gradient(
+180deg,
+rgba(0,0,0,.18),
+rgba(0,0,0,.06) 45%,
+rgba(0,0,0,.25)
+);
+
+}
+
+
+/*==========================================================
+=              RÓTULOS DOS LADOS
+==========================================================*/
+
+.scene-side-label{
+
+position:absolute;
+
+top:18px;
+
+z-index:8;
+
+padding:7px 12px;
+
+border-radius:999px;
+
+background:rgba(12,12,18,.65);
+
+border:1px solid rgba(255,255,255,.10);
+
+backdrop-filter:blur(6px);
+
+font-family:'Orbitron',sans-serif;
+
+font-size:10px;
+
+font-weight:800;
+
+letter-spacing:2px;
+
+color:rgba(255,255,255,.72);
 
 pointer-events:none;
 
 }
 
+.players-label{
+
+left:22px;
+
+}
+
+.enemies-label{
+
+right:22px;
+
+}
+
+
 /*==========================================================
-=                    POSIÇÕES
+=              ÁREAS DE COMBATE
 ==========================================================*/
 
-.players-column,
+.combat-side{
 
-.enemies-column{
+position:absolute;
+
+top:12%;
+
+bottom:17%;
+
+z-index:5;
+
+width:42%;
+
+pointer-events:none;
+
+}
+
+.players-side{
+
+left:3%;
+
+}
+
+.enemies-side{
+
+right:3%;
+
+}
+
+
+/*==========================================================
+=              POSIÇÕES GERAIS
+==========================================================*/
+
+.combat-position{
+
+position:absolute;
+
+width:92px;
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+
+gap:5px;
+
+pointer-events:auto;
+
+}
+
+.position-number{
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+min-width:24px;
+
+height:21px;
+
+padding:0 6px;
+
+border-radius:999px;
+
+background:rgba(8,8,12,.72);
+
+border:1px solid rgba(255,255,255,.14);
+
+font-family:'Orbitron',sans-serif;
+
+font-size:10px;
+
+font-weight:800;
+
+color:rgba(255,255,255,.85);
+
+backdrop-filter:blur(5px);
+
+}
+
+.position-token-slot{
+
+width:72px;
+
+height:72px;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+border-radius:50%;
+
+border:1px solid rgba(190,144,255,.50);
+
+background:rgba(15,10,22,.26);
+
+box-shadow:
+
+0 0 20px rgba(123,44,255,.08),
+
+inset 0 0 18px rgba(123,44,255,.06);
+
+backdrop-filter:blur(1px);
+
+cursor:pointer;
+
+transition:.22s;
+
+overflow:hidden;
+
+}
+
+.position-token-slot:hover{
+
+transform:scale(1.07);
+
+border-color:var(--primaryLight);
+
+background:rgba(47,20,83,.38);
+
+box-shadow:
+0 0 24px rgba(123,44,255,.28);
+
+}
+
+.empty-position-marker{
+
+font-size:31px;
+
+line-height:1;
+
+color:rgba(214,181,255,.62);
+
+font-weight:300;
+
+}
+
+.position-token-slot img{
+
+width:100%;
+
+height:100%;
+
+object-fit:cover;
+
+border-radius:50%;
+
+}
+
+
+/*==========================================================
+=        JOGADORES - FORMAÇÃO DE FRENTE
+==========================================================*/
+
+/*
+    Mais perto do centro = linha de frente.
+
+        5       4       1  -> centro
+        6       3       2  -> centro
+*/
+
+.players-side .position-5{
+
+left:3%;
+
+top:10%;
+
+}
+
+.players-side .position-6{
+
+left:3%;
+
+top:61%;
+
+}
+
+.players-side .position-4{
+
+left:37%;
+
+top:10%;
+
+}
+
+.players-side .position-3{
+
+left:37%;
+
+top:61%;
+
+}
+
+.players-side .position-1{
+
+right:0;
+
+top:10%;
+
+}
+
+.players-side .position-2{
+
+right:0;
+
+top:61%;
+
+}
+
+
+/*==========================================================
+=        AMEAÇAS - FORMAÇÃO ESPELHADA
+==========================================================*/
+
+/*
+    Centro <- 1       3       5
+              2       4       6
+*/
+
+.enemies-side .position-1{
+
+left:0;
+
+top:10%;
+
+}
+
+.enemies-side .position-2{
+
+left:0;
+
+top:61%;
+
+}
+
+.enemies-side .position-3{
+
+left:37%;
+
+top:10%;
+
+}
+
+.enemies-side .position-4{
+
+left:37%;
+
+top:61%;
+
+}
+
+.enemies-side .position-5{
+
+right:3%;
+
+top:10%;
+
+}
+
+.enemies-side .position-6{
+
+right:3%;
+
+top:61%;
+
+}
+
+/*==========================================================
+=                    MESA - PARTE 2
+==========================================================*/
+
+/*==========================================================
+=                    NPCs ALIADOS
+==========================================================*/
+
+.npc-line{
+
+position:absolute;
+
+left:50%;
+
+bottom:3%;
+
+transform:translateX(-50%);
+
+z-index:7;
+
+display:flex;
+
+align-items:flex-end;
+
+gap:18px;
+
+padding:10px 14px;
+
+border-radius:16px;
+
+background:rgba(10,10,15,.46);
+
+border:1px solid rgba(255,255,255,.08);
+
+backdrop-filter:blur(6px);
+
+}
+
+.npc-line-label{
+
+position:absolute;
+
+left:50%;
+
+top:-22px;
+
+transform:translateX(-50%);
+
+font-family:'Orbitron',sans-serif;
+
+font-size:9px;
+
+font-weight:800;
+
+letter-spacing:2px;
+
+color:rgba(255,255,255,.62);
+
+}
+
+.npc-position{
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+
+gap:5px;
+
+}
+
+.npc-position .position-token-slot{
+
+width:58px;
+
+height:58px;
+
+border-color:rgba(126,210,170,.45);
+
+background:rgba(20,55,40,.18);
+
+}
+
+.npc-position .position-token-slot:hover{
+
+border-color:#7ED2AA;
+
+background:rgba(30,90,62,.30);
+
+box-shadow:
+0 0 22px rgba(80,200,140,.22);
+
+}
+
+
+/*==========================================================
+=                    TOKEN OCUPADO
+==========================================================*/
+
+.combat-token{
+
+width:100%;
+
+height:100%;
+
+position:relative;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+}
+
+.combat-token img{
+
+width:100%;
+
+height:100%;
+
+object-fit:cover;
+
+border-radius:50%;
+
+}
+
+.combat-token-fallback{
+
+width:100%;
+
+height:100%;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+font-size:28px;
+
+background:#241044;
+
+}
+
+.combat-token-name{
+
+position:absolute;
+
+left:50%;
+
+bottom:-24px;
+
+transform:translateX(-50%);
+
+max-width:110px;
+
+padding:4px 8px;
+
+border-radius:999px;
+
+background:rgba(8,8,12,.84);
+
+border:1px solid rgba(255,255,255,.10);
+
+font-size:10px;
+
+font-weight:700;
+
+color:white;
+
+white-space:nowrap;
+
+overflow:hidden;
+
+text-overflow:ellipsis;
+
+pointer-events:none;
+
+}
+
+.combat-position.occupied .position-token-slot{
+
+border-style:solid;
+
+border-color:rgba(214,181,255,.85);
+
+background:rgba(31,16,52,.36);
+
+box-shadow:
+0 0 22px rgba(123,44,255,.22);
+
+}
+
+.enemy-position.occupied .position-token-slot{
+
+border-color:rgba(255,109,109,.82);
+
+box-shadow:
+0 0 22px rgba(190,55,55,.22);
+
+}
+
+.npc-position.occupied .position-token-slot{
+
+border-color:rgba(126,210,170,.82);
+
+}
+
+
+/*==========================================================
+=                    CHAT COMPACTO
+==========================================================*/
+
+.table-chat{
+
+height:190px;
+
+display:grid;
+
+grid-template-rows:auto 1fr auto;
+
+background:rgba(18,18,25,.95);
+
+border:1px solid var(--border);
+
+border-radius:18px;
+
+overflow:hidden;
+
+box-shadow:var(--shadow);
+
+transition:
+height .25s ease,
+opacity .25s ease;
+
+}
+
+.table-chat.collapsed{
+
+height:54px;
+
+}
+
+.table-chat.collapsed .table-chat-messages,
+.table-chat.collapsed .table-chat-input{
+
+display:none;
+
+}
+
+.table-chat-header{
+
+display:flex;
+
+align-items:center;
+
+justify-content:space-between;
+
+gap:15px;
+
+padding:10px 14px;
+
+border-bottom:1px solid var(--border);
+
+}
+
+.table-chat-header > div{
+
+display:flex;
+
+align-items:center;
+
+gap:10px;
+
+}
+
+.table-chat-label{
+
+font-size:9px;
+
+font-weight:800;
+
+letter-spacing:2px;
+
+color:var(--primaryLight);
+
+}
+
+.table-chat-header h2{
+
+font-family:'Orbitron',sans-serif;
+
+font-size:15px;
+
+color:white;
+
+}
+
+.chat-collapse-button{
+
+width:34px;
+
+height:30px;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+border-radius:9px;
+
+background:#202029;
+
+border:1px solid var(--border);
+
+color:white;
+
+font-size:17px;
+
+}
+
+.chat-collapse-button:hover{
+
+border-color:var(--primary);
+
+}
+
+.table-chat-messages{
+
+min-height:0;
+
+overflow-y:auto;
+
+padding:10px 14px;
+
+display:flex;
+
+flex-direction:column;
+
+gap:8px;
+
+}
+
+.chat-message{
+
+display:flex;
+
+gap:10px;
+
+align-items:flex-start;
+
+padding:8px 10px;
+
+border-radius:11px;
+
+background:#17171F;
+
+border:1px solid rgba(255,255,255,.05);
+
+}
+
+.chat-message-avatar{
+
+width:30px;
+
+height:30px;
+
+flex-shrink:0;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+overflow:hidden;
+
+border-radius:50%;
+
+background:#251146;
+
+font-size:13px;
+
+}
+
+.chat-message-avatar img{
+
+width:100%;
+
+height:100%;
+
+object-fit:cover;
+
+}
+
+.chat-message-body{
+
+min-width:0;
+
+display:flex;
+
+flex-direction:column;
+
+gap:2px;
+
+}
+
+.chat-message-body strong{
+
+font-size:12px;
+
+color:white;
+
+}
+
+.chat-message-body p{
+
+font-size:12px;
+
+line-height:1.45;
+
+color:var(--text2);
+
+word-break:break-word;
+
+}
+
+.chat-message-time{
+
+font-size:9px;
+
+color:var(--text3);
+
+}
+
+.chat-system-message{
+
+display:flex;
+
+gap:9px;
+
+align-items:flex-start;
+
+padding:8px 10px;
+
+border-radius:11px;
+
+background:rgba(123,44,255,.08);
+
+border:1px solid rgba(123,44,255,.17);
+
+}
+
+.chat-system-icon{
+
+color:var(--primaryLight);
+
+font-size:15px;
+
+}
+
+.chat-system-message strong{
+
+font-size:11px;
+
+color:var(--primaryLight);
+
+}
+
+.chat-system-message p{
+
+font-size:11px;
+
+color:var(--text2);
+
+margin-top:2px;
+
+}
+
+
+/*==========================================================
+=                    ROLAGENS NO CHAT
+==========================================================*/
+
+.chat-roll-message{
+
+padding:10px 12px;
+
+border-radius:12px;
+
+background:
+linear-gradient(
+135deg,
+rgba(123,44,255,.14),
+rgba(25,25,34,.96)
+);
+
+border:1px solid rgba(123,44,255,.30);
+
+}
+
+.chat-roll-header{
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+gap:12px;
+
+margin-bottom:6px;
+
+}
+
+.chat-roll-header strong{
+
+font-size:12px;
+
+color:white;
+
+}
+
+.chat-roll-label{
+
+font-size:9px;
+
+font-weight:800;
+
+letter-spacing:1px;
+
+color:var(--primaryLight);
+
+}
+
+.chat-roll-result{
+
+display:flex;
+
+align-items:baseline;
+
+gap:8px;
+
+}
+
+.chat-roll-total{
+
+font-family:'Orbitron',sans-serif;
+
+font-size:24px;
+
+font-weight:800;
+
+color:white;
+
+}
+
+.chat-roll-formula{
+
+font-size:11px;
+
+color:var(--text3);
+
+}
+
+.chat-roll-detail{
+
+margin-top:5px;
+
+font-size:10px;
+
+line-height:1.4;
+
+color:var(--text2);
+
+}
+
+
+/*==========================================================
+=                    INPUT DO CHAT
+==========================================================*/
+
+.table-chat-input{
+
+display:grid;
+
+grid-template-columns:1fr 90px;
+
+gap:8px;
+
+padding:9px 11px;
+
+border-top:1px solid var(--border);
+
+}
+
+.table-chat-input input{
+
+height:38px;
+
+padding:8px 11px;
+
+font-size:12px;
+
+}
+
+.chat-send-button{
+
+height:38px;
+
+border-radius:10px;
+
+background:var(--primary);
+
+color:white;
+
+font-size:12px;
+
+font-weight:800;
+
+}
+
+.chat-send-button:hover{
+
+background:#9652FF;
+
+}
+
+
+/*==========================================================
+=                    PAINEL LATERAL
+==========================================================*/
+
+.table-panel-overlay{
+
+position:fixed;
+
+inset:0;
+
+z-index:1000;
+
+background:rgba(0,0,0,.35);
+
+backdrop-filter:blur(2px);
+
+}
+
+.table-side-panel{
+
+position:absolute;
+
+left:210px;
+
+top:0;
+
+bottom:0;
+
+width:min(460px,calc(100vw - 210px));
+
+display:flex;
+
+flex-direction:column;
+
+background:
+linear-gradient(
+180deg,
+#191922,
+#101015
+);
+
+border-right:1px solid var(--primary);
+
+box-shadow:
+20px 0 45px rgba(0,0,0,.48);
+
+animation:
+tablePanelEnter
+.22s ease;
+
+}
+
+@keyframes tablePanelEnter{
+
+from{
+
+transform:translateX(-30px);
+
+opacity:0;
+
+}
+
+to{
+
+transform:translateX(0);
+
+opacity:1;
+
+}
+
+}
+
+.table-side-panel-header{
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+gap:18px;
+
+padding:20px;
+
+border-bottom:1px solid var(--border);
+
+}
+
+.table-panel-label{
+
+display:block;
+
+font-size:9px;
+
+font-weight:800;
+
+letter-spacing:2px;
+
+color:var(--primaryLight);
+
+margin-bottom:5px;
+
+}
+
+.table-side-panel-header h2,
+.table-modal-header h2{
+
+font-family:'Orbitron',sans-serif;
+
+font-size:22px;
+
+color:white;
+
+}
+
+.table-panel-close{
+
+width:40px;
+
+height:40px;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+flex-shrink:0;
+
+border-radius:11px;
+
+background:#22222C;
+
+border:1px solid var(--border);
+
+color:white;
+
+font-size:16px;
+
+}
+
+.table-panel-close:hover{
+
+background:#572323;
+
+border-color:#7E3535;
+
+}
+
+.table-panel-content{
+
+flex:1;
+
+overflow-y:auto;
+
+padding:20px;
+
+}
+
+
+/*==========================================================
+=                    MODAIS
+==========================================================*/
+
+.table-modal{
+
+position:fixed;
+
+inset:0;
+
+z-index:1200;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+padding:24px;
+
+background:rgba(2,2,6,.83);
+
+backdrop-filter:blur(7px);
+
+}
+
+.table-modal-content{
+
+width:min(620px,95vw);
+
+max-height:86vh;
+
+overflow-y:auto;
+
+padding:24px;
+
+background:
+linear-gradient(
+180deg,
+#1B1B25,
+#111118
+);
+
+border:1px solid var(--primary);
+
+border-radius:22px;
+
+box-shadow:
+0 0 50px rgba(123,44,255,.26);
+
+}
+
+.compact-modal{
+
+width:min(440px,95vw);
+
+text-align:center;
+
+}
+
+.table-modal-header{
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:flex-start;
+
+gap:20px;
+
+margin-bottom:20px;
+
+}
+
+.table-modal-body{
 
 display:flex;
 
@@ -280,165 +1790,220 @@ gap:14px;
 
 }
 
-.players-column h2,
-
-.enemies-column h2{
-
-font-family:'Orbitron',sans-serif;
-
-font-size:22px;
-
-text-align:center;
-
-color:var(--primaryLight);
-
-margin-bottom:10px;
-
-}
-
-.position-slot{
-
-display:flex;
-
-flex-direction:column;
-
-justify-content:center;
-
-align-items:center;
-
-gap:10px;
-
-padding:12px;
-
-background:#191920;
-
-border:1px solid var(--border);
-
-border-radius:16px;
-
-transition:.25s;
-
-min-height:95px;
-
-}
-
-.position-slot:hover{
-
-border-color:var(--primary);
-
-background:#21212C;
-
-}
-
-.position-slot span{
-
-font-size:14px;
-
-font-weight:600;
-
-color:var(--text2);
-
-}
-
-/*==========================================================
-=                    TOKENS
-==========================================================*/
-
-.token-slot{
+.table-confirm-icon{
 
 width:62px;
 
 height:62px;
 
-border-radius:50%;
-
-border:2px dashed var(--primary);
+margin:0 auto 16px;
 
 display:flex;
-
-justify-content:center;
 
 align-items:center;
 
-background:#111;
-
-overflow:hidden;
-
-transition:.25s;
-
-}
-
-.token-slot img{
-
-width:100%;
-
-height:100%;
-
-object-fit:cover;
+justify-content:center;
 
 border-radius:50%;
 
-}
+background:#241044;
 
-.token-slot:hover{
+border:1px solid #6337A5;
 
-transform:scale(1.08);
-
-box-shadow:
-
-0 0 18px rgba(123,44,255,.35);
-
-}
-
-/*==========================================================
-=                    CHAT
-==========================================================*/
-
-.chat-panel{
-
-height:260px;
-
-display:flex;
-
-flex-direction:column;
-
-background:#15151D;
-
-border:1px solid var(--border);
-
-border-radius:20px;
-
-overflow:hidden;
-
-box-shadow:var(--shadow);
-
-}
-
-.chat-header{
-
-padding:14px 18px;
-
-border-bottom:1px solid var(--border);
-
-}
-
-.chat-header h2{
-
-font-family:'Orbitron',sans-serif;
-
-font-size:20px;
+font-size:27px;
 
 color:var(--primaryLight);
 
 }
 
-.chat-messages{
+.compact-modal h2{
 
-flex:1;
+font-family:'Orbitron',sans-serif;
+
+font-size:22px;
+
+margin-bottom:10px;
+
+}
+
+.compact-modal p{
+
+font-size:13px;
+
+line-height:1.7;
+
+color:var(--text2);
+
+margin-bottom:20px;
+
+}
+
+.table-confirm-actions{
+
+display:grid;
+
+grid-template-columns:1fr 1fr;
+
+gap:10px;
+
+}
+
+/*==========================================================
+=                    MESA - PARTE 3
+==========================================================*/
+
+/*==========================================================
+=                    PAINEL DE DADOS
+==========================================================*/
+
+.dice-modal-content{
+
+max-width:520px;
+
+}
+
+.dice-quick-grid{
+
+display:grid;
+
+grid-template-columns:repeat(3,1fr);
+
+gap:12px;
+
+margin-bottom:22px;
+
+}
+
+.dice-quick-button{
+
+height:62px;
+
+border-radius:16px;
+
+background:#1B1B24;
+
+border:1px solid var(--border);
+
+font-family:'Orbitron',sans-serif;
+
+font-size:22px;
+
+font-weight:800;
+
+color:white;
+
+transition:.2s;
+
+}
+
+.dice-quick-button:hover{
+
+background:#2A1550;
+
+border-color:var(--primary);
+
+transform:translateY(-2px);
+
+box-shadow:0 0 18px rgba(123,44,255,.25);
+
+}
+
+.custom-roll{
+
+display:grid;
+
+grid-template-columns:repeat(3,1fr);
+
+gap:14px;
+
+margin-bottom:18px;
+
+}
+
+.full-button{
+
+width:100%;
+
+}
+
+
+/*==========================================================
+=                    CONTEÚDOS DOS PAINÉIS
+==========================================================*/
+
+.table-panel-section{
+
+display:flex;
+
+flex-direction:column;
+
+gap:16px;
+
+margin-bottom:24px;
+
+}
+
+.table-panel-section:last-child{
+
+margin-bottom:0;
+
+}
+
+.table-panel-section-title{
+
+font-family:'Orbitron',sans-serif;
+
+font-size:16px;
+
+color:white;
+
+padding-bottom:8px;
+
+border-bottom:1px solid var(--border);
+
+}
+
+.table-panel-card{
 
 padding:16px;
 
-overflow-y:auto;
+background:#15151D;
+
+border:1px solid var(--border);
+
+border-radius:16px;
+
+transition:.2s;
+
+}
+
+.table-panel-card:hover{
+
+border-color:var(--primary);
+
+}
+
+.table-panel-card h3{
+
+font-size:16px;
+
+margin-bottom:8px;
+
+color:white;
+
+}
+
+.table-panel-card p{
+
+font-size:13px;
+
+line-height:1.7;
+
+color:var(--text2);
+
+}
+
+.table-panel-list{
 
 display:flex;
 
@@ -448,209 +2013,276 @@ gap:12px;
 
 }
 
-.chat-message{
+.table-panel-item{
 
-background:#1C1C25;
+display:flex;
 
-border-radius:12px;
+align-items:center;
 
-padding:12px;
+justify-content:space-between;
 
-color:var(--text2);
-
-}
-
-.chat-message strong{
-
-display:block;
-
-color:white;
-
-margin-bottom:5px;
-
-}
-
-.chat-input{
-
-display:grid;
-
-grid-template-columns:1fr 100px;
-
-gap:10px;
+gap:12px;
 
 padding:12px;
 
-border-top:1px solid var(--border);
-
-}
-
-.chat-input button{
-
-background:var(--primary);
-
-color:white;
+background:#1B1B24;
 
 border-radius:12px;
 
-font-weight:700;
+border:1px solid var(--border);
 
 }
 
-.chat-input button:hover{
+.table-panel-item strong{
 
-background:#9652FF;
+font-size:14px;
+
+color:white;
 
 }
+
+.table-panel-item span{
+
+font-size:12px;
+
+color:var(--text3);
+
+}
+
 
 /*==========================================================
-=                PAINÉIS FLUTUANTES
+=                    SCROLLBAR
 ==========================================================*/
 
-.floating-panel{
+.table-menu,
+.table-panel-content,
+.table-chat-messages,
+.table-modal-content{
 
-position:fixed;
+scrollbar-width:thin;
 
-top:20px;
+scrollbar-color:
 
-bottom:20px;
+var(--primary)
 
-width:420px;
+#15151D;
+
+}
+
+.table-menu::-webkit-scrollbar,
+.table-panel-content::-webkit-scrollbar,
+.table-chat-messages::-webkit-scrollbar,
+.table-modal-content::-webkit-scrollbar{
+
+width:8px;
+
+}
+
+.table-menu::-webkit-scrollbar-track,
+.table-panel-content::-webkit-scrollbar-track,
+.table-chat-messages::-webkit-scrollbar-track,
+.table-modal-content::-webkit-scrollbar-track{
 
 background:#15151D;
 
-border:1px solid var(--primary);
+}
 
-border-radius:22px;
+.table-menu::-webkit-scrollbar-thumb,
+.table-panel-content::-webkit-scrollbar-thumb,
+.table-chat-messages::-webkit-scrollbar-thumb,
+.table-modal-content::-webkit-scrollbar-thumb{
 
-padding:22px;
+background:var(--primary);
 
-z-index:500;
-
-box-shadow:
-0 0 40px rgba(123,44,255,.28);
-
-overflow-y:auto;
+border-radius:999px;
 
 }
 
-#playerPanel{
 
-left:305px;
+/*==========================================================
+=                    UTILITÁRIOS
+==========================================================*/
+
+.hidden{
+
+display:none !important;
+
+}
+
+.fade-in{
+
+animation:fadeIn .25s ease;
 
 }
 
-#masterPanel{
+@keyframes fadeIn{
 
-right:305px;
+from{
+
+opacity:0;
+
+transform:translateY(10px);
+
+}
+
+to{
+
+opacity:1;
+
+transform:translateY(0);
 
 }
 
-#dicePanel{
-
-left:50%;
-
-top:50%;
-
-bottom:auto;
-
-transform:translate(-50%,-50%);
-
-max-height:80vh;
-
 }
+
 
 /*==========================================================
 =                    RESPONSIVO
 ==========================================================*/
 
-@media(max-width:1300px){
+@media(max-width:1200px){
 
-.tabletop{
+.table-app{
 
-grid-template-columns:220px 1fr 220px;
-
-gap:15px;
+grid-template-columns:180px 1fr;
 
 }
 
-.battlefield-grid{
+.table-side-panel{
 
-grid-template-columns:145px 1fr 145px;
+left:180px;
 
-}
-
-.sidebar{
-
-padding:15px;
+width:min(430px,calc(100vw - 180px));
 
 }
 
-}
+.position-token-slot{
 
-@media(max-width:1000px){
+width:64px;
 
-.tabletop{
-
-grid-template-columns:1fr;
-
-height:auto;
-
-overflow:visible;
+height:64px;
 
 }
 
-.player-sidebar,
-.master-sidebar{
+.combat-position{
 
-position:relative;
-
-}
-
-.sidebar-menu{
-
-display:grid;
-
-grid-template-columns:repeat(4,1fr);
+width:80px;
 
 }
 
-.battlefield-grid{
+}
+
+@media(max-width:950px){
+
+.table-app{
 
 grid-template-columns:1fr;
 
 }
 
-.players-column,
-.enemies-column{
+.table-sidebar{
 
-display:grid;
+position:fixed;
 
-grid-template-columns:repeat(3,1fr);
+left:0;
 
-}
+top:0;
 
-.players-column h2,
-.enemies-column h2{
+bottom:0;
 
-grid-column:1/-1;
+width:78px;
 
-}
-
-.scene-center{
-
-min-height:500px;
+z-index:100;
 
 }
 
-.floating-panel{
+.table-sidebar-brand{
 
-left:50% !important;
+grid-template-columns:1fr;
 
-right:auto !important;
+justify-items:center;
 
-width:min(92%,500px);
+}
 
-transform:translateX(-50%);
+.table-sidebar-brand strong,
+.table-sidebar-brand span,
+.table-menu-label{
+
+display:none;
+
+}
+
+.table-menu-button{
+
+grid-template-columns:1fr;
+
+justify-items:center;
+
+padding:10px;
+
+}
+
+.table-main{
+
+margin-left:78px;
+
+}
+
+.table-side-panel{
+
+left:78px;
+
+width:min(420px,calc(100vw - 78px));
+
+}
+
+}
+
+@media(max-width:800px){
+
+.table-header{
+
+flex-direction:column;
+
+align-items:flex-start;
+
+}
+
+.table-chat{
+
+height:160px;
+
+}
+
+.position-token-slot{
+
+width:58px;
+
+height:58px;
+
+}
+
+.combat-token-name{
+
+display:none;
+
+}
+
+.npc-line{
+
+transform:translateX(-50%) scale(.9);
+
+}
+
+.custom-roll{
+
+grid-template-columns:1fr;
+
+}
+
+.dice-quick-grid{
+
+grid-template-columns:repeat(2,1fr);
 
 }
 
@@ -658,29 +2290,147 @@ transform:translateX(-50%);
 
 @media(max-width:650px){
 
-.sidebar-menu{
+.table-main{
 
-grid-template-columns:repeat(2,1fr);
-
-}
-
-.players-column,
-.enemies-column{
-
-grid-template-columns:repeat(2,1fr);
+padding:8px;
 
 }
 
-.chat-input{
+.scene-side-label{
+
+display:none;
+
+}
+
+.table-role-badge{
+
+display:none;
+
+}
+
+.table-chat-input{
 
 grid-template-columns:1fr;
 
 }
 
-.scene-center{
+.chat-send-button{
 
-min-height:360px;
+width:100%;
 
 }
+
+.table-confirm-actions{
+
+grid-template-columns:1fr;
+
+}
+
+.table-modal-content{
+
+padding:18px;
+
+}
+
+}
+
+@media(max-width:500px){
+
+.position-token-slot{
+
+width:50px;
+
+height:50px;
+
+}
+
+.position-number{
+
+font-size:9px;
+
+}
+
+.npc-line{
+
+gap:10px;
+
+padding:8px;
+
+}
+
+.table-chat{
+
+height:140px;
+
+}
+
+.table-header h1{
+
+font-size:18px;
+
+}
+
+.table-header{
+
+padding:10px;
+
+}
+
+}
+
+
+/*==========================================================
+=                    AJUSTES FINAIS
+==========================================================*/
+
+.table-scene{
+
+user-select:none;
+
+}
+
+.position-token-slot,
+.npc-position,
+.combat-position{
+
+-webkit-tap-highlight-color:transparent;
+
+}
+
+.table-menu-button,
+.chat-send-button,
+.dice-quick-button,
+.table-header-button{
+
+cursor:pointer;
+
+}
+
+.table-panel-card,
+.chat-message,
+.chat-roll-message{
+
+transition:.2s;
+
+}
+
+.table-panel-card:hover,
+.chat-message:hover{
+
+transform:translateY(-1px);
+
+}
+
+.scene-background img{
+
+pointer-events:none;
+
+}
+
+.table-chat,
+.scene-shell,
+.table-sidebar{
+
+backdrop-filter:blur(8px);
 
 }
