@@ -4167,58 +4167,71 @@ function renderAbilityEditorList(){
         abilities
             .map(ability => `
 
-                <div class="ability-editor-card">
+<div class="ability-editor-card">
 
-                    <h3>
-                        ${escapeCharacterEditorHTML(
-                            ability.name
-                        )}
-                    </h3>
+    <h3>
+        ${escapeCharacterEditorHTML(
+            ability.name
+        )}
+    </h3>
 
-                    <p>
-                        ${escapeCharacterEditorHTML(
-                            ability.description || ""
-                        )}
-                    </p>
+    <p>
+        ${escapeCharacterEditorHTML(
+            ability.description || ""
+        )}
+    </p>
 
-                    ${
+    ${
+        ability.upgrade
+            ? `
+                <p>
+                    <strong>Aprimoramento:</strong>
+
+                    ${escapeCharacterEditorHTML(
                         ability.upgrade
-                            ? `
-                                <p>
-                                    <strong>Aprimoramento:</strong>
-                                    ${escapeCharacterEditorHTML(
-                                        ability.upgrade
-                                    )}
-                                </p>
-                            `
-                            : ""
-                    }
+                    )}
+                </p>
+            `
+            : ""
+    }
 
-                    ${
-                        ability.useCost
-                            ? `
-                                <button
-                                    type="button"
-                                    class="primary-button use-ability-button"
-                                    data-ability="${escapeCharacterEditorHTML(
-                                        ability.id
-                                    )}"
-                                >
+    ${
+        ability.useCost
+            ? `
+                <button
+                    type="button"
+                    class="primary-button use-ability-button"
+                    data-ability="${escapeCharacterEditorHTML(
+                        ability.id
+                    )}"
+                >
 
-                                    Usar •
-                                    ${Number(
-                                        ability.useCost.value
-                                    )}
-                                    ${String(
-                                        ability.useCost.type
-                                    ).toUpperCase()}
+                    Usar •
+                    ${Number(
+                        ability.useCost.value
+                    )}
+                    ${String(
+                        ability.useCost.type
+                    ).toUpperCase()}
 
-                                </button>
-                            `
-                            : ""
-                    }
+                </button>
+            `
+            : ""
+    }
 
-                </div>
+    <button
+        type="button"
+        class="remove-content-button remove-ability-button"
+        data-ability="${escapeCharacterEditorHTML(
+            ability.id
+        )}"
+    >
+
+        Remover
+
+    </button>
+
+</div>
 
             `)
             .join("");
