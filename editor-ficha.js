@@ -839,24 +839,197 @@ function renderCharacterPhoto(){
 }
 
 /*==========================================================
-=                 ARQUIVO PARA BASE64
+=          IMAGEM OTIMIZADA PARA A FICHA
 ==========================================================*/
 
-function characterFileToBase64(file){
+function characterFileToBase64(
+    file
+){
 
     return new Promise(
         (resolve,reject) => {
 
+            if(!file){
+
+                reject(
+                    new Error(
+                        "Arquivo não informado."
+                    )
+                );
+
+                return;
+
+            }
+
+
+            /*
+                Máximo de 5 MB no arquivo de entrada.
+                Mesmo assim ele será comprimido abaixo.
+            */
+
+            const maxInputSize =
+                5 * 1024 * 1024;
+
+
+            if(
+                file.size >
+                maxInputSize
+            ){
+
+                reject(
+                    new Error(
+                        "A imagem é muito grande. Use uma imagem de até 5 MB."
+                    )
+                );
+
+                return;
+
+            }
+
+
             const reader =
                 new FileReader();
 
+
             reader.onload =
-                () => resolve(
-                    reader.result
-                );
+                event => {
+
+                    const image =
+                        new Image();
+
+
+                    image.onload =
+                        () => {
+
+                            /*
+                                A foto da ficha não precisa
+                                ter 3000px ou 5000px.
+
+                                700px já é suficiente.
+                            */
+
+                            const maxWidth =
+                                700;
+
+                            const maxHeight =
+                                900;
+
+
+                            let width =
+                                image.width;
+
+                            let height =
+                                image.height;
+
+
+                            const scale =
+                                Math.min(
+                                    1,
+                                    maxWidth / width,
+                                    maxHeight / height
+                                );
+
+
+                            width =
+                                Math.round(
+                                    width * scale
+                                );
+
+
+                            height =
+                                Math.round(
+                                    height * scale
+                                );
+
+
+                            const canvas =
+                                document.createElement(
+                                    "canvas"
+                                );
+
+
+                            canvas.width =
+                                width;
+
+                            canvas.height =
+                                height;
+
+
+                            const context =
+                                canvas.getContext(
+                                    "2d"
+                                );
+
+
+                            if(!context){
+
+                                reject(
+                                    new Error(
+                                        "Não foi possível processar a imagem."
+                                    )
+                                );
+
+                                return;
+
+                            }
+
+
+                            context.drawImage(
+                                image,
+                                0,
+                                0,
+                                width,
+                                height
+                            );
+
+
+                            /*
+                                WEBP economiza muito espaço.
+                            */
+
+                            const compressed =
+                                canvas.toDataURL(
+                                    "image/webp",
+                                    0.78
+                                );
+
+
+                            resolve(
+                                compressed
+                            );
+
+                        };
+
+
+                    image.onerror =
+                        () => {
+
+                            reject(
+                                new Error(
+                                    "A imagem selecionada é inválida."
+                                )
+                            );
+
+                        };
+
+
+                    image.src =
+                        event.target.result;
+
+                };
+
 
             reader.onerror =
-                reject;
+                () => {
+
+                    reject(
+                        new Error(
+                            "Erro ao ler a imagem."
+                        )
+                    );
+
+                };
+
 
             reader.readAsDataURL(
                 file
@@ -1423,12 +1596,62 @@ function saveCharacterToStorage(
 
     }
 
-    localStorage.setItem(
-        CHARACTER_EDITOR_STORAGE,
+    try{
+
+    const serialized =
         JSON.stringify(
             editorCharacters
-        )
+        );
+
+
+    localStorage.setItem(
+        CHARACTER_EDITOR_STORAGE,
+        serialized
     );
+
+}
+catch(error){
+
+    console.error(
+        "Erro ao salvar ficha:",
+        error
+    );
+
+
+    /*
+        Desfaz a alteração em memória
+        caso o storage não aceite.
+    */
+
+    loadCharacterEditorStorage();
+
+
+    if(
+        error?.name ===
+        "QuotaExceededError"
+    ){
+
+        showCharacterEditorMessage(
+            "Armazenamento cheio",
+            "A ficha ficou grande demais para o armazenamento do navegador. Tente utilizar imagens menores."
+        );
+
+    }
+    else{
+
+        showCharacterEditorMessage(
+            "Erro ao salvar",
+            "Não foi possível salvar a ficha. Consulte o console para mais informações."
+        );
+
+    }
+
+
+    return false;
+
+    
+
+}
 
 
     syncCharacterCampaign(
@@ -1445,6 +1668,8 @@ function saveCharacterToStorage(
         "A ficha foi salva com sucesso.",
         true
     );
+
+    return true;
 
 }
 
