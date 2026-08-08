@@ -4706,3 +4706,756 @@ document.addEventListener(
 
     }
 );
+
+/*==========================================================
+=              PEGAR FICHA ATUALIZADA
+==========================================================*/
+
+function getLiveCharacter(
+    characterId
+){
+
+    const characters =
+        JSON.parse(
+            localStorage.getItem(
+                "ordem_characters"
+            ) || "[]"
+        );
+
+
+    return characters.find(
+        character =>
+            character.id === characterId
+    ) || null;
+
+}
+
+const liveCharacter =
+    getLiveCharacter(
+        characterId
+    );
+
+
+if(!liveCharacter){
+
+    return;
+
+}
+
+
+renderTableCharacterSheet(
+    liveCharacter
+);
+
+/*==========================================================
+=              SINCRONIZAÇÃO AO VIVO
+==========================================================*/
+
+window.addEventListener(
+    "storage",
+    event => {
+
+        if(
+            event.key !==
+            "ordem_characters"
+        ){
+
+            return;
+
+        }
+
+
+        refreshOpenCharacterSheet();
+
+        refreshCharacterTokens();
+
+    }
+);
+
+function refreshOpenCharacterSheet(){
+
+    if(!currentOpenedCharacterId){
+
+        return;
+
+    }
+
+
+    const character =
+        getLiveCharacter(
+            currentOpenedCharacterId
+        );
+
+
+    if(!character){
+
+        return;
+
+    }
+
+
+    renderTableCharacterSheet(
+        character
+    );
+
+}
+
+/*==========================================================
+=              FOTO ATUAL DO PERSONAGEM
+==========================================================*/
+
+function getCharacterCurrentPhoto(
+    character
+){
+
+    const conditions =
+        Array.isArray(
+            character.conditions
+        )
+            ? character.conditions
+            : [];
+
+
+    const wounded =
+        conditions.some(
+            condition =>
+                condition.id ===
+                "machucado"
+        );
+
+
+    if(
+        wounded &&
+        character.woundedPhoto
+    ){
+
+        return character.woundedPhoto;
+
+    }
+
+
+    return getCharacterCurrentPhoto(
+    character
+) || "";
+
+}
+
+/*==========================================================
+=              ROLAR EXPRESSÃO DE DADOS
+==========================================================*/
+
+function rollDiceExpression(
+    expression
+){
+
+    if(!expression){
+
+        return null;
+
+    }
+
+
+    const clean =
+        String(
+            expression
+        )
+            .toLowerCase()
+            .replace(/\s+/g,"");
+
+
+    /*
+        Aceita:
+        1d20
+        1d20+1d8
+        2d6+5
+        1d20+1d8-3
+    */
+
+    const parts =
+        clean.match(
+            /[+-]?[^+-]+/g
+        );
+
+
+    if(!parts){
+
+        return null;
+
+    }
+
+
+    let total = 0;
+
+    const details = [];
+
+
+    for(
+        const rawPart
+        of parts
+    ){
+
+        let sign = 1;
+
+        let part =
+            rawPart;
+
+
+        if(part.startsWith("+")){
+
+            part =
+                part.slice(1);
+
+        }
+        else if(
+            part.startsWith("-")
+        ){
+
+            sign = -1;
+
+            part =
+                part.slice(1);
+
+        }
+
+
+        const dice =
+            part.match(
+                /^(\d+)d(\d+)$/
+            );
+
+
+        if(dice){
+
+            const amount =
+                Number(
+                    dice[1]
+                );
+
+
+            const sides =
+                Number(
+                    dice[2]
+                );
+
+
+            const rolls = [];
+
+
+            for(
+                let i = 0;
+                i < amount;
+                i++
+            ){
+
+                rolls.push(
+                    Math.floor(
+                        Math.random() *
+                        sides
+                    ) + 1
+                );
+
+            }
+
+
+            const subtotal =
+                rolls.reduce(
+                    (sum,value) =>
+                        sum + value,
+                    0
+                ) * sign;
+
+
+            total +=
+                subtotal;
+
+
+            details.push({
+
+                type:"dice",
+
+                formula:
+                    `${amount}d${sides}`,
+
+                rolls,
+
+                sign,
+
+                subtotal
+
+            });
+
+
+            continue;
+
+        }
+
+
+        const numeric =
+            Number(
+                part
+            );
+
+
+        if(
+            Number.isFinite(
+                numeric
+            )
+        ){
+
+            const value =
+                numeric * sign;
+
+
+            total +=
+                value;
+
+
+            details.push({
+
+                type:"number",
+
+                value,
+
+                subtotal:value
+
+            });
+
+
+            continue;
+
+        }
+
+
+        /*
+            Se tiver algo que ainda não
+            entendemos, aborta.
+        */
+
+        return null;
+
+    }
+
+
+    return {
+
+        expression:
+            clean,
+
+        total,
+
+        details
+
+    };
+
+}
+
+function rollQuickAttack(
+    character,
+    attack
+){
+
+    const attackResult =
+        rollDiceExpression(
+            attack.roll
+        );
+
+
+    if(!attackResult){
+
+        addSystemChatMessage(
+            `${character.name} tentou rolar "${attack.roll}", mas a expressão não pôde ser interpretada.`
+        );
+
+        return;
+
+    }
+
+
+    addDiceChatMessage({
+
+        characterName:
+            character.name,
+
+        title:
+            attack.name,
+
+        type:
+            "Ataque",
+
+        formula:
+            attack.roll,
+
+        result:
+            attackResult
+
+    });
+
+}
+
+function rollQuickAttackDamage(
+    character,
+    attack
+){
+
+    const result =
+        rollDiceExpression(
+            attack.damage
+        );
+
+
+    if(!result){
+
+        addSystemChatMessage(
+            `Não foi possível interpretar o dano "${attack.damage}".`
+        );
+
+        return;
+
+    }
+
+
+    addDiceChatMessage({
+
+        characterName:
+            character.name,
+
+        title:
+            attack.name,
+
+        type:
+            "Dano",
+
+        formula:
+            attack.damage,
+
+        result
+
+    });
+
+}
+
+function resolveCharacterFormula(
+    expression,
+    character
+){
+
+    const attributes =
+        character.attributes || {};
+
+
+    return String(
+        expression || ""
+    )
+        .replace(
+            /\bFOR\b/gi,
+            Number(
+                attributes.for
+            ) || 0
+        )
+        .replace(
+            /\bAGI\b/gi,
+            Number(
+                attributes.agi
+            ) || 0
+        )
+        .replace(
+            /\bINT\b/gi,
+            Number(
+                attributes.int
+            ) || 0
+        )
+        .replace(
+            /\bVIG\b/gi,
+            Number(
+                attributes.vig
+            ) || 0
+        )
+        .replace(
+            /\bPRE\b/gi,
+            Number(
+                attributes.pre
+            ) || 0
+        );
+
+}
+
+const formula =
+    resolveCharacterFormula(
+        attack.damage,
+        character
+    );
+
+
+const result =
+    rollDiceExpression(
+        formula
+    );
+
+    function renderTableCharacterSkills(
+    character
+){
+
+    const container =
+        document.getElementById(
+            "tableCharacterSkills"
+        );
+
+
+    if(!container){
+
+        return;
+
+    }
+
+
+    const skills =
+        Array.isArray(
+            character.skills
+        )
+            ? character.skills
+            : [];
+
+
+    if(!skills.length){
+
+        container.innerHTML = `
+
+            <div class="sheet-empty">
+                Nenhuma perícia configurada.
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        skills
+            .map(
+                skill => `
+
+                    <button
+                        type="button"
+                        class="table-skill-button"
+                        data-skill="${skill.id}"
+                    >
+
+                        <div>
+
+                            <strong>
+                                ${escapeTableHTML(
+                                    skill.name
+                                )}
+                            </strong>
+
+                            <span>
+
+                                ${String(
+                                    skill.selectedAttribute ||
+                                    ""
+                                ).toUpperCase()}
+
+                                •
+
+                                ${
+                                    skill.training === "0"
+                                        ? "Sem treino"
+                                        : skill.training
+                                }
+
+                            </span>
+
+                        </div>
+
+
+                        <span>
+                            🎲
+                        </span>
+
+                    </button>
+
+                `
+            )
+            .join("");
+
+
+    container
+        .querySelectorAll(
+            ".table-skill-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    rollTableCharacterSkill(
+                        character,
+                        button.dataset.skill
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+function rollTableCharacterSkill(
+    character,
+    skillId
+){
+
+    const skill =
+        character.skills
+            ?.find(
+                item =>
+                    item.id ===
+                    skillId
+            );
+
+
+    if(!skill){
+
+        return;
+
+    }
+
+
+    const attribute =
+        skill.selectedAttribute;
+
+
+    const attributeValue =
+        Math.max(
+            1,
+            Number(
+                character.attributes
+                    ?.[attribute]
+            ) || 1
+        );
+
+
+    const d20Rolls = [];
+
+
+    for(
+        let i = 0;
+        i < attributeValue;
+        i++
+    ){
+
+        d20Rolls.push(
+            Math.floor(
+                Math.random() * 20
+            ) + 1
+        );
+
+    }
+
+
+    const bestD20 =
+        Math.max(
+            ...d20Rolls
+        );
+
+
+    const training =
+        rollDiceExpression(
+            skill.training === "0"
+                ? "0"
+                : skill.training
+        );
+
+
+    const trainingValue =
+        training?.total || 0;
+
+
+    const modifier =
+        (
+            Number(
+                skill.bonus
+            ) || 0
+        )
+        +
+        (
+            Number(
+                skill.penalty
+            ) || 0
+        )
+        +
+        getTableSkillConditionModifier(
+            character,
+            skill
+        );
+
+
+    const total =
+        bestD20 +
+        trainingValue +
+        modifier;
+
+
+    addDiceChatMessage({
+
+        characterName:
+            character.name,
+
+        title:
+            skill.name,
+
+        type:
+            "Perícia",
+
+        formula:
+            `${attributeValue}d20 + ${skill.training}`,
+
+        result:{
+
+            total,
+
+            d20Rolls,
+
+            selectedD20:
+                bestD20,
+
+            trainingRoll:
+                trainingValue,
+
+            modifier
+
+        }
+
+    });
+
+}
+
+function renderTableConditions(
+    character
+){
+
+    const conditions =
+        character.conditions || [];
+
+
+    // gera os chips aqui
+
+}
+
+function hasTableCondition(
+    character,
+    conditionId
+){
+
+    return (
+        character.conditions || []
+    ).some(
+        condition =>
+            condition.id ===
+            conditionId
+    );
+
+}
