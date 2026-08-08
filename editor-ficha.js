@@ -41,6 +41,12 @@ let characterAbilitiesState = [];
 
 let characterAssimilationsState = [];
 
+let characterConditionsState = [];
+
+let characterSkillsState = [];
+
+let characterSkillPointsPurchased = 0;
+
 
 /*==========================================================
 =                       ELEMENTOS
@@ -325,11 +331,15 @@ function initCharacterEditor(){
 
         initializeBodyStates();
 
+        initializeCharacterSkills();
+
         calculateAutomaticStats();
 
         renderAbilityEditorList();
 
         renderAssimilationEditorList();
+
+        characterSkillPointsPurchased = 0;
 
     }
 
@@ -907,6 +917,9 @@ function saveCharacter(){
         characterBodyState
     ),
 
+    skillPointsPurchased:
+    characterSkillPointsPurchased,
+
 
         /*==================================================
 =                       STATUS
@@ -1046,8 +1059,10 @@ function saveCharacter(){
 =            DADOS QUE VAMOS IMPLEMENTAR DEPOIS
 ==================================================*/
 
-        skills:
-            oldCharacter.skills || [],
+skills:
+    structuredCloneSafe(
+        characterSkillsState
+    ),
 
 abilities:
     structuredCloneSafe(
@@ -1062,8 +1077,10 @@ assimilations:
         inventory:
             oldCharacter.inventory || [],
 
-        conditions:
-            oldCharacter.conditions || [],
+conditions:
+    structuredCloneSafe(
+        characterConditionsState
+    ),
 
         grimoire:
             oldCharacter.grimoire || [],
@@ -1407,6 +1424,26 @@ characterAssimilationsState =
         editingCharacter.assimilations ||
         []
     );
+
+    characterConditionsState =
+    structuredCloneSafe(
+        editingCharacter.conditions ||
+        []
+    );
+
+    characterSkillPointsPurchased =
+    Number(
+        editingCharacter
+            .skillPointsPurchased
+    ) || 0;
+
+    initializeCharacterSkills();
+
+renderSkillPointsSummary();
+
+initializeCharacterSkills();
+
+renderConditionEditorList();
 
 renderAbilityEditorList();
 
@@ -2060,12 +2097,37 @@ function calculateAutomaticStats(){
     =              PA
     ======================================================*/
 
-    const calculatedPA =
-        3 +
-        Math.floor(
-            level / 10
-        );
+let calculatedPA =
+    3 +
+    Math.floor(
+        level / 10
+    );
 
+
+calculatedPA +=
+    calculateConditionPAModifier();
+
+
+calculatedPA =
+    Math.max(
+        0,
+        calculatedPA
+    );
+
+
+/*
+    Morrendo não possui PA.
+*/
+
+if(
+    hasCharacterCondition(
+        "morrendo"
+    )
+){
+
+    calculatedPA = 0;
+
+}
 
     if(characterPAMax){
 
@@ -2449,6 +2511,16 @@ function bindAutomaticStatEvents(){
         "input",
         calculateAutomaticStats
     );
+
+    characterLevel?.addEventListener(
+    "change",
+    renderSkillsEditor
+);
+
+attributeINT?.addEventListener(
+    "change",
+    renderSkillsEditor
+);
 
 }
 
@@ -6385,11 +6457,11 @@ function useCharacterAbility(
     abilityId
 ){
 
-const ability =
-    characterAbilitiesState.find(
-        item =>
-            item.id === abilityId
-    );
+    const ability =
+        characterAbilitiesState.find(
+            item =>
+                item.id === abilityId
+        );
 
 
     if(!ability){
@@ -6399,101 +6471,1006 @@ const ability =
     }
 
 
-    const costType =
-        ability.useCost?.type;
-
-
     const cost =
+        ability.useCost;
+
+
+    /*
+        Passiva ou habilidade sem custo de uso.
+    */
+
+    if(!cost){
+
+        showCharacterEditorMessage(
+            ability.name,
+            "Esta habilidade não possui custo de ativação."
+        );
+
+        return true;
+
+    }
+
+
+    /*======================================================
+    =                    CUSTO PD
+    ======================================================*/
+
+    if(cost.type === "pd"){
+
+        return spendAbilityResources(
+            ability,
+            {
+                pd:
+                    Number(
+                        cost.value
+                    ) || 0
+            }
+        );
+
+    }
+
+
+    /*======================================================
+    =                    CUSTO PA
+    ======================================================*/
+
+    if(cost.type === "pa"){
+
+        return spendAbilityResources(
+            ability,
+            {
+                pa:
+                    Number(
+                        cost.value
+                    ) || 0
+            }
+        );
+
+    }
+
+
+    /*======================================================
+    =                    CUSTO PV
+    ======================================================*/
+
+    if(cost.type === "pv"){
+
+        return spendAbilityResources(
+            ability,
+            {
+                pv:
+                    Number(
+                        cost.value
+                    ) || 0
+            }
+        );
+
+    }
+
+
+    /*======================================================
+    =                    CUSTO MISTO
+    ======================================================*/
+
+    if(cost.type === "mixed"){
+
+        return spendAbilityResources(
+            ability,
+            {
+                pd:
+                    Number(
+                        cost.pd
+                    ) || 0,
+
+                pa:
+                    Number(
+                        cost.pa
+                    ) || 0,
+
+                pv:
+                    Number(
+                        cost.pv
+                    ) || 0
+            }
+        );
+
+    }
+
+
+    /*======================================================
+    =              CUSTO + RITUAL
+    ======================================================*/
+
+    if(
+        cost.type ===
+        "ritual-plus-pd"
+    ){
+
+        return spendAbilityResources(
+            ability,
+            {
+                pd:
+                    Number(
+                        cost.pd
+                    ) || 0
+            },
+            "Além desse custo, o ritual ainda deve pagar seu custo normal."
+        );
+
+    }
+
+
+    /*======================================================
+    =              CUSTO VARIÁVEL
+    ======================================================*/
+
+    if(cost.type === "variable"){
+
+        openVariableAbilityCost(
+            ability
+        );
+
+        return true;
+
+    }
+
+
+    /*======================================================
+    =              CUSTO MISTO VARIÁVEL
+    ======================================================*/
+
+    if(
+        cost.type ===
+        "mixed-variable"
+    ){
+
+        openMixedVariableAbilityCost(
+            ability
+        );
+
+        return true;
+
+    }
+
+
+    console.warn(
+        "Tipo de custo não reconhecido:",
+        cost
+    );
+
+
+    showCharacterEditorMessage(
+        "Custo não configurado",
+        `O custo de ${ability.name} ainda não foi configurado no sistema.`
+    );
+
+
+    return false;
+
+}
+
+/*==========================================================
+=              GASTAR RECURSOS
+==========================================================*/
+
+function spendAbilityResources(
+    ability,
+    resources,
+    extraMessage = ""
+){
+
+    let pd =
+        Math.max(
+            0,
+            Number(
+                resources.pd
+            ) || 0
+        );
+
+
+    let pa =
+        Math.max(
+            0,
+            Number(
+                resources.pa
+            ) || 0
+        );
+
+
+    let pv =
+        Math.max(
+            0,
+            Number(
+                resources.pv
+            ) || 0
+        );
+
+
+    const currentPD =
         Number(
-            ability.useCost?.value
+            characterPD?.value
         ) || 0;
 
 
-    if(costType === "pd"){
-
-        const currentPD =
-            Number(
-                characterPD?.value
-            ) || 0;
+    const currentPA =
+        Number(
+            characterPA?.value
+        ) || 0;
 
 
-        if(currentPD < cost){
+    const currentPV =
+        Number(
+            characterPV?.value
+        ) || 0;
 
-            showCharacterEditorMessage(
-                "PD insuficiente",
-                `Você precisa de ${cost} PD para usar ${ability.name}.`
-            );
 
-            return false;
+    /*======================================================
+    =                    VALIDAÇÃO
+    ======================================================*/
 
-        }
+    if(currentPD < pd){
 
+        showCharacterEditorMessage(
+            "PD insuficiente",
+            `Você precisa de ${pd} PD para utilizar ${ability.name}.`
+        );
+
+        return false;
+
+    }
+
+
+    if(currentPA < pa){
+
+        showCharacterEditorMessage(
+            "PA insuficiente",
+            `Você precisa de ${pa} PA para utilizar ${ability.name}.`
+        );
+
+        return false;
+
+    }
+
+
+    if(
+        lifeMode?.value === "classic" &&
+        currentPV < pv
+    ){
+
+        showCharacterEditorMessage(
+            "PV insuficiente",
+            `Você precisa de ${pv} PV para utilizar ${ability.name}.`
+        );
+
+        return false;
+
+    }
+
+
+    /*======================================================
+    =                    PAGAMENTO
+    ======================================================*/
+
+    if(pd > 0){
 
         characterPD.value =
-            currentPD - cost;
+            currentPD - pd;
 
     }
 
 
-    if(costType === "pv"){
-
-        const currentPV =
-            Number(
-                characterPV?.value
-            ) || 0;
-
-
-        if(currentPV < cost){
-
-            showCharacterEditorMessage(
-                "PV insuficiente",
-                `Você precisa de ${cost} PV para usar ${ability.name}.`
-            );
-
-            return false;
-
-        }
-
-
-        characterPV.value =
-            currentPV - cost;
-
-    }
-
-
-    if(costType === "pa"){
-
-        const currentPA =
-            Number(
-                characterPA?.value
-            ) || 0;
-
-
-        if(currentPA < cost){
-
-            showCharacterEditorMessage(
-                "PA insuficiente",
-                `Você precisa de ${cost} PA para usar ${ability.name}.`
-            );
-
-            return false;
-
-        }
-
+    if(pa > 0){
 
         characterPA.value =
-            currentPA - cost;
+            currentPA - pa;
 
     }
+
+
+    if(
+        pv > 0 &&
+        lifeMode?.value === "classic"
+    ){
+
+        characterPV.value =
+            currentPV - pv;
+
+    }
+
+
+    /*======================================================
+    =                    TEXTO
+    ======================================================*/
+
+    const costs = [];
+
+
+    if(pd){
+
+        costs.push(
+            `${pd} PD`
+        );
+
+    }
+
+
+    if(pa){
+
+        costs.push(
+            `${pa} PA`
+        );
+
+    }
+
+
+    if(pv){
+
+        costs.push(
+            `${pv} PV`
+        );
+
+    }
+
+
+    const costText =
+        costs.length
+            ? costs.join(" + ")
+            : "Sem custo";
 
 
     showCharacterEditorMessage(
         ability.name,
-        `Habilidade utilizada. Custo: ${cost} ${String(costType).toUpperCase()}.`
+        `Habilidade utilizada. Custo: ${costText}.${extraMessage ? ` ${extraMessage}` : ""}`
     );
 
 
     return true;
+
+}
+
+/*==========================================================
+=              CUSTO VARIÁVEL
+==========================================================*/
+
+function openVariableAbilityCost(
+    ability
+){
+
+    const cost =
+        ability.useCost;
+
+
+    document
+        .getElementById(
+            "variableAbilityModal"
+        )
+        ?.remove();
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "variableAbilityModal";
+
+    modal.className =
+        "editor-message";
+
+
+    let content = "";
+
+
+    /*
+        Habilidades com opções específicas.
+        Exemplo: Golpe Arriscado.
+    */
+
+    if(
+        Array.isArray(
+            cost.options
+        )
+    ){
+
+        content =
+            cost.options
+                .map(
+                    (option,index) => `
+
+                    <button
+                        type="button"
+                        class="ability-cost-option"
+                        data-option="${index}"
+                    >
+
+                        <strong>
+                            ${
+                                Number(
+                                    option.pd
+                                ) || 0
+                            }
+                            PD
+                        </strong>
+
+                        <span>
+                            ${escapeCharacterEditorHTML(
+                                option.effect ||
+                                ""
+                            )}
+                        </span>
+
+                    </button>
+
+                `
+                )
+                .join("");
+
+    }
+
+
+    /*
+        Custo por quantidade.
+        Exemplo:
+        2 PD por ataque adicional.
+    */
+
+    else if(
+        cost.resource &&
+        cost.valuePerUse
+    ){
+
+        content = `
+
+            <div class="field">
+
+                <label>
+                    Quantidade
+                </label>
+
+                <input
+                    type="number"
+                    id="variableAbilityAmount"
+                    min="1"
+                    value="1">
+
+            </div>
+
+            <div
+                class="variable-cost-preview"
+                id="variableAbilityPreview"
+            >
+                Custo: ${cost.valuePerUse}
+                ${String(
+                    cost.resource
+                ).toUpperCase()}
+            </div>
+
+            <button
+                type="button"
+                id="confirmVariableAbility"
+                class="primary-button"
+                style="width:100%;"
+            >
+
+                Utilizar
+
+            </button>
+
+        `;
+
+    }
+
+
+    else{
+
+        content = `
+
+            <div class="field">
+
+                <label>
+                    Custo em PD
+                </label>
+
+                <input
+                    type="number"
+                    id="variableAbilityPD"
+                    min="1"
+                    value="1">
+
+            </div>
+
+            <button
+                type="button"
+                id="confirmVariableAbility"
+                class="primary-button"
+                style="width:100%;"
+            >
+
+                Utilizar
+
+            </button>
+
+        `;
+
+    }
+
+
+    modal.innerHTML = `
+
+        <div class="prosthetic-editor-modal">
+
+            <span class="section-label">
+
+                CUSTO VARIÁVEL
+
+            </span>
+
+            <h2>
+                ${escapeCharacterEditorHTML(
+                    ability.name
+                )}
+            </h2>
+
+            <div class="editor-dynamic-list">
+
+                ${content}
+
+            </div>
+
+            <button
+                type="button"
+                id="cancelVariableAbility"
+                class="secondary-button"
+                style="
+                    width:100%;
+                    margin-top:14px;
+                "
+            >
+
+                Cancelar
+
+            </button>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    /*======================================================
+    =              OPÇÕES PRONTAS
+    ======================================================*/
+
+    modal
+        .querySelectorAll(
+            ".ability-cost-option"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const option =
+                        cost.options[
+                            Number(
+                                button.dataset.option
+                            )
+                        ];
+
+
+                    if(!option){
+
+                        return;
+
+                    }
+
+
+                    const success =
+                        spendAbilityResources(
+                            ability,
+                            {
+                                pd:
+                                    Number(
+                                        option.pd
+                                    ) || 0,
+
+                                pa:
+                                    Number(
+                                        option.pa
+                                    ) || 0,
+
+                                pv:
+                                    Number(
+                                        option.pv
+                                    ) || 0
+                            },
+
+                            option.effect || ""
+                        );
+
+
+                    if(success){
+
+                        modal.remove();
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    /*======================================================
+    =              QUANTIDADE VARIÁVEL
+    ======================================================*/
+
+    const amountInput =
+        modal.querySelector(
+            "#variableAbilityAmount"
+        );
+
+
+    const preview =
+        modal.querySelector(
+            "#variableAbilityPreview"
+        );
+
+
+    amountInput?.addEventListener(
+        "input",
+        () => {
+
+            const amount =
+                Math.max(
+                    1,
+                    Number(
+                        amountInput.value
+                    ) || 1
+                );
+
+
+            if(preview){
+
+                preview.textContent =
+                    `Custo: ${
+                        amount *
+                        Number(
+                            cost.valuePerUse
+                        )
+                    } ${
+                        String(
+                            cost.resource
+                        ).toUpperCase()
+                    }`;
+
+            }
+
+        }
+    );
+
+
+    modal
+        .querySelector(
+            "#confirmVariableAbility"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                /*
+                    Formato quantidade × custo.
+                */
+
+                if(
+                    cost.resource &&
+                    cost.valuePerUse
+                ){
+
+                    const amount =
+                        Math.max(
+                            1,
+                            Number(
+                                amountInput?.value
+                            ) || 1
+                        );
+
+
+                    const total =
+                        amount *
+                        Number(
+                            cost.valuePerUse
+                        );
+
+
+                    const resources = {};
+
+
+                    resources[
+                        cost.resource
+                    ] = total;
+
+
+                    const success =
+                        spendAbilityResources(
+                            ability,
+                            resources
+                        );
+
+
+                    if(success){
+
+                        modal.remove();
+
+                    }
+
+
+                    return;
+
+                }
+
+
+                /*
+                    Variável genérico em PD.
+                */
+
+                const pd =
+                    Math.max(
+                        1,
+                        Number(
+                            modal.querySelector(
+                                "#variableAbilityPD"
+                            )?.value
+                        ) || 1
+                    );
+
+
+                const success =
+                    spendAbilityResources(
+                        ability,
+                        {
+                            pd
+                        }
+                    );
+
+
+                if(success){
+
+                    modal.remove();
+
+                }
+
+            }
+        );
+
+
+    modal
+        .querySelector(
+            "#cancelVariableAbility"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+            }
+        );
+
+}
+
+/*==========================================================
+=              CUSTO MISTO VARIÁVEL
+==========================================================*/
+
+function openMixedVariableAbilityCost(
+    ability
+){
+
+    const cost =
+        ability.useCost;
+
+
+    document
+        .getElementById(
+            "mixedVariableAbilityModal"
+        )
+        ?.remove();
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "mixedVariableAbilityModal";
+
+    modal.className =
+        "editor-message";
+
+
+    modal.innerHTML = `
+
+        <div class="prosthetic-editor-modal">
+
+            <span class="section-label">
+
+                ${escapeCharacterEditorHTML(
+                    ability.name
+                )}
+
+            </span>
+
+            <h2>
+
+                Escolha o tipo de uso
+
+            </h2>
+
+
+            <div class="editor-dynamic-list">
+
+
+                <button
+                    type="button"
+                    class="ability-cost-option"
+                    data-type="normal"
+                >
+
+                    <strong>
+
+                        Ataque Normal
+
+                    </strong>
+
+                    <span>
+
+                        ${Number(
+                            cost.pd
+                        ) || 0}
+                        PD
+
+                        +
+
+                        ${Number(
+                            cost.pa?.normal
+                        ) || 0}
+                        PA
+
+                    </span>
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="ability-cost-option"
+                    data-type="critical"
+                >
+
+                    <strong>
+
+                        Acerto Crítico
+
+                    </strong>
+
+                    <span>
+
+                        ${Number(
+                            cost.pd
+                        ) || 0}
+                        PD
+
+                        +
+
+                        ${Number(
+                            cost.pa?.critical
+                        ) || 0}
+                        PA
+
+                    </span>
+
+                </button>
+
+
+            </div>
+
+
+            <button
+                type="button"
+                id="cancelMixedVariableAbility"
+                class="secondary-button"
+                style="
+                    width:100%;
+                    margin-top:15px;
+                "
+            >
+
+                Cancelar
+
+            </button>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    modal
+        .querySelectorAll(
+            ".ability-cost-option"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const type =
+                        button.dataset.type;
+
+
+                    const pa =
+                        type === "critical"
+                            ? Number(
+                                cost.pa?.critical
+                            ) || 0
+                            : Number(
+                                cost.pa?.normal
+                            ) || 0;
+
+
+                    const success =
+                        spendAbilityResources(
+                            ability,
+                            {
+                                pd:
+                                    Number(
+                                        cost.pd
+                                    ) || 0,
+
+                                pa
+                            }
+                        );
+
+
+                    if(success){
+
+                        modal.remove();
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    modal
+        .querySelector(
+            "#cancelMixedVariableAbility"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+            }
+        );
 
 }
 
@@ -8790,6 +9767,3098 @@ function openRemoveConfirmation({
             }
 
         }
+    );
+
+}
+
+/*==========================================================
+=              CONDIÇÕES DISPONÍVEIS
+==========================================================*/
+
+const DEFAULT_CONDITIONS = [
+
+    {
+        id:"sangramento",
+
+        name:"Sangramento",
+
+        category:"physical",
+
+        icon:"🩸",
+
+        stackable:true,
+
+        defaultStacks:1,
+
+        description:
+            "Sofre 1d6 de dano por rodada. Stacks adicionais podem aumentar a quantidade de dados de dano.",
+
+        effects:{
+            damagePerRound:{
+                dice:"1d6",
+                perStack:true
+            }
+        }
+    },
+
+
+    {
+        id:"envenenamento",
+
+        name:"Envenenamento",
+
+        category:"physical",
+
+        icon:"☠️",
+
+        stackable:true,
+
+        defaultStacks:1,
+
+        description:
+            "Sofre 2d4 de dano por rodada e recebe -5 em testes de Vigor. Quanto maior o acúmulo, maior o dano. Quando a condição termina, o alvo fica Enjoado.",
+
+        effects:{
+            damagePerRound:{
+                dice:"2d4",
+                perStack:true
+            },
+
+            vigorPenalty:-5,
+
+            onEndCondition:"enjoado"
+        }
+    },
+
+
+    {
+        id:"chamas",
+
+        name:"Chamas",
+
+        category:"physical",
+
+        icon:"🪨",
+
+        stackable:false,
+
+        description:
+            "Sofre 2d6 de dano por rodada. Gasta 1 PA para sair da condição.",
+
+        effects:{
+            damagePerRound:{
+                dice:"2d6"
+            },
+
+            removeCost:{
+                type:"pa",
+                value:1
+            }
+        }
+    },
+
+
+    {
+        id:"paralisia",
+
+        name:"Paralisia",
+
+        category:"physical",
+
+        icon:"⚡",
+
+        stackable:false,
+
+        description:
+            "Testes contra o alvo possuem acerto garantido e o alvo fracassa automaticamente em testes.",
+
+        effects:{
+            guaranteedHitsAgainst:true,
+            automaticTestFailure:true
+        }
+    },
+
+
+    {
+        id:"paralisia-total",
+
+        name:"Paralisia Total",
+
+        category:"physical",
+
+        icon:"⚡",
+
+        stackable:false,
+
+        description:
+            "Mantém todos os efeitos de Paralisia. Se o alvo estiver abaixo de 20% dos PV, pode ser finalizado gastando 3 PA.",
+
+        effects:{
+            guaranteedHitsAgainst:true,
+
+            automaticTestFailure:true,
+
+            execution:{
+                belowPVPercent:20,
+                cost:{
+                    type:"pa",
+                    value:3
+                }
+            }
+        }
+    },
+
+
+    {
+        id:"imobilizado",
+
+        name:"Imobilizado",
+
+        category:"physical",
+
+        icon:"🧱",
+
+        stackable:false,
+
+        description:
+            "Recebe -10 em testes físicos e -10 na Defesa.",
+
+        effects:{
+            physicalTests:-10,
+            defense:-10
+        }
+    },
+
+
+    {
+        id:"caido",
+
+        name:"Caído",
+
+        category:"physical",
+
+        icon:"🪨",
+
+        stackable:false,
+
+        description:
+            "Recebe -1 dado em testes físicos e -5 na Defesa.",
+
+        effects:{
+            physicalDice:-1,
+            defense:-5
+        }
+    },
+
+
+    {
+        id:"enjoado",
+
+        name:"Enjoado",
+
+        category:"physical",
+
+        icon:"🤢",
+
+        stackable:false,
+
+        description:
+            "Recebe -3 em testes físicos. Duração: 1d4 + 1 rodadas.",
+
+        duration:{
+            type:"dice",
+            formula:"1d4+1"
+        },
+
+        effects:{
+            physicalTests:-3
+        }
+    },
+
+
+    {
+        id:"morrendo",
+
+        name:"Morrendo",
+
+        category:"physical",
+
+        icon:"🩸",
+
+        stackable:false,
+
+        description:
+            "Não possui PA e permanece inconsciente. No sistema clássico, morrerá se sofrer dano equivalente a 50% do PV máximo enquanto estiver Morrendo. Em Partes do Corpo, ao Torso chegar a 0 o personagem cai inconsciente e pode ser finalizado. Ao sair da condição, recupera a consciência após 1 rodada.",
+
+        effects:{
+            noPA:true,
+            unconscious:true,
+
+            classicDeathDamagePercent:50,
+
+            bodyTorsoExecution:true,
+
+            recoveryDelayRounds:1
+        }
+    },
+
+
+    {
+        id:"machucado",
+
+        name:"Machucado",
+
+        category:"physical",
+
+        icon:"🧱",
+
+        stackable:false,
+
+        description:
+            "Condição apenas visual.",
+
+        effects:{}
+    },
+
+
+    {
+        id:"debilitado",
+
+        name:"Debilitado",
+
+        category:"physical",
+
+        icon:"🧱",
+
+        stackable:false,
+
+        description:
+            "Recebe -1 PA por rodada.",
+
+        effects:{
+            paPerRound:-1
+        }
+    },
+
+
+    {
+        id:"enfraquecido",
+
+        name:"Enfraquecido",
+
+        category:"physical",
+
+        icon:"🧱",
+
+        stackable:false,
+
+        description:
+            "Recebe -5 em testes de Força.",
+
+        effects:{
+            strengthTests:-5
+        }
+    },
+
+
+    {
+        id:"lento",
+
+        name:"Lento",
+
+        category:"physical",
+
+        icon:"🐌",
+
+        stackable:false,
+
+        description:
+            "Recebe -5 em testes de Agilidade.",
+
+        effects:{
+            agilityTests:-5
+        }
+    },
+
+
+    {
+        id:"cansado",
+
+        name:"Cansado",
+
+        category:"physical",
+
+        icon:"😵",
+
+        stackable:false,
+
+        description:
+            "Habilidades custam o dobro enquanto a condição estiver ativa.",
+
+        effects:{
+            doubleAbilityCost:true
+        }
+    },
+
+    {
+    id:"controlado",
+
+    name:"Controlado",
+
+    category:"mental",
+
+    icon:"🧠",
+
+    stackable:false,
+
+    description:
+        "Entrega seus PA para o conjurador.",
+
+    effects:{
+        controlled:true
+    }
+},
+
+
+{
+    id:"cego",
+
+    name:"Cego",
+
+    category:"mental",
+
+    icon:"👁️",
+
+    stackable:false,
+
+    description:
+        "Recebe -10 em Percepção baseada em visão e -10 em ataques à distância.",
+
+    effects:{
+        visionPerception:-10,
+        rangedAttack:-10
+    }
+},
+
+
+{
+    id:"surdo",
+
+    name:"Surdo",
+
+    category:"mental",
+
+    icon:"🔇",
+
+    stackable:false,
+
+    description:
+        "Recebe -10 em Percepção baseada em audição.",
+
+    effects:{
+        hearingPerception:-10
+    }
+},
+
+
+{
+    id:"traumatizado",
+
+    name:"Traumatizado",
+
+    category:"mental",
+
+    icon:"🧠",
+
+    stackable:false,
+
+    description:
+        "Recebe -5 em testes de Vontade.",
+
+    effects:{
+        willTests:-5
+    }
+},
+
+
+{
+    id:"penumbra",
+
+    name:"Penumbra",
+
+    category:"mental",
+
+    icon:"🌑",
+
+    stackable:false,
+
+    description:
+        "Recebe -5 em Percepção e -3 em Reflexos.",
+
+    effects:{
+        perception:-5,
+        reflexes:-3
+    }
+},
+
+
+{
+    id:"vulneravel",
+
+    name:"Vulnerável",
+
+    category:"mental",
+
+    icon:"🎯",
+
+    stackable:false,
+
+    description:
+        "Sofre o dobro de dano bônus. Apenas o dano bônus é dobrado; dados de dano não são afetados.",
+
+    effects:{
+        doubleBonusDamage:true
+    }
+},
+
+
+{
+    id:"desprevenido",
+
+    name:"Desprevenido",
+
+    category:"mental",
+
+    icon:"😶",
+
+    stackable:false,
+
+    description:
+        "Não pode usar reações e recebe -5 na Defesa.",
+
+    effects:{
+        reactionsDisabled:true,
+        defense:-5
+    }
+},
+
+
+{
+    id:"confuso",
+
+    name:"Confuso",
+
+    category:"mental",
+
+    icon:"🌀",
+
+    stackable:false,
+
+    description:
+        "Move-se aleatoriamente e consome 1 PA por rodada. Duração: 1d4 rodadas.",
+
+    duration:{
+        type:"dice",
+        formula:"1d4"
+    },
+
+    effects:{
+        randomMovement:true,
+        paPerRound:-1
+    }
+},
+
+];
+
+/*==========================================================
+=              ADICIONAR CONDIÇÃO
+==========================================================*/
+
+function addConditionToCharacter(
+    conditionId
+){
+
+    const condition =
+        DEFAULT_CONDITIONS.find(
+            item =>
+                item.id === conditionId
+        );
+
+
+    if(!condition){
+
+        return false;
+
+    }
+
+
+    const existing =
+        characterConditionsState.find(
+            item =>
+                item.id === condition.id
+        );
+
+
+    /*
+        Condição acumulável.
+    */
+
+    if(
+        existing &&
+        condition.stackable
+    ){
+
+        existing.stacks =
+            Math.max(
+                1,
+                Number(
+                    existing.stacks
+                ) || 1
+            ) + 1;
+
+
+        renderConditionEditorList();
+
+        return true;
+
+    }
+
+
+    /*
+        Não acumulável.
+    */
+
+    if(existing){
+
+        showCharacterEditorMessage(
+            "Condição já ativa",
+            `${condition.name} já está aplicada ao personagem.`
+        );
+
+        return false;
+
+    }
+
+
+    const newCondition = {
+
+        id:
+            condition.id,
+
+        name:
+            condition.name,
+
+        icon:
+            condition.icon,
+
+        category:
+            condition.category,
+
+        description:
+            condition.description,
+
+        stackable:
+            condition.stackable,
+
+        stacks:
+            condition.defaultStacks || 1,
+
+        effects:
+            structuredCloneSafe(
+                condition.effects || {}
+            ),
+
+        duration:
+            structuredCloneSafe(
+                condition.duration || null
+            ),
+
+        appliedAt:
+            Date.now()
+
+    };
+
+
+    characterConditionsState.push(
+        newCondition
+    );
+
+calculateAutomaticStats();
+    renderConditionEditorList();
+
+
+    showCharacterEditorMessage(
+        "Condição adicionada",
+        `${condition.name} foi aplicada ao personagem.`
+    );
+
+
+    return true;
+
+}
+
+/*==========================================================
+=              ABRIR SELETOR DE CONDIÇÕES
+==========================================================*/
+
+document
+    .getElementById(
+        "addConditionEditor"
+    )
+    ?.addEventListener(
+        "click",
+        openConditionSelector
+    );
+
+
+function openConditionSelector(){
+
+    document
+        .getElementById(
+            "conditionSelectorModal"
+        )
+        ?.remove();
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "conditionSelectorModal";
+
+    modal.className =
+        "editor-message";
+
+
+    const cards =
+        DEFAULT_CONDITIONS
+            .map(condition => `
+
+                <button
+                    type="button"
+                    class="condition-choice-card"
+                    data-condition="${escapeCharacterEditorHTML(
+                        condition.id
+                    )}"
+                >
+
+                    <div class="condition-choice-icon">
+
+                        ${condition.icon}
+
+                    </div>
+
+
+                    <div>
+
+                        <strong>
+                            ${escapeCharacterEditorHTML(
+                                condition.name
+                            )}
+                        </strong>
+
+                        <p>
+                            ${escapeCharacterEditorHTML(
+                                condition.description
+                            )}
+                        </p>
+
+                    </div>
+
+                </button>
+
+            `)
+            .join("");
+
+
+    modal.innerHTML = `
+
+        <div class="prosthetic-editor-modal condition-selector-panel">
+
+            <span class="section-label">
+
+                CONDIÇÕES
+
+            </span>
+
+            <h2>
+
+                Adicionar Condição
+
+            </h2>
+
+
+            <div class="condition-selector-list">
+
+                ${cards}
+
+            </div>
+
+
+            <button
+                type="button"
+                id="closeConditionSelector"
+                class="secondary-button"
+                style="
+                    width:100%;
+                    margin-top:18px;
+                "
+            >
+
+                Fechar
+
+            </button>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    modal
+        .querySelectorAll(
+            ".condition-choice-card"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const success =
+                        addConditionToCharacter(
+                            button.dataset.condition
+                        );
+
+
+                    if(success){
+
+                        modal.remove();
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    modal
+        .querySelector(
+            "#closeConditionSelector"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+            }
+        );
+
+}
+
+/*==========================================================
+=              RENDERIZAR CONDIÇÕES
+==========================================================*/
+
+function renderConditionEditorList(){
+
+    const container =
+        document.getElementById(
+            "conditionsEditorList"
+        );
+
+
+    if(!container){
+
+        return;
+
+    }
+
+
+    if(
+        characterConditionsState.length === 0
+    ){
+
+        container.innerHTML = `
+
+            <div class="editor-empty-state">
+
+                <span>○</span>
+
+                <p>
+                    Nenhuma condição ativa.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        characterConditionsState
+            .map(condition => `
+
+                <div class="condition-editor-card">
+
+                    <div class="condition-editor-header">
+
+                        <div class="condition-editor-name">
+
+                            <span class="condition-editor-icon">
+
+                                ${condition.icon || "○"}
+
+                            </span>
+
+                            <div>
+
+                                <h3>
+<span class="condition-category-badge">
+
+    ${
+        condition.category === "mental"
+            ? "MENTAL"
+            : "FÍSICA"
+    }
+
+</span>
+
+                                    ${escapeCharacterEditorHTML(
+                                        condition.name
+                                    )}
+                                </h3>
+
+                                ${
+                                    condition.stackable
+                                        ? `
+                                            <span class="condition-stack">
+
+                                                STACKS:
+                                                ${
+                                                    Number(
+                                                        condition.stacks
+                                                    ) || 1
+                                                }
+
+                                            </span>
+                                        `
+                                        : ""
+                                }
+
+                            </div>
+
+                        </div>
+
+
+                        ${
+                            condition.stackable
+                                ? `
+                                    <div class="condition-stack-controls">
+
+                                        <button
+                                            type="button"
+                                            class="condition-stack-button condition-stack-minus"
+                                            data-condition="${condition.id}"
+                                        >
+                                            −
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            class="condition-stack-button condition-stack-plus"
+                                            data-condition="${condition.id}"
+                                        >
+                                            +
+                                        </button>
+
+                                    </div>
+                                `
+                                : ""
+                        }
+
+                    </div>
+
+
+                    <p>
+                        ${escapeCharacterEditorHTML(
+                            condition.description || ""
+                        )}
+                    </p>
+
+
+                    <button
+                        type="button"
+                        class="remove-content-button remove-condition-button"
+                        data-condition="${escapeCharacterEditorHTML(
+                            condition.id
+                        )}"
+                    >
+
+                        Remover
+
+                    </button>
+
+                </div>
+
+            `)
+            .join("");
+
+
+    bindConditionCardEvents(
+        container
+    );
+
+}
+
+/*==========================================================
+=              EVENTOS DAS CONDIÇÕES
+==========================================================*/
+
+function bindConditionCardEvents(
+    container
+){
+
+    container
+        .querySelectorAll(
+            ".remove-condition-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    removeCharacterCondition(
+                        button.dataset.condition
+                    );
+
+                }
+            );
+
+        });
+
+
+    container
+        .querySelectorAll(
+            ".condition-stack-plus"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    changeConditionStack(
+                        button.dataset.condition,
+                        1
+                    );
+
+                }
+            );
+
+        });
+
+
+    container
+        .querySelectorAll(
+            ".condition-stack-minus"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    changeConditionStack(
+                        button.dataset.condition,
+                        -1
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+/*==========================================================
+=              ALTERAR STACK
+==========================================================*/
+
+function changeConditionStack(
+    conditionId,
+    amount
+){
+
+    const condition =
+        characterConditionsState.find(
+            item =>
+                item.id === conditionId
+        );
+
+
+    if(
+        !condition ||
+        !condition.stackable
+    ){
+
+        return;
+
+    }
+
+
+    condition.stacks =
+        Math.max(
+            1,
+            (
+                Number(
+                    condition.stacks
+                ) || 1
+            ) + amount
+        );
+
+
+    renderConditionEditorList();
+
+}
+
+
+/*==========================================================
+=              REMOVER CONDIÇÃO
+==========================================================*/
+
+function removeCharacterCondition(
+    conditionId
+){
+
+    const condition =
+        characterConditionsState.find(
+            item =>
+                item.id === conditionId
+        );
+
+
+    if(!condition){
+
+        return;
+
+    }
+
+
+    openRemoveConfirmation({
+
+        type:"Condição",
+
+        name:
+            condition.name,
+
+        message:
+            "A condição será removida do personagem.",
+
+        onConfirm:() => {
+
+            characterConditionsState =
+                characterConditionsState.filter(
+                    item =>
+                        item.id !== conditionId
+                );
+
+calculateAutomaticStats();
+            renderConditionEditorList();
+
+
+            showCharacterEditorMessage(
+                "Condição removida",
+                `${condition.name} foi removida da ficha.`
+            );
+
+        }
+
+    });
+
+}
+
+/*==========================================================
+=              CONSULTAR CONDIÇÕES
+==========================================================*/
+
+function hasCharacterCondition(
+    conditionId
+){
+
+    return characterConditionsState.some(
+        condition =>
+            condition.id === conditionId
+    );
+
+}
+
+
+function getCharacterCondition(
+    conditionId
+){
+
+    return characterConditionsState.find(
+        condition =>
+            condition.id === conditionId
+    ) || null;
+
+}
+
+/*==========================================================
+=              PA MODIFICADO POR CONDIÇÕES
+==========================================================*/
+
+function calculateConditionPAModifier(){
+
+    let modifier = 0;
+
+
+    if(
+        hasCharacterCondition(
+            "debilitado"
+        )
+    ){
+
+        modifier -= 1;
+
+    }
+
+
+    if(
+        hasCharacterCondition(
+            "confuso"
+        )
+    ){
+
+        modifier -= 1;
+
+    }
+
+
+    return modifier;
+
+}
+
+/*======================================================
+=              CONDIÇÃO CANSADO
+======================================================*/
+
+if(
+    hasCharacterCondition(
+        "cansado"
+    )
+){
+
+    pd *= 2;
+
+    pa *= 2;
+
+    pv *= 2;
+
+}
+
+/*==========================================================
+=              MODIFICADORES DE CONDIÇÃO
+==========================================================*/
+
+function getConditionModifier(
+    type
+){
+
+    let modifier = 0;
+
+
+    characterConditionsState.forEach(
+        condition => {
+
+            const effects =
+                condition.effects || {};
+
+
+            switch(type){
+
+                case "defense":
+
+                    modifier +=
+                        Number(
+                            effects.defense
+                        ) || 0;
+
+                    break;
+
+
+                case "strength":
+
+                    modifier +=
+                        Number(
+                            effects.strengthTests
+                        ) || 0;
+
+                    break;
+
+
+                case "agility":
+
+                    modifier +=
+                        Number(
+                            effects.agilityTests
+                        ) || 0;
+
+                    break;
+
+
+                case "physical":
+
+                    modifier +=
+                        Number(
+                            effects.physicalTests
+                        ) || 0;
+
+                    break;
+
+
+                case "will":
+
+                    modifier +=
+                        Number(
+                            effects.willTests
+                        ) || 0;
+
+                    break;
+
+
+                case "perception":
+
+                    modifier +=
+                        Number(
+                            effects.perception
+                        ) || 0;
+
+                    break;
+
+
+                case "reflexes":
+
+                    modifier +=
+                        Number(
+                            effects.reflexes
+                        ) || 0;
+
+                    break;
+
+
+                case "rangedAttack":
+
+                    modifier +=
+                        Number(
+                            effects.rangedAttack
+                        ) || 0;
+
+                    break;
+
+            }
+
+        }
+    );
+
+
+    return modifier;
+
+}
+
+const finalFortitude =
+    baseFortitude +
+    getConditionModifier(
+        "physical"
+    );
+
+    /*==========================================================
+=              PERÍCIAS DISPONÍVEIS
+==========================================================*/
+
+const DEFAULT_SKILLS = [
+
+    {
+        id:"manobra",
+        name:"Manobra",
+        defaultAttributes:["for","agi"]
+    },
+
+    {
+        id:"disciplina",
+        name:"Disciplina",
+        defaultAttributes:["pre"]
+    },
+
+    {
+        id:"especializacao",
+        name:"Especialização",
+        defaultAttributes:["int"]
+    },
+
+    {
+        id:"discreto",
+        name:"Discreto",
+        defaultAttributes:["agi","pre"]
+    },
+
+    {
+        id:"artificio",
+        name:"Artifício",
+        defaultAttributes:["pre"]
+    },
+
+    {
+        id:"fortitude",
+        name:"Fortitude",
+        defaultAttributes:["vig"]
+    },
+
+    {
+        id:"iniciativa",
+        name:"Iniciativa",
+        defaultAttributes:["agi"]
+    },
+
+    {
+        id:"intimidacao",
+        name:"Intimidação",
+        defaultAttributes:["pre"]
+    },
+
+    {
+        id:"deducao",
+        name:"Dedução",
+        defaultAttributes:["int"]
+    },
+
+    {
+        id:"luta",
+        name:"Luta",
+        defaultAttributes:["for"]
+    },
+
+    {
+        id:"medicina",
+        name:"Medicina",
+        defaultAttributes:["int"]
+    },
+
+    {
+        id:"ocultismo",
+        name:"Ocultismo",
+        defaultAttributes:["int"]
+    },
+
+    {
+        id:"percepcao",
+        name:"Percepção",
+        defaultAttributes:["pre"]
+    },
+
+    {
+        id:"pilotagem",
+        name:"Pilotagem",
+        defaultAttributes:["agi"]
+    },
+
+    {
+        id:"pontaria",
+        name:"Pontaria",
+        defaultAttributes:["agi"]
+    },
+
+    {
+        id:"reflexos",
+        name:"Reflexos",
+        defaultAttributes:["agi"]
+    },
+
+    {
+        id:"sobrevivencia",
+        name:"Sobrevivência",
+        defaultAttributes:["int"]
+    },
+
+    {
+        id:"informacao",
+        name:"Informação",
+        defaultAttributes:["int"]
+    },
+
+    {
+        id:"vontade",
+        name:"Vontade",
+        defaultAttributes:["pre"]
+    },
+
+    {
+        id:"sorte",
+        name:"Sorte",
+        defaultAttributes:["pre"]
+    }
+
+];
+
+/*==========================================================
+=              INICIALIZAR PERÍCIAS
+==========================================================*/
+
+function initializeCharacterSkills(){
+
+    const savedSkills =
+        editingCharacter?.skills;
+
+
+    if(
+        Array.isArray(savedSkills) &&
+        savedSkills.length > 0
+    ){
+
+        characterSkillsState =
+            structuredCloneSafe(
+                savedSkills
+            );
+
+    }
+    else{
+
+        characterSkillsState =
+            DEFAULT_SKILLS.map(skill => ({
+
+                id:skill.id,
+
+                name:skill.name,
+
+                defaultAttributes:
+                    structuredCloneSafe(
+                        skill.defaultAttributes
+                    ),
+
+                selectedAttribute:
+                    skill.defaultAttributes[0],
+
+                training:"0",
+
+                bonus:0,
+
+                penalty:0
+
+            }));
+
+            
+
+    }
+
+
+    /*
+        Segurança para perícias adicionadas
+        futuramente ao catálogo.
+    */
+
+    DEFAULT_SKILLS.forEach(defaultSkill => {
+
+        const exists =
+            characterSkillsState.some(
+                skill =>
+                    skill.id ===
+                    defaultSkill.id
+            );
+
+
+        if(!exists){
+
+            characterSkillsState.push({
+
+                id:
+                    defaultSkill.id,
+
+                name:
+                    defaultSkill.name,
+
+                defaultAttributes:
+                    structuredCloneSafe(
+                        defaultSkill
+                            .defaultAttributes
+                    ),
+
+                selectedAttribute:
+                    defaultSkill
+                        .defaultAttributes[0],
+
+                training:"0",
+
+                bonus:0,
+
+                penalty:0
+
+            });
+
+        }
+
+    });
+
+
+    renderSkillsEditor();
+
+    renderSkillPointsSummary();
+
+}
+
+/*==========================================================
+=              RENDERIZAR PERÍCIAS
+==========================================================*/
+
+function renderSkillsEditor(){
+
+    const container =
+        document.getElementById(
+            "skillsEditorList"
+        );
+
+
+    if(!container){
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        characterSkillsState
+            .map(skill => {
+
+                const attributeOptions =
+                    createSkillAttributeOptions(
+                        skill
+                    );
+
+
+                const total =
+                    calculateSkillStaticTotal(
+                        skill
+                    );
+
+
+                return `
+
+                    <div
+                        class="skill-editor-row"
+                        data-skill="${skill.id}"
+                    >
+
+                        <span class="skill-name">
+
+                            ${escapeCharacterEditorHTML(
+                                skill.name
+                            )}
+
+                        </span>
+
+
+                        <select
+                            class="skill-attribute-select"
+                            data-skill="${skill.id}"
+                        >
+
+                            ${attributeOptions}
+
+                        </select>
+
+
+                        <select
+                            class="skill-training-select"
+                            data-skill="${skill.id}"
+                        >
+
+                            <option
+                                value="0"
+                                ${
+                                    skill.training === "0"
+                                        ? "selected"
+                                        : ""
+                                }
+                            >
+                                Despreparado
+                            </option>
+
+                            <option
+                                value="1d4"
+                                ${
+                                    skill.training === "1d4"
+                                        ? "selected"
+                                        : ""
+                                }
+                            >
+                                Treinado • 1d4
+                            </option>
+
+                            <option
+                                value="1d8"
+                                ${
+                                    skill.training === "1d8"
+                                        ? "selected"
+                                        : ""
+                                }
+                            >
+                                Experiente • 1d8
+                            </option>
+
+                            <option
+                                value="1d12"
+                                ${
+                                    skill.training === "1d12"
+                                        ? "selected"
+                                        : ""
+                                }
+                            >
+                                Expert • 1d12
+                            </option>
+
+                            <option
+                                value="1d20"
+                                ${
+                                    skill.training === "1d20"
+                                        ? "selected"
+                                        : ""
+                                }
+                            >
+                                Gênio • 1d20
+                            </option>
+
+                        </select>
+
+
+                        <input
+                            type="number"
+                            class="skill-bonus-input"
+                            data-skill="${skill.id}"
+                            min="-10"
+                            max="10"
+                            value="${
+                                Number(
+                                    skill.bonus
+                                ) || 0
+                            }"
+                        >
+
+
+                        <input
+                            type="number"
+                            class="skill-penalty-input"
+                            data-skill="${skill.id}"
+                            min="-50"
+                            max="0"
+                            value="${
+                                Number(
+                                    skill.penalty
+                                ) || 0
+                            }"
+                        >
+
+
+                        <span class="skill-total">
+
+                            ${total >= 0 ? "+" : ""}
+                            ${total}
+
+                        </span>
+
+                        <button
+    type="button"
+    class="skill-roll-button"
+    data-skill="${skill.id}"
+    title="Rolar ${escapeCharacterEditorHTML(
+        skill.name
+    )}"
+>
+
+    🎲
+
+</button>
+
+                    </div>
+
+                `;
+
+            })
+            .join("");
+
+
+    bindSkillEditorEvents();
+
+}
+
+/*==========================================================
+=              ATRIBUTOS DA PERÍCIA
+==========================================================*/
+
+function createSkillAttributeOptions(
+    skill
+){
+
+    const attributes = [
+
+        {
+            id:"for",
+            label:"FOR"
+        },
+
+        {
+            id:"agi",
+            label:"AGI"
+        },
+
+        {
+            id:"int",
+            label:"INT"
+        },
+
+        {
+            id:"vig",
+            label:"VIG"
+        },
+
+        {
+            id:"pre",
+            label:"PRE"
+        }
+
+    ];
+
+
+    return attributes
+        .map(attribute => {
+
+            const isDefault =
+                skill.defaultAttributes
+                    ?.includes(
+                        attribute.id
+                    );
+
+
+            return `
+
+                <option
+                    value="${attribute.id}"
+                    ${
+                        skill.selectedAttribute ===
+                        attribute.id
+                            ? "selected"
+                            : ""
+                    }
+                >
+
+                    ${attribute.label}
+                    ${isDefault ? " • padrão" : ""}
+
+                </option>
+
+            `;
+
+        })
+        .join("");
+
+}
+
+/*==========================================================
+=              EVENTOS DAS PERÍCIAS
+==========================================================*/
+
+function bindSkillEditorEvents(){
+
+    document
+        .querySelectorAll(
+            ".skill-attribute-select"
+        )
+        .forEach(select => {
+
+            select.addEventListener(
+                "change",
+                () => {
+
+                    const skill =
+                        getCharacterSkill(
+                            select.dataset.skill
+                        );
+
+
+                    if(!skill){
+
+                        return;
+
+                    }
+
+
+                    skill.selectedAttribute =
+                        select.value;
+
+
+                    renderSkillsEditor();
+
+                }
+            );
+
+        });
+
+
+    document
+        .querySelectorAll(
+            ".skill-training-select"
+        )
+        .forEach(select => {
+
+            select.addEventListener(
+                "change",
+                () => {
+
+                    const skill =
+                        getCharacterSkill(
+                            select.dataset.skill
+                        );
+
+
+                    if(!skill){
+
+                        return;
+
+                    }
+
+
+                    const requestedTraining =
+                        select.value;
+
+
+                    if(
+                        !canUseSkillTraining(
+                            requestedTraining,
+                            skill.id
+                        )
+                    ){
+
+                        renderSkillsEditor();
+
+                        return;
+
+                    }
+
+
+const oldTraining =
+    skill.training;
+
+
+const oldCost =
+    getSkillTrainingPointCost(
+        oldTraining
+    );
+
+
+const newCost =
+    getSkillTrainingPointCost(
+        requestedTraining
+    );
+
+
+const difference =
+    newCost - oldCost;
+
+
+/*
+    Está tentando subir treino.
+*/
+
+if(difference > 0){
+
+    const available =
+        calculateAvailableSkillPoints();
+
+
+    if(available < difference){
+
+        showCharacterEditorMessage(
+            "Pontos insuficientes",
+            `Você precisa de ${difference} ponto(s) de perícia, mas possui apenas ${available} disponível(is).`
+        );
+
+        renderSkillsEditor();
+
+        return;
+
+    }
+
+}
+
+
+if(
+    !canUseSkillTraining(
+        requestedTraining,
+        skill.id
+    )
+){
+
+    renderSkillsEditor();
+
+    return;
+
+}
+
+
+skill.training =
+    requestedTraining;
+
+
+renderSkillsEditor();
+
+renderSkillPointsSummary();
+
+
+                    renderSkillsEditor();
+
+                }
+            );
+
+        });
+
+
+    document
+        .querySelectorAll(
+            ".skill-bonus-input"
+        )
+        .forEach(input => {
+
+            input.addEventListener(
+                "change",
+                () => {
+
+                    const skill =
+                        getCharacterSkill(
+                            input.dataset.skill
+                        );
+
+
+                    if(!skill){
+
+                        return;
+
+                    }
+
+
+                    skill.bonus =
+                        Math.max(
+                            -10,
+                            Math.min(
+                                10,
+                                Number(
+                                    input.value
+                                ) || 0
+                            )
+                        );
+
+
+                    renderSkillsEditor();
+
+                }
+            );
+
+        });
+
+
+    document
+        .querySelectorAll(
+            ".skill-penalty-input"
+        )
+        .forEach(input => {
+
+            input.addEventListener(
+                "change",
+                () => {
+
+                    const skill =
+                        getCharacterSkill(
+                            input.dataset.skill
+                        );
+
+
+                    if(!skill){
+
+                        return;
+
+                    }
+
+
+                    skill.penalty =
+                        Math.min(
+                            0,
+                            Number(
+                                input.value
+                            ) || 0
+                        );
+
+
+                    renderSkillsEditor();
+
+                }
+            );
+
+        });
+
+        document
+    .querySelectorAll(
+        ".skill-roll-button"
+    )
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                rollCharacterSkill(
+                    button.dataset.skill
+                );
+
+            }
+        );
+
+    });
+
+}
+
+function getCharacterSkill(
+    skillId
+){
+
+    return characterSkillsState.find(
+        skill =>
+            skill.id === skillId
+    ) || null;
+
+}
+
+/*==========================================================
+=              LIMITES DE TREINO
+==========================================================*/
+
+function canUseSkillTraining(
+    training,
+    skillId
+){
+
+    const level =
+        Math.max(
+            1,
+            Number(
+                characterLevel?.value
+            ) || 1
+        );
+
+
+    const intelligence =
+        Math.max(
+            0,
+            Number(
+                attributeINT?.value
+            ) || 0
+        );
+
+
+    /*
+        Despreparado e 1d4
+        sempre disponíveis.
+    */
+
+    if(
+        training === "0" ||
+        training === "1d4"
+    ){
+
+        return true;
+
+    }
+
+
+    /*
+        Nível 7:
+        pode chegar a 1d8.
+    */
+
+    if(training === "1d8"){
+
+        if(level >= 7){
+
+            return true;
+
+        }
+
+
+        showCharacterEditorMessage(
+            "Treino indisponível",
+            "É necessário atingir o nível 7 para elevar uma perícia até 1d8."
+        );
+
+        return false;
+
+    }
+
+
+    /*
+        Nível 14:
+        pode chegar a 1d12.
+    */
+
+    if(training === "1d12"){
+
+        if(level >= 14){
+
+            return true;
+
+        }
+
+
+        showCharacterEditorMessage(
+            "Treino indisponível",
+            "É necessário atingir o nível 14 para elevar uma perícia até 1d12."
+        );
+
+        return false;
+
+    }
+
+
+    /*
+        INT 5:
+        até duas perícias em 1d20.
+    */
+
+    if(training === "1d20"){
+
+        if(intelligence < 5){
+
+            showCharacterEditorMessage(
+                "INT insuficiente",
+                "É necessário possuir INT 5 para elevar uma perícia até 1d20."
+            );
+
+            return false;
+
+        }
+
+
+        const geniusSkills =
+            characterSkillsState.filter(
+                skill =>
+                    skill.training ===
+                    "1d20" &&
+                    skill.id !== skillId
+            );
+
+
+        if(geniusSkills.length >= 2){
+
+            showCharacterEditorMessage(
+                "Limite de perícias",
+                "Com INT 5, no máximo duas perícias podem possuir treino 1d20."
+            );
+
+            return false;
+
+        }
+
+
+        return true;
+
+    }
+
+
+    return false;
+
+}
+
+/*==========================================================
+=              TOTAL ESTÁTICO DA PERÍCIA
+==========================================================*/
+
+function calculateSkillStaticTotal(
+    skill
+){
+
+    let total =
+        (
+            Number(
+                skill.bonus
+            ) || 0
+        )
+        +
+        (
+            Number(
+                skill.penalty
+            ) || 0
+        );
+
+
+    total +=
+        getSkillConditionModifier(
+            skill
+        );
+
+
+    /*
+        Bônus cumulativos:
+        máximo +10.
+    */
+
+    total =
+        Math.min(
+            10,
+            total
+        );
+
+
+    return total;
+
+}
+
+/*==========================================================
+=              CONDIÇÕES NAS PERÍCIAS
+==========================================================*/
+
+function getSkillConditionModifier(
+    skill
+){
+
+    let modifier = 0;
+
+
+    /*
+        ENFRAQUECIDO
+        -5 testes de FOR
+    */
+
+    if(
+        hasCharacterCondition(
+            "enfraquecido"
+        ) &&
+        skill.selectedAttribute === "for"
+    ){
+
+        modifier -= 5;
+
+    }
+
+
+    /*
+        LENTO
+        -5 testes de AGI
+    */
+
+    if(
+        hasCharacterCondition(
+            "lento"
+        ) &&
+        skill.selectedAttribute === "agi"
+    ){
+
+        modifier -= 5;
+
+    }
+
+
+    /*
+        TRAUMATIZADO
+    */
+
+    if(
+        skill.id === "vontade" &&
+        hasCharacterCondition(
+            "traumatizado"
+        )
+    ){
+
+        modifier -= 5;
+
+    }
+
+
+    /*
+        PENUMBRA
+    */
+
+    if(
+        skill.id === "percepcao" &&
+        hasCharacterCondition(
+            "penumbra"
+        )
+    ){
+
+        modifier -= 5;
+
+    }
+
+
+    if(
+        skill.id === "reflexos" &&
+        hasCharacterCondition(
+            "penumbra"
+        )
+    ){
+
+        modifier -= 3;
+
+    }
+
+
+    /*
+        CEGO
+        Aqui aplicamos a penalidade geral
+        de percepção visual.
+
+        Depois, na rolagem,
+        podemos perguntar se o teste
+        depende de visão.
+    */
+
+    if(
+        skill.id === "percepcao" &&
+        hasCharacterCondition(
+            "cego"
+        )
+    ){
+
+        modifier -= 10;
+
+    }
+
+
+    /*
+        SURDO
+
+        Por enquanto afeta Percepção.
+        Depois podemos perguntar se
+        o teste é auditivo.
+    */
+
+    if(
+        skill.id === "percepcao" &&
+        hasCharacterCondition(
+            "surdo"
+        )
+    ){
+
+        modifier -= 10;
+
+    }
+
+
+    /*
+        ENVENENAMENTO
+        -5 em testes de Vigor.
+    */
+
+    if(
+        hasCharacterCondition(
+            "envenenamento"
+        ) &&
+        skill.selectedAttribute === "vig"
+    ){
+
+        modifier -= 5;
+
+    }
+
+
+    /*
+        ENJOADO
+        -3 testes físicos.
+    */
+
+    if(
+        hasCharacterCondition(
+            "enjoado"
+        ) &&
+        isPhysicalSkillAttribute(
+            skill.selectedAttribute
+        )
+    ){
+
+        modifier -= 3;
+
+    }
+
+
+    /*
+        IMOBILIZADO
+        -10 testes físicos.
+    */
+
+    if(
+        hasCharacterCondition(
+            "imobilizado"
+        ) &&
+        isPhysicalSkillAttribute(
+            skill.selectedAttribute
+        )
+    ){
+
+        modifier -= 10;
+
+    }
+
+
+    return modifier;
+
+}
+
+
+function isPhysicalSkillAttribute(
+    attribute
+){
+
+    return (
+        attribute === "for" ||
+        attribute === "agi" ||
+        attribute === "vig"
+    );
+
+}
+
+/*==========================================================
+=              VALOR DOS ATRIBUTOS
+==========================================================*/
+
+function getCharacterAttributeValue(
+    attribute
+){
+
+    const attributeMap = {
+
+        for:
+            attributeFOR,
+
+        agi:
+            attributeAGI,
+
+        int:
+            attributeINT,
+
+        vig:
+            attributeVIG,
+
+        pre:
+            attributePRE
+
+    };
+
+
+    const input =
+        attributeMap[
+            attribute
+        ];
+
+
+    return Math.max(
+        0,
+        Number(
+            input?.value
+        ) || 0
+    );
+
+}
+
+/*==========================================================
+=              ROLAR DADO
+==========================================================*/
+
+function rollSkillTrainingDice(
+    training
+){
+
+    if(
+        !training ||
+        training === "0"
+    ){
+
+        return {
+            formula:"0",
+            roll:0
+        };
+
+    }
+
+
+    const match =
+        String(
+            training
+        ).match(
+            /^1d(\d+)$/
+        );
+
+
+    if(!match){
+
+        return {
+            formula:"0",
+            roll:0
+        };
+
+    }
+
+
+    const sides =
+        Number(
+            match[1]
+        );
+
+
+    const result =
+        Math.floor(
+            Math.random() *
+            sides
+        ) + 1;
+
+
+    return {
+
+        formula:
+            `1d${sides}`,
+
+        roll:
+            result
+
+    };
+
+}
+
+/*==========================================================
+=              ROLAR PERÍCIA
+==========================================================*/
+
+function rollCharacterSkill(
+    skillId
+){
+
+    const skill =
+        getCharacterSkill(
+            skillId
+        );
+
+
+    if(!skill){
+
+        return;
+
+    }
+
+
+    const attribute =
+        skill.selectedAttribute;
+
+
+    const attributeValue =
+        getCharacterAttributeValue(
+            attribute
+        );
+
+
+    const trainingRoll =
+        rollSkillTrainingDice(
+            skill.training
+        );
+
+
+    const modifier =
+        calculateSkillStaticTotal(
+            skill
+        );
+
+
+    const total =
+        trainingRoll.roll +
+        attributeValue +
+        modifier;
+
+
+    showSkillRollResult({
+
+        skill,
+        attribute,
+        attributeValue,
+
+        training:
+            trainingRoll.formula,
+
+        trainingRoll:
+            trainingRoll.roll,
+
+        modifier,
+
+        total
+
+    });
+
+}
+
+/*==========================================================
+=              RESULTADO DA PERÍCIA
+==========================================================*/
+
+function showSkillRollResult(
+    result
+){
+
+    document
+        .getElementById(
+            "skillRollModal"
+        )
+        ?.remove();
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "skillRollModal";
+
+    modal.className =
+        "editor-message";
+
+
+    const attributeName =
+        String(
+            result.attribute
+        ).toUpperCase();
+
+
+    modal.innerHTML = `
+
+        <div class="prosthetic-editor-modal skill-roll-modal">
+
+            <span class="section-label">
+
+                TESTE DE PERÍCIA
+
+            </span>
+
+
+            <h2>
+
+                ${escapeCharacterEditorHTML(
+                    result.skill.name
+                )}
+
+            </h2>
+
+
+            <div class="skill-roll-result">
+
+                <span class="skill-roll-total">
+
+                    ${result.total}
+
+                </span>
+
+                <span class="skill-roll-label">
+
+                    RESULTADO
+
+                </span>
+
+            </div>
+
+
+            <div class="skill-roll-breakdown">
+
+                <div>
+
+                    <span>
+                        Treino
+                    </span>
+
+                    <strong>
+
+                        ${result.training}
+
+                        ${
+                            result.training !== "0"
+                                ? `→ ${result.trainingRoll}`
+                                : ""
+                        }
+
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        ${attributeName}
+                    </span>
+
+                    <strong>
+
+                        +${result.attributeValue}
+
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Modificadores
+                    </span>
+
+                    <strong>
+
+                        ${
+                            result.modifier >= 0
+                                ? "+"
+                                : ""
+                        }
+
+                        ${result.modifier}
+
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="closeSkillRoll"
+                class="primary-button"
+                style="
+                    width:100%;
+                    margin-top:18px;
+                "
+            >
+
+                Fechar
+
+            </button>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    modal
+        .querySelector(
+            "#closeSkillRoll"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                modal.remove();
+
+            }
+        );
+
+
+    modal.addEventListener(
+        "click",
+        event => {
+
+            if(
+                event.target === modal
+            ){
+
+                modal.remove();
+
+            }
+
+        }
+    );
+
+}
+
+/*==========================================================
+=              PONTOS DE PERÍCIA DISPONÍVEIS
+==========================================================*/
+
+function calculateSkillPointsTotal(){
+
+    const level =
+        Math.max(
+            1,
+            Number(
+                characterLevel?.value
+            ) || 1
+        );
+
+
+    let total = 7;
+
+
+    /*
+        Nível 7
+        +4 pontos
+    */
+
+    if(level >= 7){
+
+        total += 4;
+
+    }
+
+
+    /*
+        Nível 14
+        +4 pontos
+    */
+
+    if(level >= 14){
+
+        total += 4;
+
+    }
+
+
+    /*
+        Cada compra concede
+        2 pontos de perícia.
+    */
+
+    total +=
+        characterSkillPointsPurchased * 2;
+
+
+    return total;
+
+}
+
+/*==========================================================
+=              CUSTO DOS TREINOS
+==========================================================*/
+
+function getSkillTrainingPointCost(
+    training
+){
+
+    switch(training){
+
+        case "1d4":
+            return 1;
+
+        case "1d8":
+            return 2;
+
+        case "1d12":
+            return 3;
+
+        case "1d20":
+            return 4;
+
+        default:
+            return 0;
+
+    }
+
+}
+
+
+function calculateUsedSkillPoints(){
+
+    return characterSkillsState.reduce(
+        (total,skill) => {
+
+            return (
+                total +
+                getSkillTrainingPointCost(
+                    skill.training
+                )
+            );
+
+        },
+        0
+    );
+
+}
+
+
+function calculateAvailableSkillPoints(){
+
+    return Math.max(
+        0,
+        calculateSkillPointsTotal() -
+        calculateUsedSkillPoints()
+    );
+
+}
+
+/*==========================================================
+=              RESUMO DOS PONTOS
+==========================================================*/
+
+function renderSkillPointsSummary(){
+
+    const container =
+        document.getElementById(
+            "skillPointsSummary"
+        );
+
+
+    if(!container){
+
+        return;
+
+    }
+
+
+    const total =
+        calculateSkillPointsTotal();
+
+
+    const used =
+        calculateUsedSkillPoints();
+
+
+    const available =
+        calculateAvailableSkillPoints();
+
+
+    container.innerHTML = `
+
+        <div>
+
+            <span>
+                Total
+            </span>
+
+            <strong>
+                ${total}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                Usados
+            </span>
+
+            <strong>
+                ${used}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                Disponíveis
+            </span>
+
+            <strong>
+                ${available}
+            </strong>
+
+        </div>
+
+    `;
+
+}
+
+/*==========================================================
+=              COMPRAR PONTOS DE PERÍCIA
+==========================================================*/
+
+document
+    .getElementById(
+        "buySkillPoints"
+    )
+    ?.addEventListener(
+        "click",
+        buySkillPoints
+    );
+
+
+function buySkillPoints(){
+
+    /*
+        Por enquanto a compra usa
+        o sistema clássico de PV.
+    */
+
+    if(
+        lifeMode?.value === "classic"
+    ){
+
+        const currentPV =
+            Number(
+                characterPV?.value
+            ) || 0;
+
+
+        if(currentPV < 4){
+
+            showCharacterEditorMessage(
+                "PV insuficiente",
+                "Você precisa de 4 PV para comprar 2 pontos de perícia."
+            );
+
+            return;
+
+        }
+
+
+        characterPV.value =
+            currentPV - 4;
+
+
+        characterSkillPointsPurchased += 1;
+
+
+        renderSkillPointsSummary();
+
+
+        showCharacterEditorMessage(
+            "Pontos adquiridos",
+            "Você adquiriu 2 pontos de perícia por 4 PV."
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+        Partes do corpo:
+        depois podemos usar o mesmo
+        seletor de membro das Assimilações.
+    */
+
+    showCharacterEditorMessage(
+        "Escolha necessária",
+        "No sistema de Partes do Corpo, o custo de 4 PV precisa ser retirado de uma parte específica. Vamos conectar isso ao seletor corporal em seguida."
     );
 
 }
