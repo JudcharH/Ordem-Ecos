@@ -21,10 +21,6 @@ const CAMPAIGN_EDITOR_STORAGE =
     "ordem_campaigns";
 
 
-const characterWoundedPhotoInput =
-    document.getElementById(
-        "characterWoundedPhotoInput"
-    );
 
 /*==========================================================
 =                       ESTADO
@@ -611,7 +607,51 @@ function updateLifeSystem(){
 /*==========================================================
 =                       FOTO
 ==========================================================*/
+/*==========================================================
+=              CARREGAR FOTO NORMAL
+==========================================================*/
 
+async function handleCharacterPhoto(){
+
+    const file =
+        characterPhotoInput
+            ?.files?.[0];
+
+
+    if(!file){
+
+        return;
+
+    }
+
+
+    try{
+
+        characterPhotoBase64 =
+            await characterFileToBase64(
+                file
+            );
+
+
+        renderCharacterPhoto();
+
+    }
+    catch(error){
+
+        console.error(
+            "Erro ao carregar foto:",
+            error
+        );
+
+
+        showCharacterEditorMessage(
+            "Erro na imagem",
+            "Não foi possível carregar a foto selecionada."
+        );
+
+    }
+
+}
 /*==========================================================
 =              CARREGAR FOTO MACHUCADO
 ==========================================================*/
