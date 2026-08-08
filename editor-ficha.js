@@ -21,6 +21,11 @@ const CAMPAIGN_EDITOR_STORAGE =
     "ordem_campaigns";
 
 
+const characterWoundedPhotoInput =
+    document.getElementById(
+        "characterWoundedPhotoInput"
+    );
+
 /*==========================================================
 =                       ESTADO
 ==========================================================*/
@@ -32,6 +37,8 @@ let editorCampaigns = [];
 let editingCharacter = null;
 
 let characterPhotoBase64 = "";
+
+let characterWoundedPhotoBase64 = "";
 
 let linkedCampaignId = null;
 
@@ -541,6 +548,12 @@ function bindCharacterEditorEvents(){
         }
     );
 
+    characterWoundedPhotoInput
+    ?.addEventListener(
+        "change",
+        handleCharacterWoundedPhoto
+    );
+
 }
 
 
@@ -633,41 +646,95 @@ async function handleCharacterPhoto(){
 
 
 /*==========================================================
-=                 MOSTRAR FOTO
+=              MOSTRAR FOTO DO PERSONAGEM
 ==========================================================*/
 
 function renderCharacterPhoto(){
 
-    if(
-        !characterPhotoPreview ||
-        !characterPhotoBase64
-    ){
+    if(!characterPhotoPreview){
 
         return;
 
     }
 
+
+    /*
+        Machucado troca a aparência.
+    */
+
+    const isWounded =
+        hasCharacterCondition(
+            "machucado"
+        );
+
+
+    const selectedPhoto =
+        (
+            isWounded &&
+            characterWoundedPhotoBase64
+        )
+            ? characterWoundedPhotoBase64
+            : characterPhotoBase64;
+
+
+    if(!selectedPhoto){
+
+        return;
+
+    }
+
+
     characterPhotoPreview.innerHTML =
         "";
+
 
     const image =
         document.createElement(
             "img"
         );
 
+
     image.src =
-        characterPhotoBase64;
+        selectedPhoto;
+
 
     image.alt =
         characterEditorName?.value ||
         "Personagem";
 
+
     characterPhotoPreview.appendChild(
         image
     );
 
-}
 
+    /*
+        Indicador discreto.
+    */
+
+    if(
+        isWounded &&
+        characterWoundedPhotoBase64
+    ){
+
+        characterPhotoPreview
+            .classList
+            .add(
+                "showing-wounded-photo"
+            );
+
+    }
+    else{
+
+        characterPhotoPreview
+            .classList
+            .remove(
+                "showing-wounded-photo"
+            );
+
+    }
+
+}
 
 /*==========================================================
 =                 ARQUIVO PARA BASE64
@@ -926,6 +993,11 @@ function saveCharacter(){
             characterPhotoBase64 ||
             oldCharacter.photo ||
             "",
+
+            woundedPhoto:
+    characterWoundedPhotoBase64 ||
+    oldCharacter.woundedPhoto ||
+    "",
 
         lifeMode:
             lifeMode?.value ||
@@ -1473,6 +1545,16 @@ characterAssimilationsState =
         []
     );
 
+    characterPhotoBase64 =
+    editingCharacter.photo || "";
+
+
+characterWoundedPhotoBase64 =
+    editingCharacter.woundedPhoto || "";
+
+
+renderCharacterPhoto();
+
 characterSkillPointsPurchased =
     Number(
         editingCharacter
@@ -1491,6 +1573,8 @@ if(characterDefenseBonus){
         ) || 0;
 
 }
+
+
 
 renderConditionEditorList();
 
@@ -2214,6 +2298,10 @@ if(
 
     calculateBodyMaximums();
 
+calculateCharacterDefense();
+
+    
+
 }
 
 /*==========================================================
@@ -2586,6 +2674,13 @@ attributeAGI?.addEventListener(
     calculateCharacterDefense
 );
 
+
+attributeAGI?.addEventListener(
+    "input",
+    calculateCharacterDefense
+);
+
+
 characterDefenseBonus?.addEventListener(
     "input",
     calculateCharacterDefense
@@ -2923,6 +3018,10 @@ function renderBodyStates(){
 =              CABEÇA / TORSO
 ==========================================================*/
 
+/*==========================================================
+=              CABEÇA / TORSO
+==========================================================*/
+
 function updateSimpleBodyPartVisual(
     input
 ){
@@ -2947,20 +3046,80 @@ function updateSimpleBodyPartVisual(
     }
 
 
+    let controls =
+        row.querySelector(
+            ".body-part-controls"
+        );
+
+
+    if(!controls){
+
+        controls =
+            document.createElement(
+                "div"
+            );
+
+        controls.className =
+            "body-part-controls";
+
+        row.appendChild(
+            controls
+        );
+
+    }
+
+
+    const current =
+        Math.max(
+            0,
+            Number(
+                input.value
+            ) || 0
+        );
+
+
+    const max =
+        Math.max(
+            0,
+            Number(
+                input.dataset.max
+            ) || 0
+        );
+
+
     row.classList.remove(
         "body-part-disabled"
     );
 
 
-    if(
-        Number(input.value) <= 0
-    ){
+    if(current <= 0){
 
         row.classList.add(
             "body-part-disabled"
         );
 
     }
+
+
+    /*
+        Cabeça e Torso possuem
+        estado visual, mas NÃO
+        botão de desmembrar.
+    */
+
+    controls.innerHTML = `
+
+        <span class="body-state-badge natural">
+
+            ${
+                current <= 0
+                    ? "INUTILIZADO"
+                    : `NATURAL • ${current}/${max}`
+            }
+
+        </span>
+
+    `;
 
 }
 
@@ -10455,6 +10614,8 @@ function addConditionToCharacter(
 calculateAutomaticStats();
     renderConditionEditorList();
 
+    renderCharacterPhoto();
+
 
     showCharacterEditorMessage(
         "Condição adicionada",
@@ -10949,6 +11110,7 @@ function removeCharacterCondition(
 
 calculateAutomaticStats();
             renderConditionEditorList();
+            renderCharacterPhoto();
 
 
             showCharacterEditorMessage(
@@ -12389,10 +12551,6 @@ function rollSkillTrainingDice(
 =              ROLAR PERÍCIA
 ==========================================================*/
 
-/*==========================================================
-=              ROLAR PERÍCIA
-==========================================================*/
-
 function rollCharacterSkill(
     skillId
 ){
@@ -12421,17 +12579,52 @@ function rollCharacterSkill(
 
 
     /*
-        D20 obrigatório.
+        O atributo determina
+        quantos D20 são rolados.
+
+        Mantemos no mínimo 1 dado.
     */
 
-    const d20 =
-        Math.floor(
-            Math.random() * 20
-        ) + 1;
+    const diceAmount =
+        Math.max(
+            1,
+            attributeValue
+        );
+
+
+    const d20Rolls = [];
+
+
+    for(
+        let index = 0;
+        index < diceAmount;
+        index++
+    ){
+
+        d20Rolls.push(
+
+            Math.floor(
+                Math.random() * 20
+            ) + 1
+
+        );
+
+    }
 
 
     /*
-        Dado de treino.
+        Apenas o maior D20
+        entra no resultado.
+    */
+
+    const selectedD20 =
+        Math.max(
+            ...d20Rolls
+        );
+
+
+    /*
+        Somente UM dado de treino.
     */
 
     const trainingRoll =
@@ -12447,9 +12640,8 @@ function rollCharacterSkill(
 
 
     const total =
-        d20 +
+        selectedD20 +
         trainingRoll.roll +
-        attributeValue +
         modifier;
 
 
@@ -12461,7 +12653,9 @@ function rollCharacterSkill(
 
         attributeValue,
 
-        d20,
+        d20Rolls,
+
+        selectedD20,
 
         training:
             trainingRoll.formula,
@@ -12476,6 +12670,7 @@ function rollCharacterSkill(
     });
 
 }
+
 /*==========================================================
 =              RESULTADO DA PERÍCIA
 ==========================================================*/
@@ -12549,15 +12744,37 @@ function showSkillRollResult(
 
 <div class="skill-roll-breakdown">
 
-    <div>
+    <div class="skill-roll-d20-list">
 
         <span>
-            D20
+            ${String(
+                result.attribute
+            ).toUpperCase()}
+            • ${result.attributeValue}d20
         </span>
 
         <strong>
-            ${result.d20}
+
+            ${
+                result.d20Rolls
+                    .map(
+                        value =>
+                            value ===
+                            result.selectedD20
+                                ? `[${value}]`
+                                : value
+                    )
+                    .join(" • ")
+            }
+
         </strong>
+
+        <small>
+
+            Maior:
+            ${result.selectedD20}
+
+        </small>
 
     </div>
 
@@ -12572,24 +12789,9 @@ function showSkillRollResult(
 
             ${
                 result.training === "0"
-                    ? "0"
+                    ? "Sem treino"
                     : `${result.training} → ${result.trainingRoll}`
             }
-
-        </strong>
-
-    </div>
-
-
-    <div>
-
-        <span>
-            ${attributeName}
-        </span>
-
-        <strong>
-
-            +${result.attributeValue}
 
         </strong>
 
@@ -12911,9 +13113,19 @@ function calculateCharacterDefense(){
         );
 
 
+    /*
+        DEFESA BASE
+
+        5 + AGI
+    */
+
     const baseDefense =
         5 + agi;
 
+
+    /*
+        BÔNUS MANUAL
+    */
 
     const manualBonus =
         Number(
@@ -12921,21 +13133,43 @@ function calculateCharacterDefense(){
         ) || 0;
 
 
-    const conditionModifier =
+    /*
+        CONDIÇÕES
+
+        Ex:
+        Caído -5
+        Imobilizado -10
+        Desprevenido -5
+    */
+
+    const conditionBonus =
         getConditionModifier(
             "defense"
         );
 
 
+    /*
+        HABILIDADES
+    */
+
     const abilityBonus =
         getAbilityDefenseBonus();
 
 
-    const finalDefense =
+    /*
+        ASSIMILAÇÕES
+    */
+
+    const assimilationBonus =
+        getAssimilationDefenseBonus();
+
+
+    const total =
         baseDefense +
         manualBonus +
-        conditionModifier +
-        abilityBonus;
+        conditionBonus +
+        abilityBonus +
+        assimilationBonus;
 
 
     if(characterDefenseBase){
@@ -12949,9 +13183,53 @@ function calculateCharacterDefense(){
     if(characterDefense){
 
         characterDefense.value =
-            finalDefense;
+            total;
 
     }
+
+}
+
+/*==========================================================
+=              DEFESA DE ASSIMILAÇÕES
+==========================================================*/
+
+function getAssimilationDefenseBonus(){
+
+    let total = 0;
+
+
+    characterAssimilationsState
+        .forEach(assimilation => {
+
+            /*
+                Assimilações passivas sempre contam.
+
+                Assimilações de ativação só contam
+                se estiverem ativas.
+            */
+
+            const canApply =
+                assimilation.activationType === "Passiva" ||
+                assimilation.active === true;
+
+
+            if(!canApply){
+
+                return;
+
+            }
+
+
+            total +=
+                Number(
+                    assimilation.effects
+                        ?.defense
+                ) || 0;
+
+        });
+
+
+    return total;
 
 }
 
@@ -12989,5 +13267,57 @@ function getAbilityDefenseBonus(){
 
 
     return bonus;
+
+}
+
+/*==========================================================
+=              FOTO MACHUCADO
+==========================================================*/
+
+async function handleCharacterWoundedPhoto(){
+
+    const file =
+        characterWoundedPhotoInput
+            ?.files?.[0];
+
+
+    if(!file){
+
+        return;
+
+    }
+
+
+    try{
+
+        characterWoundedPhotoBase64 =
+            await characterFileToBase64(
+                file
+            );
+
+
+        renderCharacterPhoto();
+
+
+        showCharacterEditorMessage(
+            "Foto salva",
+            "A aparência de Machucado foi configurada."
+        );
+
+    }
+    catch(error){
+
+        console.error(
+            "Erro ao carregar foto machucado:",
+            error
+        );
+
+
+        showCharacterEditorMessage(
+            "Erro na imagem",
+            "Não foi possível carregar a foto de Machucado."
+        );
+
+    }
 
 }

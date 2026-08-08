@@ -104,7 +104,40 @@ Não salvo
 
 <div class="character-photo-preview">
 
-<div class="character-photo-placeholder">
+<div class="character-photo-actions">
+
+    <label
+        for="characterPhotoInput"
+        class="secondary-button character-photo-button">
+
+        Selecionar Foto
+
+    </label>
+
+
+    <label
+        for="characterWoundedPhotoInput"
+        class="secondary-button character-photo-button wounded-photo-button">
+
+        🩸 Foto Machucado
+
+    </label>
+
+</div>
+
+
+<input
+    type="file"
+    id="characterPhotoInput"
+    accept="image/png,image/jpeg,image/webp"
+    hidden>
+
+
+<input
+    type="file"
+    id="characterWoundedPhotoInput"
+    accept="image/png,image/jpeg,image/webp"
+    hidden>
 
 <span>
 👤
