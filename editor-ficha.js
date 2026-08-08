@@ -50,6 +50,10 @@ let characterSkillsState = [];
 
 let characterSkillPointsPurchased = 0;
 
+let selectedBodyPart = null;
+
+let characterBodyDescriptions = {};
+
 
 /*==========================================================
 =                       ELEMENTOS
@@ -344,6 +348,8 @@ function initCharacterEditor(){
     bindCurrentValueLimits();
 
     bindBodyConditionEvents();
+
+    bindBodyMapEvents();
 
 
 if(!editingCharacter){
@@ -1108,6 +1114,11 @@ function saveCharacter(){
         characterBodyState
     ),
 
+    bodyDescriptions:
+    structuredCloneSafe(
+        characterBodyDescriptions
+    ),
+
     skillPointsPurchased:
     characterSkillPointsPurchased,
 
@@ -1623,6 +1634,14 @@ function loadCharacterIntoEditor(){
 
     }
 
+    if(selectedBodyPart){
+
+    renderBodyPartInfo(
+        selectedBodyPart
+    );
+
+}
+
     characterAbilitiesState =
     structuredCloneSafe(
         editingCharacter.abilities ||
@@ -1639,6 +1658,13 @@ characterAssimilationsState =
     structuredCloneSafe(
         editingCharacter.conditions ||
         []
+    );
+
+    characterBodyDescriptions =
+    structuredCloneSafe(
+        editingCharacter
+            .bodyDescriptions ||
+        {}
     );
 
     characterPhotoBase64 =
@@ -13416,5 +13442,371 @@ async function handleCharacterWoundedPhoto(){
         );
 
     }
+
+}
+
+/*==========================================================
+=              DADOS DAS PARTES DO CORPO
+==========================================================*/
+
+const BODY_PART_DATA = {
+
+    head:{
+        name:"Cabeça",
+        input:() => bodyHead
+    },
+
+    chest:{
+        name:"Torso",
+        input:() => bodyChest
+    },
+
+    leftArm:{
+        name:"Braço Esquerdo",
+        input:() => bodyLeftArm
+    },
+
+    rightArm:{
+        name:"Braço Direito",
+        input:() => bodyRightArm
+    },
+
+    leftLeg:{
+        name:"Perna Esquerda",
+        input:() => bodyLeftLeg
+    },
+
+    rightLeg:{
+        name:"Perna Direita",
+        input:() => bodyRightLeg
+    }
+
+};
+
+/*==========================================================
+=              CLIQUE NO CORPO
+==========================================================*/
+
+function bindBodyMapEvents(){
+
+    document
+        .querySelectorAll(
+            ".body-map-zone"
+        )
+        .forEach(zone => {
+
+            zone.addEventListener(
+                "click",
+                () => {
+
+                    selectBodyPart(
+                        zone.dataset.bodyPart
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+/*==========================================================
+=              SELECIONAR PARTE DO CORPO
+==========================================================*/
+
+function selectBodyPart(
+    partName
+){
+
+    const data =
+        BODY_PART_DATA[
+            partName
+        ];
+
+
+    if(!data){
+
+        return;
+
+    }
+
+
+    selectedBodyPart =
+        partName;
+
+
+    document
+        .querySelectorAll(
+            ".body-map-zone"
+        )
+        .forEach(zone => {
+
+            zone.classList.toggle(
+                "selected",
+                zone.dataset.bodyPart ===
+                partName
+            );
+
+        });
+
+
+    renderBodyPartInfo(
+        partName
+    );
+
+}
+
+/*==========================================================
+=              PAINEL DA PARTE DO CORPO
+==========================================================*/
+
+function renderBodyPartInfo(
+    partName
+){
+
+    const panel =
+        document.getElementById(
+            "bodyInfoPanel"
+        );
+
+
+    const data =
+        BODY_PART_DATA[
+            partName
+        ];
+
+
+    if(
+        !panel ||
+        !data
+    ){
+
+        return;
+
+    }
+
+
+    const input =
+        data.input();
+
+
+    const currentPV =
+        Number(
+            input?.value
+        ) || 0;
+
+
+    const maxPV =
+        Number(
+            input?.dataset.max
+        ) || 0;
+
+
+    const state =
+        characterBodyState[
+            partName
+        ] || {
+            type:"natural"
+        };
+
+
+    const assimilations =
+        getAssimilationsForBodyPart(
+            partName
+        );
+
+
+    let stateLabel =
+        "Natural";
+
+
+    if(
+        state.type ===
+        "missing"
+    ){
+
+        stateLabel =
+            "Ausente";
+
+    }
+
+
+    if(
+        state.type ===
+        "prosthetic"
+    ){
+
+        stateLabel =
+            state.name
+                ? `Prótese • ${state.name}`
+                : "Prótese";
+
+    }
+
+
+    if(
+        currentPV <= 0 &&
+        state.type === "natural"
+    ){
+
+        stateLabel =
+            "Inutilizado";
+
+    }
+
+
+    panel.innerHTML = `
+
+        <div class="body-info-header">
+
+            <div>
+
+                <span class="section-label">
+                    PARTE DO CORPO
+                </span>
+
+                <h3>
+                    ${escapeCharacterEditorHTML(
+                        data.name
+                    )}
+                </h3>
+
+            </div>
+
+
+            <span class="body-info-state">
+
+                ${escapeCharacterEditorHTML(
+                    stateLabel
+                )}
+
+            </span>
+
+        </div>
+
+
+        <div class="body-info-pv">
+
+            <span>
+                PV
+            </span>
+
+            <strong>
+
+                ${currentPV}
+                /
+                ${maxPV}
+
+            </strong>
+
+        </div>
+
+
+        <div class="body-info-block">
+
+            <span class="body-info-label">
+
+                Assimilações
+
+            </span>
+
+
+            <div class="body-info-assimilations">
+
+                ${
+                    assimilations.length
+                        ? assimilations
+                            .map(
+                                assimilation => `
+
+                                    <div class="body-assimilation-chip">
+
+                                        <strong>
+                                            ${escapeCharacterEditorHTML(
+                                                assimilation.name
+                                            )}
+                                        </strong>
+
+                                        <span>
+                                            ${escapeCharacterEditorHTML(
+                                                assimilation.description ||
+                                                ""
+                                            )}
+                                        </span>
+
+                                    </div>
+
+                                `
+                            )
+                            .join("")
+                        : `
+                            <div class="body-info-empty">
+                                Nenhuma Assimilação alocada neste membro.
+                            </div>
+                        `
+                }
+
+            </div>
+
+        </div>
+
+
+        <div class="body-info-block">
+
+            <label
+                class="body-info-label"
+                for="bodyPartDescription">
+
+                Descrição do membro
+
+            </label>
+
+
+            <textarea
+                id="bodyPartDescription"
+                class="body-part-description"
+                placeholder="Ex: cicatriz profunda, braço coberto por veias paranormais, tatuagem ritualística...">${escapeCharacterEditorHTML(
+                    characterBodyDescriptions[
+                        partName
+                    ] || ""
+                )}</textarea>
+
+        </div>
+
+    `;
+
+
+    panel
+        .querySelector(
+            "#bodyPartDescription"
+        )
+        ?.addEventListener(
+            "input",
+            event => {
+
+                characterBodyDescriptions[
+                    partName
+                ] =
+                    event.target.value;
+
+            }
+        );
+
+}
+
+/*==========================================================
+=              ASSIMILAÇÕES DO MEMBRO
+==========================================================*/
+
+function getAssimilationsForBodyPart(
+    partName
+){
+
+    return characterAssimilationsState
+        .filter(
+            assimilation =>
+                assimilation.bodyPart ===
+                partName
+        );
 
 }
