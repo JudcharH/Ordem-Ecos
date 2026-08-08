@@ -323,25 +323,31 @@ function initCharacterEditor(){
     bindBodyConditionEvents();
 
 
-    if(!editingCharacter){
+if(!editingCharacter){
 
-        characterAbilitiesState = [];
+    characterAbilitiesState = [];
 
-        characterAssimilationsState = [];
+    characterAssimilationsState = [];
 
-        initializeBodyStates();
+    characterConditionsState = [];
 
-        initializeCharacterSkills();
+    characterSkillPointsPurchased = 0;
 
-        calculateAutomaticStats();
+    initializeBodyStates();
 
-        renderAbilityEditorList();
+    initializeCharacterSkills();
 
-        renderAssimilationEditorList();
+    calculateAutomaticStats();
 
-        characterSkillPointsPurchased = 0;
+    renderAbilityEditorList();
 
-    }
+    renderAssimilationEditorList();
+
+    renderConditionEditorList();
+
+    renderSkillPointsSummary();
+
+}
 
 
     updateLifeSystem();
@@ -11580,6 +11586,10 @@ function createSkillAttributeOptions(
 
 function bindSkillEditorEvents(){
 
+    /*======================================================
+    =              TROCAR ATRIBUTO
+    ======================================================*/
+
     document
         .querySelectorAll(
             ".skill-attribute-select"
@@ -11609,101 +11619,76 @@ function bindSkillEditorEvents(){
 
                     renderSkillsEditor();
 
+                    renderSkillPointsSummary();
+
                 }
             );
 
         });
 
 
+    /*======================================================
+    =              ALTERAR TREINO
+    ======================================================*/
 
+    document
+        .querySelectorAll(
+            ".skill-training-select"
+        )
+        .forEach(select => {
 
-document
-    .querySelectorAll(
-        ".skill-training-select"
-    )
-    .forEach(select => {
+            select.addEventListener(
+                "change",
+                () => {
 
-        select.addEventListener(
-            "change",
-            () => {
-
-                const skill =
-                    getCharacterSkill(
-                        select.dataset.skill
-                    );
-
-
-                if(!skill){
-
-                    return;
-
-                }
-
-
-                const requestedTraining =
-                    select.value;
-
-
-                const oldTraining =
-                    skill.training;
-
-
-                const oldCost =
-                    getSkillTrainingPointCost(
-                        oldTraining
-                    );
-
-
-                const newCost =
-                    getSkillTrainingPointCost(
-                        requestedTraining
-                    );
-
-
-                const difference =
-                    newCost - oldCost;
-
-
-                /*
-                    Primeiro verificamos
-                    o limite de nível / INT.
-                */
-
-                if(
-                    !canUseSkillTraining(
-                        requestedTraining,
-                        skill.id
-                    )
-                ){
-
-                    renderSkillsEditor();
-
-                    return;
-
-                }
-
-
-                /*
-                    Depois verificamos
-                    os pontos disponíveis.
-                */
-
-                if(difference > 0){
-
-                    const available =
-                        calculateAvailableSkillPoints();
-
-
-                    if(
-                        available <
-                        difference
-                    ){
-
-                        showCharacterEditorMessage(
-                            "Pontos insuficientes",
-                            `Você precisa de ${difference} ponto(s) de perícia, mas possui apenas ${available} disponível(is).`
+                    const skill =
+                        getCharacterSkill(
+                            select.dataset.skill
                         );
 
+
+                    if(!skill){
+
+                        return;
+
+                    }
+
+
+                    const requestedTraining =
+                        select.value;
+
+
+                    const oldTraining =
+                        skill.training || "0";
+
+
+                    const oldCost =
+                        getSkillTrainingPointCost(
+                            oldTraining
+                        );
+
+
+                    const newCost =
+                        getSkillTrainingPointCost(
+                            requestedTraining
+                        );
+
+
+                    const difference =
+                        newCost - oldCost;
+
+
+                    /*
+                        Primeiro verifica
+                        nível / INT.
+                    */
+
+                    if(
+                        !canUseSkillTraining(
+                            requestedTraining,
+                            skill.id
+                        )
+                    ){
 
                         renderSkillsEditor();
 
@@ -11711,51 +11696,56 @@ document
 
                     }
 
+
+                    /*
+                        Depois verifica pontos.
+                    */
+
+                    if(difference > 0){
+
+                        const available =
+                            calculateAvailableSkillPoints();
+
+
+                        if(
+                            available <
+                            difference
+                        ){
+
+                            showCharacterEditorMessage(
+                                "Pontos insuficientes",
+                                `Você precisa de ${difference} ponto(s) de perícia, mas possui apenas ${available} disponível(is).`
+                            );
+
+
+                            renderSkillsEditor();
+
+                            return;
+
+                        }
+
+                    }
+
+
+                    /*
+                        Salva novo treino.
+                    */
+
+
+
+                    renderSkillsEditor();
+
+                    renderSkillPointsSummary();
+
                 }
+            );
+
+        });
 
 
-                skill.training =
-                    requestedTraining;
-
-
-                renderSkillsEditor();
-
-                renderSkillPointsSummary();
-
-            }
-        );
-
-    });
-
-}
-
-
-if(
-    !canUseSkillTraining(
-        requestedTraining,
-        skill.id
-    )
-){
-
-    renderSkillsEditor();
-
-    return;
-
-}
-
-
-skill.training =
-    requestedTraining;
-
-
-renderSkillsEditor();
-
-renderSkillPointsSummary();
-
-
- renderSkillsEditor();
-
-
+    /*======================================================
+    =              BÔNUS
+    ======================================================*/
 
     document
         .querySelectorAll(
@@ -11800,6 +11790,10 @@ renderSkillPointsSummary();
         });
 
 
+    /*======================================================
+    =              PENALIDADE
+    ======================================================*/
+
     document
         .querySelectorAll(
             ".skill-penalty-input"
@@ -11839,24 +11833,31 @@ renderSkillPointsSummary();
 
         });
 
-        document
-    .querySelectorAll(
-        ".skill-roll-button"
-    )
-    .forEach(button => {
 
-        button.addEventListener(
-            "click",
-            () => {
+    /*======================================================
+    =              ROLAR PERÍCIA
+    ======================================================*/
 
-                rollCharacterSkill(
-                    button.dataset.skill
-                );
+    document
+        .querySelectorAll(
+            ".skill-roll-button"
+        )
+        .forEach(button => {
 
-            }
-        );
+            button.addEventListener(
+                "click",
+                () => {
 
-    });
+                    rollCharacterSkill(
+                        button.dataset.skill
+                    );
+
+                }
+            );
+
+        });
+
+}
 
 
 
