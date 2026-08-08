@@ -1443,11 +1443,6 @@ characterSkillPointsPurchased =
             .skillPointsPurchased
     ) || 0;
 
-
-initializeCharacterSkills();
-
-renderSkillPointsSummary();
-
 renderConditionEditorList();
 
 renderAbilityEditorList();
@@ -1472,6 +1467,8 @@ renderAssimilationEditorList();
     }
 
 });
+
+
 
 
     /*======================================================
@@ -1690,6 +1687,14 @@ renderAssimilationEditorList();
             attributes.pre ?? 1;
 
     }
+
+    /*======================================================
+=              CARREGAR PERÍCIAS
+======================================================*/
+
+initializeCharacterSkills();
+
+renderSkillPointsSummary();
 
 
     /*======================================================
@@ -11223,99 +11228,76 @@ const DEFAULT_SKILLS = [
 =              INICIALIZAR PERÍCIAS
 ==========================================================*/
 
+/*==========================================================
+=              INICIALIZAR PERÍCIAS
+==========================================================*/
+
 function initializeCharacterSkills(){
 
     const savedSkills =
-        editingCharacter?.skills;
+        Array.isArray(
+            editingCharacter?.skills
+        )
+            ? editingCharacter.skills
+            : [];
 
 
-    if(
-        Array.isArray(savedSkills) &&
-        savedSkills.length > 0
-    ){
+    characterSkillsState =
+        DEFAULT_SKILLS.map(
+            defaultSkill => {
 
-        characterSkillsState =
-            structuredCloneSafe(
-                savedSkills
-            );
-
-    }
-    else{
-
-        characterSkillsState =
-            DEFAULT_SKILLS.map(skill => ({
-
-                id:skill.id,
-
-                name:skill.name,
-
-                defaultAttributes:
-                    structuredCloneSafe(
-                        skill.defaultAttributes
-                    ),
-
-                selectedAttribute:
-                    skill.defaultAttributes[0],
-
-                training:"0",
-
-                bonus:0,
-
-                penalty:0
-
-            }));
-
-            
-
-    }
+                const saved =
+                    savedSkills.find(
+                        skill =>
+                            skill.id ===
+                            defaultSkill.id
+                    );
 
 
-    /*
-        Segurança para perícias adicionadas
-        futuramente ao catálogo.
-    */
+                return {
 
-    DEFAULT_SKILLS.forEach(defaultSkill => {
+                    id:
+                        defaultSkill.id,
 
-        const exists =
-            characterSkillsState.some(
-                skill =>
-                    skill.id ===
-                    defaultSkill.id
-            );
+                    name:
+                        defaultSkill.name,
 
+                    defaultAttributes:
+                        structuredCloneSafe(
+                            defaultSkill.defaultAttributes
+                        ),
 
-        if(!exists){
+                    selectedAttribute:
+                        saved?.selectedAttribute ||
+                        defaultSkill.defaultAttributes[0],
 
-            characterSkillsState.push({
+                    training:
+                        [
+                            "0",
+                            "1d4",
+                            "1d8",
+                            "1d12",
+                            "1d20"
+                        ].includes(
+                            saved?.training
+                        )
+                            ? saved.training
+                            : "0",
 
-                id:
-                    defaultSkill.id,
+                    bonus:
+                        Number(
+                            saved?.bonus
+                        ) || 0,
 
-                name:
-                    defaultSkill.name,
+                    penalty:
+                        Number(
+                            saved?.penalty
+                        ) || 0
 
-                defaultAttributes:
-                    structuredCloneSafe(
-                        defaultSkill
-                            .defaultAttributes
-                    ),
+                };
 
-                selectedAttribute:
-                    defaultSkill
-                        .defaultAttributes[0],
-
-                training:"0",
-
-                bonus:0,
-
-                penalty:0
-
-            });
-
-        }
-
-    });
+            }
+        );
 
 
     renderSkillsEditor();
@@ -11728,14 +11710,16 @@ function bindSkillEditorEvents(){
 
 
                     /*
-                        Salva novo treino.
-                    */
+    Salva novo treino.
+*/
+
+skill.training =
+    requestedTraining;
 
 
+renderSkillsEditor();
 
-                    renderSkillsEditor();
-
-                    renderSkillPointsSummary();
+renderSkillPointsSummary();
 
                 }
             );
@@ -12824,65 +12808,21 @@ document
     );
 
 
+/*==========================================================
+=              COMPRAR PONTOS DE PERÍCIA
+==========================================================*/
+
 function buySkillPoints(){
 
-    /*
-        Por enquanto a compra usa
-        o sistema clássico de PV.
-    */
-
-    if(
-        lifeMode?.value === "classic"
-    ){
-
-        const currentPV =
-            Number(
-                characterPV?.value
-            ) || 0;
+    characterSkillPointsPurchased += 1;
 
 
-        if(currentPV < 4){
+    renderSkillPointsSummary();
 
-            showCharacterEditorMessage(
-                "PV insuficiente",
-                "Você precisa de 4 PV para comprar 2 pontos de perícia."
-            );
-
-            return;
-
-        }
-
-
-        characterPV.value =
-            currentPV - 4;
-
-
-        characterSkillPointsPurchased += 1;
-
-
-        renderSkillPointsSummary();
-
-
-        showCharacterEditorMessage(
-            "Pontos adquiridos",
-            "Você adquiriu 2 pontos de perícia por 4 PV."
-        );
-
-
-        return;
-
-    }
-
-
-    /*
-        Partes do corpo:
-        depois podemos usar o mesmo
-        seletor de membro das Assimilações.
-    */
 
     showCharacterEditorMessage(
-        "Escolha necessária",
-        "No sistema de Partes do Corpo, o custo de 4 PV precisa ser retirado de uma parte específica. Vamos conectar isso ao seletor corporal em seguida."
+        "Pontos adquiridos",
+        "2 pontos de perícia foram adicionados. O custo em PV será conectado novamente depois que o sistema de perícias estiver estabilizado."
     );
 
 }
