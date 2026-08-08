@@ -946,77 +946,6 @@ function openCharacterPanel(){
     const attrs =
         currentTableCharacter.attributes || {};
 
-        <div class="table-panel-section">
-
-    <h3 class="table-panel-section-title">
-        Perícias
-    </h3>
-
-    <div class="table-panel-list">
-
-        ${
-            Array.isArray(
-                currentTableCharacter.skills
-            ) &&
-            currentTableCharacter.skills.length
-
-                ? currentTableCharacter.skills
-                    .map(skill => `
-
-                        <button
-                            type="button"
-                            class="table-skill-button"
-                            data-skill="${skill.id}"
-                        >
-
-                            <div>
-
-                                <strong>
-
-                                    ${escapeTableHTML(
-                                        skill.name
-                                    )}
-
-                                </strong>
-
-                                <span>
-
-                                    ${String(
-                                        skill.selectedAttribute ||
-                                        ""
-                                    ).toUpperCase()}
-
-                                    •
-
-                                    ${
-                                        skill.training === "0"
-                                            ? "Sem treino"
-                                            : skill.training
-                                    }
-
-                                </span>
-
-                            </div>
-
-                            <span>
-                                🎲
-                            </span>
-
-                        </button>
-
-                    `)
-                    .join("")
-
-                : `
-                    <div class="editor-empty-state">
-                        Nenhuma perícia configurada.
-                    </div>
-                `
-        }
-
-    </div>
-
-</div>
 
     const status =
         currentTableCharacter.status || {};
@@ -4968,18 +4897,9 @@ function refreshCurrentTableCharacter(){
 =              SINCRONIZAÇÃO AO VIVO
 ==========================================================*/
 
-window.addEventListener(
-    "storage",
-    event => {
-
-        if(
-            event.key !==
-            "ordem_characters"
-        ){
-
-            return;
-
-        }
+/*==========================================================
+=              SINCRONIZAÇÃO AO VIVO
+==========================================================*/
 
 window.addEventListener(
     "storage",
@@ -4987,7 +4907,7 @@ window.addEventListener(
 
         if(
             event.key !==
-            "ordem_characters"
+            TABLE_CHARACTER_STORAGE
         ){
 
             return;
@@ -4997,55 +4917,15 @@ window.addEventListener(
 
         loadTableStorage();
 
-
-        if(
-            currentTableRole === "player" &&
-            currentTableCharacter
-        ){
-
-            currentTableCharacter =
-                getLiveCharacter(
-                    currentTableCharacter.id
-                ) || currentTableCharacter;
-
-        }
-
+        refreshCurrentTableCharacter();
 
         renderCombatPositions();
 
     }
 );
 
-    }
-);
-
-function refreshOpenCharacterSheet(){
-
-    if(!currentOpenedCharacterId){
-
-        return;
-
-    }
 
 
-    const character =
-        getLiveCharacter(
-            currentOpenedCharacterId
-        );
-
-
-    if(!character){
-
-        return;
-
-    }
-
-
-    renderTableCharacterSheet(
-        character
-    );
-
-}
 
 /*==========================================================
 =              FOTO ATUAL DO PERSONAGEM
