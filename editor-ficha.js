@@ -72,6 +72,21 @@ const characterAge =
         "characterAge"
     );
 
+    const characterDefenseBase =
+    document.getElementById(
+        "characterDefenseBase"
+    );
+
+const characterDefenseBonus =
+    document.getElementById(
+        "characterDefenseBonus"
+    );
+
+const characterDefense =
+    document.getElementById(
+        "characterDefense"
+    );
+
 
 /*==========================================================
 =                       FOTO
@@ -346,6 +361,8 @@ if(!editingCharacter){
     renderConditionEditorList();
 
     renderSkillPointsSummary();
+
+    calculateCharacterDefense();
 
 }
 
@@ -926,6 +943,25 @@ function saveCharacter(){
     skillPointsPurchased:
     characterSkillPointsPurchased,
 
+    defense:{
+
+    base:
+        Number(
+            characterDefenseBase?.value
+        ) || 0,
+
+    bonus:
+        Number(
+            characterDefenseBonus?.value
+        ) || 0,
+
+    total:
+        Number(
+            characterDefense?.value
+        ) || 0
+
+},
+
 
         /*==================================================
 =                       STATUS
@@ -1442,6 +1478,19 @@ characterSkillPointsPurchased =
         editingCharacter
             .skillPointsPurchased
     ) || 0;
+
+    const defense =
+    editingCharacter.defense || {};
+
+
+if(characterDefenseBonus){
+
+    characterDefenseBonus.value =
+        Number(
+            defense.bonus
+        ) || 0;
+
+}
 
 renderConditionEditorList();
 
@@ -2530,6 +2579,16 @@ function bindAutomaticStatEvents(){
 attributeINT?.addEventListener(
     "change",
     renderSkillsEditor
+);
+
+attributeAGI?.addEventListener(
+    "input",
+    calculateCharacterDefense
+);
+
+characterDefenseBonus?.addEventListener(
+    "input",
+    calculateCharacterDefense
 );
 
 }
@@ -10635,8 +10694,7 @@ function renderConditionEditorList(){
 
                             <div>
 
-                                <h3>
-<span class="condition-category-badge">
+                                <span class="condition-category-badge">
 
     ${
         condition.category === "mental"
@@ -10646,10 +10704,13 @@ function renderConditionEditorList(){
 
 </span>
 
-                                    ${escapeCharacterEditorHTML(
-                                        condition.name
-                                    )}
-                                </h3>
+<h3>
+
+    ${escapeCharacterEditorHTML(
+        condition.name
+    )}
+
+</h3>
 
                                 ${
                                     condition.stackable
@@ -11118,11 +11179,6 @@ const DEFAULT_SKILLS = [
         defaultAttributes:["vig"]
     },
 
-    {
-        id:"iniciativa",
-        name:"Iniciativa",
-        defaultAttributes:["agi"]
-    },
 
     {
         id:"intimidacao",
@@ -11173,8 +11229,8 @@ const DEFAULT_SKILLS = [
     },
 
     {
-        id:"reflexos",
-        name:"Reflexos",
+        id:"presteza",
+        name:"Presteza",
         defaultAttributes:["agi"]
     },
 
@@ -12097,7 +12153,7 @@ function getSkillConditionModifier(
 
 
     if(
-        skill.id === "reflexos" &&
+        skill.id === "preteza" &&
         hasCharacterCondition(
             "penumbra"
         )
@@ -12333,6 +12389,10 @@ function rollSkillTrainingDice(
 =              ROLAR PERÍCIA
 ==========================================================*/
 
+/*==========================================================
+=              ROLAR PERÍCIA
+==========================================================*/
+
 function rollCharacterSkill(
     skillId
 ){
@@ -12360,6 +12420,20 @@ function rollCharacterSkill(
         );
 
 
+    /*
+        D20 obrigatório.
+    */
+
+    const d20 =
+        Math.floor(
+            Math.random() * 20
+        ) + 1;
+
+
+    /*
+        Dado de treino.
+    */
+
     const trainingRoll =
         rollSkillTrainingDice(
             skill.training
@@ -12373,6 +12447,7 @@ function rollCharacterSkill(
 
 
     const total =
+        d20 +
         trainingRoll.roll +
         attributeValue +
         modifier;
@@ -12381,8 +12456,12 @@ function rollCharacterSkill(
     showSkillRollResult({
 
         skill,
+
         attribute,
+
         attributeValue,
+
+        d20,
 
         training:
             trainingRoll.formula,
@@ -12397,7 +12476,6 @@ function rollCharacterSkill(
     });
 
 }
-
 /*==========================================================
 =              RESULTADO DA PERÍCIA
 ==========================================================*/
@@ -12469,65 +12547,76 @@ function showSkillRollResult(
             </div>
 
 
-            <div class="skill-roll-breakdown">
+<div class="skill-roll-breakdown">
 
-                <div>
+    <div>
 
-                    <span>
-                        Treino
-                    </span>
+        <span>
+            D20
+        </span>
 
-                    <strong>
+        <strong>
+            ${result.d20}
+        </strong>
 
-                        ${result.training}
-
-                        ${
-                            result.training !== "0"
-                                ? `→ ${result.trainingRoll}`
-                                : ""
-                        }
-
-                    </strong>
-
-                </div>
+    </div>
 
 
-                <div>
+    <div>
 
-                    <span>
-                        ${attributeName}
-                    </span>
+        <span>
+            Treino
+        </span>
 
-                    <strong>
+        <strong>
 
-                        +${result.attributeValue}
+            ${
+                result.training === "0"
+                    ? "0"
+                    : `${result.training} → ${result.trainingRoll}`
+            }
 
-                    </strong>
+        </strong>
 
-                </div>
+    </div>
 
 
-                <div>
+    <div>
 
-                    <span>
-                        Modificadores
-                    </span>
+        <span>
+            ${attributeName}
+        </span>
 
-                    <strong>
+        <strong>
 
-                        ${
-                            result.modifier >= 0
-                                ? "+"
-                                : ""
-                        }
+            +${result.attributeValue}
 
-                        ${result.modifier}
+        </strong>
 
-                    </strong>
+    </div>
 
-                </div>
 
-            </div>
+    <div>
+
+        <span>
+            Modificadores
+        </span>
+
+        <strong>
+
+            ${
+                result.modifier >= 0
+                    ? "+"
+                    : ""
+            }
+
+            ${result.modifier}
+
+        </strong>
+
+    </div>
+
+</div>
 
 
             <button
@@ -12804,5 +12893,101 @@ function buySkillPoints(){
         "Pontos adquiridos",
         "2 pontos de perícia foram adicionados. O custo em PV será conectado novamente depois que o sistema de perícias estiver estabilizado."
     );
+
+}
+
+/*==========================================================
+=              CALCULAR DEFESA
+==========================================================*/
+
+function calculateCharacterDefense(){
+
+    const agi =
+        Math.max(
+            0,
+            Number(
+                attributeAGI?.value
+            ) || 0
+        );
+
+
+    const baseDefense =
+        5 + agi;
+
+
+    const manualBonus =
+        Number(
+            characterDefenseBonus?.value
+        ) || 0;
+
+
+    const conditionModifier =
+        getConditionModifier(
+            "defense"
+        );
+
+
+    const abilityBonus =
+        getAbilityDefenseBonus();
+
+
+    const finalDefense =
+        baseDefense +
+        manualBonus +
+        conditionModifier +
+        abilityBonus;
+
+
+    if(characterDefenseBase){
+
+        characterDefenseBase.value =
+            baseDefense;
+
+    }
+
+
+    if(characterDefense){
+
+        characterDefense.value =
+            finalDefense;
+
+    }
+
+}
+
+/*==========================================================
+=              DEFESA POR HABILIDADES
+==========================================================*/
+
+function getAbilityDefenseBonus(){
+
+    let bonus = 0;
+
+
+    characterAbilitiesState.forEach(
+        ability => {
+
+            /*
+                Aqui futuramente podemos
+                ler um campo automático.
+            */
+
+            if(
+                ability.effects
+                    ?.defense
+            ){
+
+                bonus +=
+                    Number(
+                        ability.effects.defense
+                    ) || 0;
+
+            }
+
+        }
+    );
+
+
+    return bonus;
 
 }
