@@ -109,6 +109,11 @@ const characterPhotoPreview =
         ".character-photo-preview"
     );
 
+    const characterWoundedPhotoInput =
+    document.getElementById(
+        "characterWoundedPhotoInput"
+    );
+
 
 /*==========================================================
 =                       VIDA
@@ -500,6 +505,11 @@ function bindCharacterEditorEvents(){
         handleCharacterPhoto
     );
 
+    characterWoundedPhotoInput?.addEventListener(
+    "change",
+    handleCharacterWoundedPhoto
+);
+
 
     linkCharacterCampaign?.addEventListener(
         "click",
@@ -548,11 +558,6 @@ function bindCharacterEditorEvents(){
         }
     );
 
-    characterWoundedPhotoInput
-    ?.addEventListener(
-        "change",
-        handleCharacterWoundedPhoto
-    );
 
 }
 
@@ -607,10 +612,16 @@ function updateLifeSystem(){
 =                       FOTO
 ==========================================================*/
 
-async function handleCharacterPhoto(){
+/*==========================================================
+=              CARREGAR FOTO MACHUCADO
+==========================================================*/
+
+async function handleCharacterWoundedPhoto(){
 
     const file =
-        characterPhotoInput?.files?.[0];
+        characterWoundedPhotoInput
+            ?.files?.[0];
+
 
     if(!file){
 
@@ -618,32 +629,45 @@ async function handleCharacterPhoto(){
 
     }
 
+
     try{
 
-        characterPhotoBase64 =
+        characterWoundedPhotoBase64 =
             await characterFileToBase64(
                 file
             );
 
+
+        /*
+            Se o personagem já estiver Machucado,
+            mostramos imediatamente.
+        */
+
         renderCharacterPhoto();
+
+
+        showCharacterEditorMessage(
+            "Foto Machucado configurada",
+            "A segunda aparência do personagem foi salva temporariamente. Salve a ficha para mantê-la."
+        );
 
     }
     catch(error){
 
         console.error(
-            "Erro ao carregar foto:",
+            "Erro ao carregar Foto Machucado:",
             error
         );
 
+
         showCharacterEditorMessage(
             "Erro na imagem",
-            "Não foi possível carregar a foto selecionada."
+            "Não foi possível carregar a Foto Machucado."
         );
 
     }
 
 }
-
 
 /*==========================================================
 =              MOSTRAR FOTO DO PERSONAGEM
@@ -658,15 +682,18 @@ function renderCharacterPhoto(){
     }
 
 
-    /*
-        Machucado troca a aparência.
-    */
-
     const isWounded =
         hasCharacterCondition(
             "machucado"
         );
 
+
+    /*
+        Se estiver Machucado e existir
+        uma foto especial, usa ela.
+
+        Caso contrário, usa a normal.
+    */
 
     const selectedPhoto =
         (
@@ -677,7 +704,40 @@ function renderCharacterPhoto(){
             : characterPhotoBase64;
 
 
+    /*
+        Nenhuma foto configurada.
+        Mostra novamente o placeholder.
+    */
+
     if(!selectedPhoto){
+
+        characterPhotoPreview.innerHTML = `
+
+            <div class="character-photo-placeholder">
+
+                <span>
+                    👤
+                </span>
+
+                <strong>
+                    Adicionar Foto
+                </strong>
+
+                <small>
+                    PNG, JPG ou WEBP
+                </small>
+
+            </div>
+
+        `;
+
+
+        characterPhotoPreview
+            .classList
+            .remove(
+                "showing-wounded-photo"
+            );
+
 
         return;
 
@@ -707,10 +767,6 @@ function renderCharacterPhoto(){
         image
     );
 
-
-    /*
-        Indicador discreto.
-    */
 
     if(
         isWounded &&
@@ -1608,14 +1664,15 @@ renderAssimilationEditorList();
 =                       FOTO
 =======================================================*/
 
-    characterPhotoBase64 =
-        editingCharacter.photo || "";
+characterPhotoBase64 =
+    editingCharacter.photo || "";
 
-    if(characterPhotoBase64){
 
-        renderCharacterPhoto();
+characterWoundedPhotoBase64 =
+    editingCharacter.woundedPhoto || "";
 
-    }
+
+renderCharacterPhoto();
 
 
     /*======================================================

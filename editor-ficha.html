@@ -101,58 +101,10 @@ Não salvo
 =======================================================-->
 
 
-<div class="character-photo-preview">
-
-
-
-
-<input
-    type="file"
-    id="characterPhotoInput"
-    accept="image/png,image/jpeg,image/webp"
-    hidden>
-
-
-<input
-    type="file"
-    id="characterWoundedPhotoInput"
-    accept="image/png,image/jpeg,image/webp"
-    hidden>
-
-<span>
-👤
-</span>
-
-<strong>
-Adicionar Foto
-</strong>
-
-<small>
-PNG, JPG ou WEBP
-</small>
-
-</div>
-
-</div>
-
-<label
-for="characterPhotoInput"
-class="secondary-button character-photo-button">
-
-Selecionar Foto
-
-</label>
-
-<input
-type="file"
-id="characterPhotoInput"
-accept="image/png,image/jpeg,image/webp"
-hidden>
-
 <div class="character-photo-column">
 
     <!--==================================================
-                        FOTO
+                    PREVIEW ÚNICA
     ===================================================-->
 
     <div class="character-photo-preview">
@@ -203,7 +155,7 @@ hidden>
 
 
     <!--==================================================
-                    INPUTS ESCONDIDOS
+                    INPUTS
     ===================================================-->
 
     <input
@@ -218,6 +170,39 @@ hidden>
         id="characterWoundedPhotoInput"
         accept="image/png,image/jpeg,image/webp"
         hidden>
+
+
+    <!--==================================================
+                        PA
+    ===================================================-->
+
+    <div class="character-resource-card">
+
+        <span class="resource-label">
+            PA
+        </span>
+
+        <div class="resource-value">
+
+            <input
+                type="number"
+                id="characterPA"
+                value="3">
+
+            <span>
+                /
+            </span>
+
+            <input
+                type="number"
+                id="characterPAMax"
+                value="3">
+
+        </div>
+
+    </div>
+
+</div>
 
 
     <!--======================================================
