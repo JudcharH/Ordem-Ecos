@@ -1431,17 +1431,16 @@ characterAssimilationsState =
         []
     );
 
-    characterSkillPointsPurchased =
+characterSkillPointsPurchased =
     Number(
         editingCharacter
             .skillPointsPurchased
     ) || 0;
 
-    initializeCharacterSkills();
-
-renderSkillPointsSummary();
 
 initializeCharacterSkills();
+
+renderSkillPointsSummary();
 
 renderConditionEditorList();
 
@@ -11616,39 +11615,95 @@ function bindSkillEditorEvents(){
         });
 
 
-    document
-        .querySelectorAll(
-            ".skill-training-select"
-        )
-        .forEach(select => {
-
-            select.addEventListener(
-                "change",
-                () => {
-
-                    const skill =
-                        getCharacterSkill(
-                            select.dataset.skill
-                        );
 
 
-                    if(!skill){
+document
+    .querySelectorAll(
+        ".skill-training-select"
+    )
+    .forEach(select => {
 
-                        return;
+        select.addEventListener(
+            "change",
+            () => {
 
-                    }
+                const skill =
+                    getCharacterSkill(
+                        select.dataset.skill
+                    );
 
 
-                    const requestedTraining =
-                        select.value;
+                if(!skill){
+
+                    return;
+
+                }
+
+
+                const requestedTraining =
+                    select.value;
+
+
+                const oldTraining =
+                    skill.training;
+
+
+                const oldCost =
+                    getSkillTrainingPointCost(
+                        oldTraining
+                    );
+
+
+                const newCost =
+                    getSkillTrainingPointCost(
+                        requestedTraining
+                    );
+
+
+                const difference =
+                    newCost - oldCost;
+
+
+                /*
+                    Primeiro verificamos
+                    o limite de nível / INT.
+                */
+
+                if(
+                    !canUseSkillTraining(
+                        requestedTraining,
+                        skill.id
+                    )
+                ){
+
+                    renderSkillsEditor();
+
+                    return;
+
+                }
+
+
+                /*
+                    Depois verificamos
+                    os pontos disponíveis.
+                */
+
+                if(difference > 0){
+
+                    const available =
+                        calculateAvailableSkillPoints();
 
 
                     if(
-                        !canUseSkillTraining(
-                            requestedTraining,
-                            skill.id
-                        )
+                        available <
+                        difference
                     ){
+
+                        showCharacterEditorMessage(
+                            "Pontos insuficientes",
+                            `Você precisa de ${difference} ponto(s) de perícia, mas possui apenas ${available} disponível(is).`
+                        );
+
 
                         renderSkillsEditor();
 
@@ -11656,49 +11711,21 @@ function bindSkillEditorEvents(){
 
                     }
 
-
-const oldTraining =
-    skill.training;
+                }
 
 
-const oldCost =
-    getSkillTrainingPointCost(
-        oldTraining
-    );
+                skill.training =
+                    requestedTraining;
 
 
-const newCost =
-    getSkillTrainingPointCost(
-        requestedTraining
-    );
+                renderSkillsEditor();
 
+                renderSkillPointsSummary();
 
-const difference =
-    newCost - oldCost;
-
-
-/*
-    Está tentando subir treino.
-*/
-
-if(difference > 0){
-
-    const available =
-        calculateAvailableSkillPoints();
-
-
-    if(available < difference){
-
-        showCharacterEditorMessage(
-            "Pontos insuficientes",
-            `Você precisa de ${difference} ponto(s) de perícia, mas possui apenas ${available} disponível(is).`
+            }
         );
 
-        renderSkillsEditor();
-
-        return;
-
-    }
+    });
 
 }
 
@@ -11726,12 +11753,8 @@ renderSkillsEditor();
 renderSkillPointsSummary();
 
 
-                    renderSkillsEditor();
+ renderSkillsEditor();
 
-                }
-            );
-
-        });
 
 
     document
@@ -11835,7 +11858,7 @@ renderSkillPointsSummary();
 
     });
 
-}
+
 
 function getCharacterSkill(
     skillId
