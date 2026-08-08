@@ -4730,22 +4730,6 @@ function getLiveCharacter(
 
 }
 
-const liveCharacter =
-    getLiveCharacter(
-        characterId
-    );
-
-
-if(!liveCharacter){
-
-    return;
-
-}
-
-
-renderTableCharacterSheet(
-    liveCharacter
-);
 
 /*==========================================================
 =              SINCRONIZAÇÃO AO VIVO
@@ -4764,10 +4748,40 @@ window.addEventListener(
 
         }
 
+window.addEventListener(
+    "storage",
+    event => {
 
-        refreshOpenCharacterSheet();
+        if(
+            event.key !==
+            "ordem_characters"
+        ){
 
-        refreshCharacterTokens();
+            return;
+
+        }
+
+
+        loadTableStorage();
+
+
+        if(
+            currentTableRole === "player" &&
+            currentTableCharacter
+        ){
+
+            currentTableCharacter =
+                getLiveCharacter(
+                    currentTableCharacter.id
+                ) || currentTableCharacter;
+
+        }
+
+
+        renderCombatPositions();
+
+    }
+);
 
     }
 );
@@ -4834,9 +4848,7 @@ function getCharacterCurrentPhoto(
     }
 
 
-    return getCharacterCurrentPhoto(
-    character
-) || "";
+ return character.photo || "";
 
 }
 
@@ -5097,9 +5109,16 @@ function rollQuickAttackDamage(
     attack
 ){
 
+    const formula =
+        resolveCharacterFormula(
+            attack.damage,
+            character
+        );
+
+
     const result =
         rollDiceExpression(
-            attack.damage
+            formula
         );
 
 
@@ -5125,8 +5144,7 @@ function rollQuickAttackDamage(
         type:
             "Dano",
 
-        formula:
-            attack.damage,
+        formula,
 
         result
 
@@ -5179,17 +5197,7 @@ function resolveCharacterFormula(
 
 }
 
-const formula =
-    resolveCharacterFormula(
-        attack.damage,
-        character
-    );
 
-
-const result =
-    rollDiceExpression(
-        formula
-    );
 
     function renderTableCharacterSkills(
     character
