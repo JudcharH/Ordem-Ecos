@@ -10963,23 +10963,7 @@ function calculateConditionPAModifier(){
 
 }
 
-/*======================================================
-=              CONDIÇÃO CANSADO
-======================================================*/
 
-if(
-    hasCharacterCondition(
-        "cansado"
-    )
-){
-
-    pd *= 2;
-
-    pa *= 2;
-
-    pv *= 2;
-
-}
 
 /*==========================================================
 =              MODIFICADORES DE CONDIÇÃO
@@ -11090,11 +11074,7 @@ function getConditionModifier(
 
 }
 
-const finalFortitude =
-    baseFortitude +
-    getConditionModifier(
-        "physical"
-    );
+
 
     /*==========================================================
 =              PERÍCIAS DISPONÍVEIS
