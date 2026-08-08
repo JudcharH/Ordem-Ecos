@@ -934,6 +934,9 @@ function loadMusic(){
 
 function openCharacterPanel(){
 
+    refreshCurrentTableCharacter();
+
+
     if(!currentTableCharacter){
 
         return;
@@ -942,6 +945,78 @@ function openCharacterPanel(){
 
     const attrs =
         currentTableCharacter.attributes || {};
+
+        <div class="table-panel-section">
+
+    <h3 class="table-panel-section-title">
+        Perícias
+    </h3>
+
+    <div class="table-panel-list">
+
+        ${
+            Array.isArray(
+                currentTableCharacter.skills
+            ) &&
+            currentTableCharacter.skills.length
+
+                ? currentTableCharacter.skills
+                    .map(skill => `
+
+                        <button
+                            type="button"
+                            class="table-skill-button"
+                            data-skill="${skill.id}"
+                        >
+
+                            <div>
+
+                                <strong>
+
+                                    ${escapeTableHTML(
+                                        skill.name
+                                    )}
+
+                                </strong>
+
+                                <span>
+
+                                    ${String(
+                                        skill.selectedAttribute ||
+                                        ""
+                                    ).toUpperCase()}
+
+                                    •
+
+                                    ${
+                                        skill.training === "0"
+                                            ? "Sem treino"
+                                            : skill.training
+                                    }
+
+                                </span>
+
+                            </div>
+
+                            <span>
+                                🎲
+                            </span>
+
+                        </button>
+
+                    `)
+                    .join("")
+
+                : `
+                    <div class="editor-empty-state">
+                        Nenhuma perícia configurada.
+                    </div>
+                `
+        }
+
+    </div>
+
+</div>
 
     const status =
         currentTableCharacter.status || {};
@@ -1069,6 +1144,35 @@ function openCharacterPanel(){
         html
     );
 
+    bindTableCharacterSkillButtons();
+
+}
+
+function bindTableCharacterSkillButtons(){
+
+    document
+        .querySelectorAll(
+            ".table-skill-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    refreshCurrentTableCharacter();
+
+
+                    rollTableCharacterSkill(
+                        currentTableCharacter,
+                        button.dataset.skill
+                    );
+
+                }
+            );
+
+        });
+
 }
 
 
@@ -1077,6 +1181,8 @@ function openCharacterPanel(){
 ==========================================================*/
 
 function openAttacksPanel(){
+
+        refreshCurrentTableCharacter();
 
     if(!currentTableCharacter){
 
@@ -1202,6 +1308,8 @@ function openAttacksPanel(){
 
 function openInventoryPanel(){
 
+    refreshCurrentTableCharacter();
+
     if(!currentTableCharacter){
 
         return;
@@ -1301,6 +1409,9 @@ function openInventoryPanel(){
 
 function openConditionsPanel(){
 
+    refreshCurrentTableCharacter();
+
+
     if(!currentTableCharacter){
 
         return;
@@ -1397,6 +1508,9 @@ function openConditionsPanel(){
 ==========================================================*/
 
 function openGrimoirePanel(){
+
+     refreshCurrentTableCharacter();
+
 
     let grimoire = [];
 
@@ -1584,11 +1698,13 @@ function openNotesPanel(){
 /*==========================================================
 =              ROLAR ATAQUE RÁPIDO
 ==========================================================*/
-
 function rollQuickAttack(
     index,
     type
 ){
+
+    refreshCurrentTableCharacter();
+
 
     if(!currentTableCharacter){
 
@@ -1596,9 +1712,11 @@ function rollQuickAttack(
 
     }
 
+
     const attack =
         currentTableCharacter
             .attacks?.[index];
+
 
     if(!attack){
 
@@ -1606,10 +1724,12 @@ function rollQuickAttack(
 
     }
 
-    const formula =
+
+    let formula =
         type === "damage"
             ? attack.damage
             : attack.roll;
+
 
     if(!formula){
 
@@ -1617,11 +1737,69 @@ function rollQuickAttack(
 
     }
 
-    rollFormulaToChat(
-        formula,
+
+    /*
+        Substitui FOR, AGI, INT,
+        VIG e PRE pelos valores atuais.
+    */
+
+    formula =
+        resolveCharacterFormula(
+            formula,
+            currentTableCharacter
+        );
+
+
+    const result =
+        rollDiceExpression(
+            formula
+        );
+
+
+    if(!result){
+
+        addSystemChatMessage(
+            `Não foi possível interpretar: ${formula}`
+        );
+
+        return;
+
+    }
+
+
+    const detail =
+        result.details
+            .map(part => {
+
+                if(
+                    part.type === "dice"
+                ){
+
+                    return `${part.formula} [${part.rolls.join(", ")}]`;
+
+                }
+
+
+                return String(
+                    part.value
+                );
+
+            })
+            .join(" + ");
+
+
+    addRollChatMessage(
+
         type === "damage"
             ? `Dano • ${attack.name || "Ataque"}`
-            : `Ataque • ${attack.name || "Ataque"}`
+            : `Ataque • ${attack.name || "Ataque"}`,
+
+        formula,
+
+        result.total,
+
+        detail
+
     );
 
 }
@@ -3078,10 +3256,38 @@ function renderPositionSlot(
         token.className =
             "combat-token";
 
-        const photo =
-            entity.photo ||
-            entity.image ||
-            "";
+        let photo = "";
+
+
+if(
+    type === "player" &&
+    entity.characterId
+){
+
+    const character =
+        getLiveCharacter(
+            entity.characterId
+        );
+
+
+    if(character){
+
+        photo =
+            getCharacterCurrentPhoto(
+                character
+            );
+
+    }
+
+}
+else{
+
+    photo =
+        entity.photo ||
+        entity.image ||
+        "";
+
+}
 
         if(photo){
 
@@ -4730,6 +4936,33 @@ function getLiveCharacter(
 
 }
 
+function refreshCurrentTableCharacter(){
+
+    if(
+        currentTableRole !== "player" ||
+        !currentTableCharacter
+    ){
+
+        return;
+
+    }
+
+
+    const updated =
+        getLiveCharacter(
+            currentTableCharacter.id
+        );
+
+
+    if(updated){
+
+        currentTableCharacter =
+            updated;
+
+    }
+
+}
+
 
 /*==========================================================
 =              SINCRONIZAÇÃO AO VIVO
@@ -5061,48 +5294,6 @@ function rollDiceExpression(
 
 }
 
-function rollQuickAttack(
-    character,
-    attack
-){
-
-    const attackResult =
-        rollDiceExpression(
-            attack.roll
-        );
-
-
-    if(!attackResult){
-
-        addSystemChatMessage(
-            `${character.name} tentou rolar "${attack.roll}", mas a expressão não pôde ser interpretada.`
-        );
-
-        return;
-
-    }
-
-
-    addDiceChatMessage({
-
-        characterName:
-            character.name,
-
-        title:
-            attack.name,
-
-        type:
-            "Ataque",
-
-        formula:
-            attack.roll,
-
-        result:
-            attackResult
-
-    });
-
-}
 
 function rollQuickAttackDamage(
     character,
@@ -5467,3 +5658,92 @@ function hasTableCondition(
     );
 
 }
+
+window.addEventListener(
+    "focus",
+    () => {
+
+        refreshTableLiveData();
+
+    }
+);
+
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if(
+            document.visibilityState ===
+            "visible"
+        ){
+
+            refreshTableLiveData();
+
+        }
+
+    }
+);
+function refreshTableLiveData(){
+
+    loadTableStorage();
+
+    refreshCurrentTableCharacter();
+
+
+    /*
+        Atualiza tokens.
+    */
+
+    renderCombatPositions();
+
+
+    /*
+        Se o painel de ficha estiver aberto,
+        reabre com os dados novos.
+    */
+
+    if(
+        tablePanelOverlay &&
+        !tablePanelOverlay
+            .classList
+            .contains("hidden")
+    ){
+
+        const active =
+            document.querySelector(
+                '.table-menu-button.active'
+            );
+
+
+        if(
+            active?.dataset.panel ===
+            "character"
+        ){
+
+            openCharacterPanel();
+
+        }
+
+    }
+
+}
+
+window.addEventListener(
+    "storage",
+    event => {
+
+        if(
+            event.key !==
+            TABLE_CHARACTER_STORAGE
+        ){
+
+            return;
+
+        }
+
+
+        refreshTableLiveData();
+
+    }
+);
