@@ -243,13 +243,13 @@ min-height:50px;
 
 display:grid;
 
-grid-template-columns:36px 1fr;
+grid-template-columns:30px 1fr;
 
-gap:10px;
+gap:8px;
 
 align-items:center;
 
-padding:8px 12px;
+padding:8px 8px;
 
 border-radius:13px;
 
@@ -293,9 +293,11 @@ color:white;
 
 .table-menu-icon{
 
-width:34px;
+width:30px;
 
-height:34px;
+height:30px;
+
+margin-left:-2px;
 
 display:flex;
 
