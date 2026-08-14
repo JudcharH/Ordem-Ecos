@@ -3559,6 +3559,261 @@ function tableFileToBase64(file){
 ==========================================================*/
 
 /*==========================================================
+=              PARTICIPANTE DO TURNO ATUAL
+==========================================================*/
+
+function getCurrentTurnParticipant(){
+
+    const combat =
+        currentTableCampaign
+            ?.combat;
+
+
+    if(
+        !combat ||
+        combat.active !== true ||
+        !Array.isArray(
+            combat.turnOrder
+        ) ||
+        combat.turnOrder.length === 0
+    ){
+
+        return null;
+
+    }
+
+
+    const index =
+        Math.max(
+            0,
+            Number(
+                combat.currentTurnIndex
+            ) || 0
+        );
+
+
+    return (
+        combat.turnOrder[index] ||
+        null
+    );
+
+}
+
+
+/*==========================================================
+=              VERIFICAR TOKEN DO TURNO
+==========================================================*/
+
+function isEntityCurrentTurn(
+    entity,
+    type
+){
+
+    if(!entity){
+
+        return false;
+
+    }
+
+
+    const participant =
+        getCurrentTurnParticipant();
+
+
+    if(!participant){
+
+        return false;
+
+    }
+
+
+    if(type === "player"){
+
+        return (
+            participant.type === "player" &&
+            participant.characterId ===
+            entity.characterId
+        );
+
+    }
+
+
+    if(type === "enemy"){
+
+        const enemyId =
+            entity.enemyId ||
+            entity.id;
+
+
+        return (
+            participant.type === "enemy" &&
+            (
+                participant.enemyId ===
+                enemyId ||
+                participant.id ===
+                enemyId
+            )
+        );
+
+    }
+
+
+    return false;
+
+}
+
+
+/*==========================================================
+=              PODE PASSAR O TURNO
+==========================================================*/
+
+function canPassCurrentTurn(){
+
+    const participant =
+        getCurrentTurnParticipant();
+
+
+    if(!participant){
+
+        return false;
+
+    }
+
+
+    if(
+        currentTableRole === "master"
+    ){
+
+        return true;
+
+    }
+
+
+    return (
+        currentTableRole === "player" &&
+        participant.type === "player" &&
+        participant.characterId ===
+        currentTableCharacter?.id
+    );
+
+}
+
+/*==========================================================
+=              PASSAR TURNO
+==========================================================*/
+
+function passCurrentCombatTurn(){
+
+    refreshCurrentTableCampaign();
+
+
+    const combat =
+        currentTableCampaign
+            ?.combat;
+
+
+    if(
+        !combat ||
+        combat.active !== true ||
+        !Array.isArray(
+            combat.turnOrder
+        ) ||
+        combat.turnOrder.length === 0
+    ){
+
+        return;
+
+    }
+
+
+    if(!canPassCurrentTurn()){
+
+        addSystemChatMessage(
+            "Você não pode passar este turno."
+        );
+
+        return;
+
+    }
+
+
+    const currentParticipant =
+        getCurrentTurnParticipant();
+
+
+    const nextIndex =
+        Number(
+            combat.currentTurnIndex
+        ) + 1;
+
+
+    /*
+        Chegou ao final da ordem.
+        O mestre precisa passar a rodada.
+    */
+
+    if(
+        nextIndex >=
+        combat.turnOrder.length
+    ){
+
+        combat.currentTurnIndex =
+            combat.turnOrder.length - 1;
+
+
+        combat.waitingNextRound =
+            true;
+
+
+        combat.updatedAt =
+            Date.now();
+
+
+        saveTableCampaign();
+
+
+        renderCombatPositions();
+
+
+        addSystemChatMessage(
+            "Todos os participantes agiram. O mestre deve passar a rodada."
+        );
+
+
+        return;
+
+    }
+
+
+    combat.currentTurnIndex =
+        nextIndex;
+
+
+    combat.waitingNextRound =
+        false;
+
+
+    combat.updatedAt =
+        Date.now();
+
+
+    saveTableCampaign();
+
+
+    renderCombatPositions();
+
+
+    const nextParticipant =
+        getCurrentTurnParticipant();
+
+
+    addSystemChatMessage(
+        `${currentParticipant?.name || "Participante"} passou o turno. Agora é a vez de ${nextParticipant?.name || "outro participante"}.`
+    );
+
+}
+
+/*==========================================================
 =              RENDERIZAR POSIÇÕES
 ==========================================================*/
 
@@ -3751,6 +4006,18 @@ function renderPositionSlot(
         Boolean(entity)
     );
 
+    const currentTurn =
+    isEntityCurrentTurn(
+        entity,
+        type
+    );
+
+
+container.classList.toggle(
+    "current-turn",
+    currentTurn
+);
+
     if(entity){
 
         const token =
@@ -3760,6 +4027,14 @@ function renderPositionSlot(
             "combat-token";
 
         let photo = "";
+
+        if(currentTurn){
+
+    token.classList.add(
+        "current-turn"
+    );
+
+}
 
 
 if(
@@ -3837,6 +4112,70 @@ else{
             "Sem nome";
 
         token.appendChild(name);
+
+        if(currentTurn){
+
+    const turnIndicator =
+        document.createElement(
+            "span"
+        );
+
+
+    turnIndicator.className =
+        "combat-turn-indicator";
+
+
+    turnIndicator.textContent =
+        type === "player" &&
+        entity.characterId ===
+        currentTableCharacter?.id
+            ? "SUA VEZ"
+            : "TURNO";
+
+
+    token.appendChild(
+        turnIndicator
+    );
+
+}
+
+if(canPassCurrentTurn()){
+
+    const passButton =
+        document.createElement(
+            "button"
+        );
+
+
+    passButton.type =
+        "button";
+
+
+    passButton.className =
+        "combat-pass-turn-button";
+
+
+    passButton.textContent =
+        "Passar";
+
+
+    passButton.addEventListener(
+        "click",
+        event => {
+
+            event.stopPropagation();
+
+            passCurrentCombatTurn();
+
+        }
+    );
+
+
+    token.appendChild(
+        passButton
+    );
+
+}
 
         tokenSlot.appendChild(
             token
@@ -7157,6 +7496,9 @@ function passTableRound(){
 
     combat.currentTurnIndex =
         0;
+
+        combat.waitingNextRound =
+    false;
 
 
     combat.initiativeRequest =
