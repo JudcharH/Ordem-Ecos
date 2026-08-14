@@ -182,6 +182,8 @@ function initTable(){
 
     initializeCombatState();
 
+    initializePublicChat();
+
     fillTableHeader();
 
     loadScene();
@@ -193,6 +195,8 @@ function initTable(){
     bindTableEvents();
 
     renderCombatPositions();
+
+    renderPublicChat();
 
     checkInitiativeRequest();
 
@@ -5197,6 +5201,72 @@ function removeEntityFromScene(
 
 }
 
+/*==========================================================
+=              ID DE MENSAGEM
+==========================================================*/
+
+function createChatMessageId(){
+
+    return (
+        `chat_${Date.now()}_` +
+        Math.random()
+            .toString(36)
+            .slice(2,10)
+    );
+
+}
+
+/*==========================================================
+=              SALVAR MENSAGEM PÚBLICA
+==========================================================*/
+
+function savePublicChatMessage(
+    message
+){
+
+    refreshCurrentTableCampaign();
+
+
+    if(
+        !Array.isArray(
+            currentTableCampaign.chatMessages
+        )
+    ){
+
+        currentTableCampaign.chatMessages = [];
+
+    }
+
+
+    currentTableCampaign
+        .chatMessages
+        .push(message);
+
+
+    /*
+        Impede que o localStorage cresça sem limite.
+    */
+
+    if(
+        currentTableCampaign
+            .chatMessages
+            .length > 200
+    ){
+
+        currentTableCampaign.chatMessages =
+            currentTableCampaign
+                .chatMessages
+                .slice(-200);
+
+    }
+
+
+    saveTableCampaign();
+
+    renderPublicChat();
+
+}
+
 
 /*==========================================================
 =              CHAT
@@ -5269,11 +5339,11 @@ toggleChat?.addEventListener(
 /*==========================================================
 =              ENVIAR MENSAGEM
 ==========================================================*/
-
 function sendTableChatMessage(){
 
     const text =
         chatInput?.value.trim();
+
 
     if(!text){
 
@@ -5281,152 +5351,96 @@ function sendTableChatMessage(){
 
     }
 
+
     const author =
         currentTableRole === "master"
             ? "Mestre"
             : currentTableCharacter?.name ||
               "Jogador";
 
-    addChatMessage(
+
+    const characterId =
+        currentTableRole === "player"
+            ? currentTableCharacter?.id || null
+            : null;
+
+
+    const photo =
+        currentTableRole === "player"
+            ? getCharacterCurrentPhoto(
+                currentTableCharacter
+            )
+            : "";
+
+
+    savePublicChatMessage({
+
+        id:
+            createChatMessageId(),
+
+        type:
+            "message",
+
         author,
-        text
-    );
+
+        role:
+            currentTableRole,
+
+        characterId,
+
+        photo,
+
+        text,
+
+        createdAt:
+            Date.now()
+
+    });
+
 
     chatInput.value = "";
 
 }
 
 
-/*==========================================================
-=              MENSAGEM NORMAL
-==========================================================*/
 
-function addChatMessage(
-    author,
-    text
-){
-
-    if(!chatMessages){
-
-        return;
-
-    }
-
-    const message =
-        document.createElement("div");
-
-    message.className =
-        "chat-message";
-
-    const avatar =
-        document.createElement("div");
-
-    avatar.className =
-        "chat-message-avatar";
-
-    if(
-        currentTableRole === "player" &&
-        currentTableCharacter?.photo &&
-        author === currentTableCharacter.name
-    ){
-
-        const img =
-            document.createElement("img");
-
-        img.src =
-            currentTableCharacter.photo;
-
-        avatar.appendChild(img);
-
-    }
-    else{
-
-        avatar.textContent =
-            author === "Mestre"
-                ? "♛"
-                : "◇";
-
-    }
-
-    const body =
-        document.createElement("div");
-
-    body.className =
-        "chat-message-body";
-
-    body.innerHTML = `
-
-        <strong>
-            ${escapeTableHTML(author)}
-        </strong>
-
-        <p>
-            ${escapeTableHTML(text)}
-        </p>
-
-        <span class="chat-message-time">
-            ${getTableTime()}
-        </span>
-
-    `;
-
-    message.append(
-        avatar,
-        body
-    );
-
-    chatMessages.appendChild(
-        message
-    );
-
-    scrollTableChat();
-
-}
 
 
 /*==========================================================
 =              MENSAGEM DO SISTEMA
 ==========================================================*/
 
-function addSystemChatMessage(text){
+function addSystemChatMessage(
+    text
+){
 
-    if(!chatMessages){
+    if(
+        !currentTableCampaign
+    ){
 
         return;
 
     }
 
-    const message =
-        document.createElement("div");
 
-    message.className =
-        "chat-system-message";
+    savePublicChatMessage({
 
-    message.innerHTML = `
+        id:
+            createChatMessageId(),
 
-        <span class="chat-system-icon">
-            ◇
-        </span>
+        type:
+            "system",
 
-        <div>
+        author:
+            "Sistema",
 
-            <strong>
-                Sistema
-            </strong>
+        text:
+            String(text),
 
-            <p>
-                ${escapeTableHTML(text)}
-            </p>
+        createdAt:
+            Date.now()
 
-        </div>
-
-    `;
-
-    chatMessages.appendChild(
-        message
-    );
-
-    scrollTableChat();
+    });
 
 }
 
@@ -5442,11 +5456,14 @@ function addRollChatMessage(
     detail
 ){
 
-    if(!chatMessages){
+    if(
+        !currentTableCampaign
+    ){
 
         return;
 
     }
+
 
     const author =
         currentTableRole === "master"
@@ -5454,51 +5471,54 @@ function addRollChatMessage(
             : currentTableCharacter?.name ||
               "Jogador";
 
-    const message =
-        document.createElement("div");
 
-    message.className =
-        "chat-roll-message";
+    const characterId =
+        currentTableRole === "player"
+            ? currentTableCharacter?.id || null
+            : null;
 
-    message.innerHTML = `
 
-        <div class="chat-roll-header">
+    const photo =
+        currentTableRole === "player"
+            ? getCharacterCurrentPhoto(
+                currentTableCharacter
+            )
+            : "";
 
-            <strong>
-                ${escapeTableHTML(author)}
-            </strong>
 
-            <span class="chat-roll-label">
-                ${escapeTableHTML(label)}
-            </span>
+    savePublicChatMessage({
 
-        </div>
+        id:
+            createChatMessageId(),
 
-        <div class="chat-roll-result">
+        type:
+            "roll",
 
-            <span class="chat-roll-total">
-                ${Number(total)}
-            </span>
+        author,
 
-            <span class="chat-roll-formula">
-                ${escapeTableHTML(formula)}
-            </span>
+        role:
+            currentTableRole,
 
-        </div>
+        characterId,
 
-        <div class="chat-roll-detail">
+        photo,
 
-            ${escapeTableHTML(detail)}
+        label:
+            String(label || "Rolagem"),
 
-        </div>
+        formula:
+            String(formula || ""),
 
-    `;
+        total:
+            Number(total) || 0,
 
-    chatMessages.appendChild(
-        message
-    );
+        detail:
+            String(detail || ""),
 
-    scrollTableChat();
+        createdAt:
+            Date.now()
+
+    });
 
 }
 
@@ -5909,6 +5929,8 @@ window.addEventListener(
         refreshCurrentTableCharacter();
 
         renderCombatPositions();
+
+        renderPublicChat();
 
         checkInitiativeRequest();
 
@@ -7312,6 +7334,8 @@ function refreshTableLiveData(){
 
     renderCombatPositions();
 
+    renderPublicChat();
+
     checkInitiativeRequest();
 
 finalizeInitiativeIfReady();
@@ -7450,6 +7474,26 @@ function initializeCombatState(){
         typeof combat.initiativeRequest === "object"
             ? combat.initiativeRequest
             : null;
+
+}
+
+/*==========================================================
+=              INICIALIZAR CHAT PÚBLICO
+==========================================================*/
+
+function initializePublicChat(){
+
+    if(
+        !Array.isArray(
+            currentTableCampaign.chatMessages
+        )
+    ){
+
+        currentTableCampaign.chatMessages = [];
+
+        saveTableCampaign();
+
+    }
 
 }
 
@@ -7823,5 +7867,399 @@ function showInitiativeOrderInChat(
 
 
     scrollTableChat();
+
+}
+
+/*==========================================================
+=              RENDERIZAR CHAT PÚBLICO
+==========================================================*/
+
+function renderPublicChat(){
+
+    if(
+        !chatMessages ||
+        !currentTableCampaign
+    ){
+
+        return;
+
+    }
+
+
+    const messages =
+        Array.isArray(
+            currentTableCampaign.chatMessages
+        )
+            ? currentTableCampaign.chatMessages
+            : [];
+
+
+    chatMessages.innerHTML = "";
+
+
+    if(messages.length === 0){
+
+        const welcome =
+            document.createElement(
+                "div"
+            );
+
+
+        welcome.className =
+            "chat-system-message";
+
+
+        welcome.innerHTML = `
+
+            <span class="chat-system-icon">
+                ◇
+            </span>
+
+            <div>
+
+                <strong>
+                    Sistema
+                </strong>
+
+                <p>
+                    Bem-vindo à mesa.
+                </p>
+
+            </div>
+
+        `;
+
+
+        chatMessages.appendChild(
+            welcome
+        );
+
+        return;
+
+    }
+
+
+    messages.forEach(message => {
+
+        const element =
+            createPublicChatElement(
+                message
+            );
+
+
+        if(element){
+
+            chatMessages.appendChild(
+                element
+            );
+
+        }
+
+    });
+
+
+    scrollTableChat();
+
+}
+
+/*==========================================================
+=              ELEMENTO DO CHAT
+==========================================================*/
+
+function createPublicChatElement(
+    message
+){
+
+    if(!message){
+
+        return null;
+
+    }
+
+
+    if(
+        message.type === "system"
+    ){
+
+        return createSystemChatElement(
+            message
+        );
+
+    }
+
+
+    if(
+        message.type === "roll"
+    ){
+
+        return createRollChatElement(
+            message
+        );
+
+    }
+
+
+    return createNormalChatElement(
+        message
+    );
+
+}
+
+function createNormalChatElement(
+    message
+){
+
+    const element =
+        document.createElement(
+            "div"
+        );
+
+
+    element.className =
+        "chat-message";
+
+
+    const avatar =
+        document.createElement(
+            "div"
+        );
+
+
+    avatar.className =
+        "chat-message-avatar";
+
+
+    if(message.photo){
+
+        const image =
+            document.createElement(
+                "img"
+            );
+
+
+        image.src =
+            message.photo;
+
+
+        image.alt =
+            message.author ||
+            "Personagem";
+
+
+        avatar.appendChild(
+            image
+        );
+
+    }
+    else{
+
+        avatar.textContent =
+            message.role === "master"
+                ? "♛"
+                : "◇";
+
+    }
+
+
+    const body =
+        document.createElement(
+            "div"
+        );
+
+
+    body.className =
+        "chat-message-body";
+
+
+    body.innerHTML = `
+
+        <strong>
+            ${escapeTableHTML(
+                message.author ||
+                "Jogador"
+            )}
+        </strong>
+
+        <p>
+            ${escapeTableHTML(
+                message.text ||
+                ""
+            )}
+        </p>
+
+        <span class="chat-message-time">
+
+            ${formatPublicChatTime(
+                message.createdAt
+            )}
+
+        </span>
+
+    `;
+
+
+    element.append(
+        avatar,
+        body
+    );
+
+
+    return element;
+
+}
+
+
+function createSystemChatElement(
+    message
+){
+
+    const element =
+        document.createElement(
+            "div"
+        );
+
+
+    element.className =
+        "chat-system-message";
+
+
+    element.innerHTML = `
+
+        <span class="chat-system-icon">
+            ◇
+        </span>
+
+        <div>
+
+            <strong>
+                Sistema
+            </strong>
+
+            <p>
+                ${escapeTableHTML(
+                    message.text ||
+                    ""
+                )}
+            </p>
+
+            <span class="chat-message-time">
+
+                ${formatPublicChatTime(
+                    message.createdAt
+                )}
+
+            </span>
+
+        </div>
+
+    `;
+
+
+    return element;
+
+}
+
+function createRollChatElement(
+    message
+){
+
+    const element =
+        document.createElement(
+            "div"
+        );
+
+
+    element.className =
+        "chat-roll-message";
+
+
+    element.innerHTML = `
+
+        <div class="chat-roll-header">
+
+            <strong>
+                ${escapeTableHTML(
+                    message.author ||
+                    "Jogador"
+                )}
+            </strong>
+
+            <span class="chat-roll-label">
+
+                ${escapeTableHTML(
+                    message.label ||
+                    "Rolagem"
+                )}
+
+            </span>
+
+        </div>
+
+        <div class="chat-roll-result">
+
+            <span class="chat-roll-total">
+
+                ${Number(
+                    message.total
+                ) || 0}
+
+            </span>
+
+            <span class="chat-roll-formula">
+
+                ${escapeTableHTML(
+                    message.formula ||
+                    ""
+                )}
+
+            </span>
+
+        </div>
+
+        <div class="chat-roll-detail">
+
+            ${escapeTableHTML(
+                message.detail ||
+                ""
+            )}
+
+        </div>
+
+        <span class="chat-message-time">
+
+            ${formatPublicChatTime(
+                message.createdAt
+            )}
+
+        </span>
+
+    `;
+
+
+    return element;
+
+}
+
+function formatPublicChatTime(
+    timestamp
+){
+
+    const date =
+        new Date(
+            Number(timestamp) ||
+            Date.now()
+        );
+
+
+    return date.toLocaleTimeString(
+        "pt-BR",
+        {
+            hour:
+                "2-digit",
+
+            minute:
+                "2-digit"
+        }
+    );
 
 }
