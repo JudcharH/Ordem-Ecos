@@ -2253,7 +2253,7 @@ width:80px;
 
 }
 
-@media(max-width:950px){
+@media(max-width:700px){
 
 .table-app{
 
@@ -2871,8 +2871,30 @@ display:none;
 
 }
 
+.table-sidebar{
+
+width:126px;
+min-width:126px;
+
+overflow:hidden;
+
+}
+
+
 .table-main{
 
-    margin-left:6px;
+width:auto;
+max-width:100%;
+
+margin-left:0;
+
+}
+
+
+.table-app{
+
+grid-template-columns:
+126px
+minmax(0,1fr);
 
 }
