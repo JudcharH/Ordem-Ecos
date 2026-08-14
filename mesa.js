@@ -4001,6 +4001,12 @@ function renderPositionSlot(
 
     tokenSlot.innerHTML = "";
 
+    container
+    .querySelectorAll(
+        ".combat-turn-indicator, .combat-pass-turn-button"
+    )
+    .forEach(element => element.remove());
+
     container.classList.toggle(
         "occupied",
         Boolean(entity)
@@ -4113,6 +4119,14 @@ else{
 
         token.appendChild(name);
 
+ 
+
+
+
+        tokenSlot.appendChild(
+            token
+        );
+
         if(currentTurn){
 
     const turnIndicator =
@@ -4120,66 +4134,58 @@ else{
             "span"
         );
 
-
     turnIndicator.className =
         "combat-turn-indicator";
 
-
-    turnIndicator.textContent =
+    const isOwnTurn =
         type === "player" &&
         entity.characterId ===
-        currentTableCharacter?.id
+        currentTableCharacter?.id;
+
+    turnIndicator.textContent =
+        isOwnTurn
             ? "SUA VEZ"
             : "TURNO";
 
-
-    token.appendChild(
+    container.appendChild(
         turnIndicator
     );
 
-}
 
-if(canPassCurrentTurn()){
+    if(canPassCurrentTurn()){
 
-    const passButton =
-        document.createElement(
-            "button"
+        const passButton =
+            document.createElement(
+                "button"
+            );
+
+        passButton.type =
+            "button";
+
+        passButton.className =
+            "combat-pass-turn-button";
+
+        passButton.textContent =
+            "Passar";
+
+        passButton.addEventListener(
+            "click",
+            event => {
+
+                event.stopPropagation();
+
+                passCurrentCombatTurn();
+
+            }
         );
 
+        container.appendChild(
+            passButton
+        );
 
-    passButton.type =
-        "button";
-
-
-    passButton.className =
-        "combat-pass-turn-button";
-
-
-    passButton.textContent =
-        "Passar";
-
-
-    passButton.addEventListener(
-        "click",
-        event => {
-
-            event.stopPropagation();
-
-            passCurrentCombatTurn();
-
-        }
-    );
-
-
-    token.appendChild(
-        passButton
-    );
+    }
 
 }
-
-        tokenSlot.appendChild(
-            token
-        );
 
         tokenSlot.onclick = () => {
 
