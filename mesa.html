@@ -176,538 +176,108 @@ class="table-header-button">
 
 <section class="scene-shell">
 
-<div
-id="tableScene"
-class="table-scene">
+<div class="table-play-area">
 
-<div
-id="sceneBackground"
-class="scene-background">
+    <!-- MAPA -->
 
-<div class="scene-placeholder">
+    <div class="table-map-column">
 
-<span>
+        <div
+            id="sceneBackground"
+            class="scene-background">
+            
+            <!--
+                As posições dos jogadores,
+                ameaças e NPCs continuam aqui.
+            -->
 
-✦
+        </div>
 
-</span>
+    </div>
 
-<strong>
-
-Nenhum cenário definido
-
-</strong>
-
-<small>
-
-O mestre pode adicionar um mapa ou imagem de cenário.
-
-</small>
-
-</div>
-
-</div>
-
-<div class="scene-dark-overlay"></div>
-
-<!--======================================================
-                IDENTIFICAÇÃO DOS LADOS
-=======================================================-->
-
-<div class="scene-side-label players-label">
-
-JOGADORES
-
-</div>
-
-<div class="scene-side-label enemies-label">
-
-AMEAÇAS
-
-</div>
-
-<!--======================================================
-                POSIÇÕES DOS JOGADORES
-=======================================================-->
-
-<div class="combat-side players-side">
-
-<!-- RETAGUARDA -->
-
-<div
-class="combat-position player-position position-5"
-data-side="player"
-data-position="5">
-
-<span class="position-number">
-
-5
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<div
-class="combat-position player-position position-6"
-data-side="player"
-data-position="6">
-
-<span class="position-number">
-
-6
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<!-- MEIO -->
-
-<div
-class="combat-position player-position position-4"
-data-side="player"
-data-position="4">
-
-<span class="position-number">
-
-4
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<div
-class="combat-position player-position position-3"
-data-side="player"
-data-position="3">
-
-<span class="position-number">
-
-3
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<!-- FRENTE -->
-
-<div
-class="combat-position player-position position-1"
-data-side="player"
-data-position="1">
-
-<span class="position-number">
-
-1
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<div
-class="combat-position player-position position-2"
-data-side="player"
-data-position="2">
-
-<span class="position-number">
-
-2
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-</div>
-
-<!--======================================================
-                POSIÇÕES DAS AMEAÇAS
-=======================================================-->
-
-<div class="combat-side enemies-side">
-
-<!-- FRENTE -->
-
-<div
-class="combat-position enemy-position position-1"
-data-side="enemy"
-data-position="1">
-
-<span class="position-number">
-
-1
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<div
-class="combat-position enemy-position position-2"
-data-side="enemy"
-data-position="2">
-
-<span class="position-number">
-
-2
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<!-- MEIO -->
-
-<div
-class="combat-position enemy-position position-3"
-data-side="enemy"
-data-position="3">
-
-<span class="position-number">
-
-3
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<div
-class="combat-position enemy-position position-4"
-data-side="enemy"
-data-position="4">
-
-<span class="position-number">
-
-4
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<!-- RETAGUARDA -->
-
-<div
-class="combat-position enemy-position position-5"
-data-side="enemy"
-data-position="5">
-
-<span class="position-number">
-
-5
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<div
-class="combat-position enemy-position position-6"
-data-side="enemy"
-data-position="6">
-
-<span class="position-number">
-
-6
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-</div>
-
-<!--======================================================
-                NPCs ALIADOS
-=======================================================-->
-
-<div class="npc-line">
-
-<div class="npc-line-label">
-
-NPCs
-
-</div>
-
-<div
-class="npc-position"
-data-npc-position="1">
-
-<span class="position-number">
-
-1
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<div
-class="npc-position"
-data-npc-position="2">
-
-<span class="position-number">
-
-2
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-<div
-class="npc-position"
-data-npc-position="3">
-
-<span class="position-number">
-
-3
-
-</span>
-
-<div class="position-token-slot">
-
-<span class="empty-position-marker">
-
-○
-
-</span>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-</section>
-
-<!--======================================================
-                    CHAT COMPACTO
-=======================================================-->
 
 <section
-id="tableChat"
-class="table-chat">
+    id="tableChat"
+    class="table-chat table-chat-side">
 
-<div class="table-chat-header">
+    <div class="table-chat-header">
 
-<div>
+        <div>
 
-<span class="table-chat-label">
+            <span class="table-chat-label">
+                COMUNICAÇÃO
+            </span>
 
-COMUNICAÇÃO
+            <h2>
+                Chat
+            </h2>
 
-</span>
+        </div>
 
-<h2>
 
-Chat
+        <button
+            type="button"
+            id="collapseChat"
+            class="chat-collapse-button">
 
-</h2>
+            ›
 
-</div>
+        </button>
 
-<button
-type="button"
-id="collapseChat"
-class="chat-collapse-button">
+    </div>
 
-⌄
 
-</button>
+    <div
+        id="chatMessages"
+        class="table-chat-messages">
 
-</div>
+        <div class="chat-system-message">
 
-<div
-id="chatMessages"
-class="table-chat-messages">
+            <span class="chat-system-icon">
+                ◇
+            </span>
 
-<div class="chat-system-message">
+            <div>
 
-<span class="chat-system-icon">
+                <strong>
+                    Sistema
+                </strong>
 
-◇
+                <p>
+                    Bem-vindo à mesa.
+                </p>
 
-</span>
+            </div>
 
-<div>
+        </div>
 
-<strong>
+    </div>
 
-Sistema
 
-</strong>
+    <div class="table-chat-input">
 
-<p>
+        <input
+            type="text"
+            id="chatInput"
+            placeholder="Digite uma mensagem...">
 
-Bem-vindo à mesa.
 
-</p>
+        <button
+            type="button"
+            id="sendChatMessage"
+            class="chat-send-button">
 
-</div>
+            Enviar
 
-</div>
+        </button>
 
-</div>
-
-<div class="table-chat-input">
-
-<input
-type="text"
-id="chatInput"
-placeholder="Digite uma mensagem...">
-
-<button
-type="button"
-id="sendChatMessage"
-class="chat-send-button">
-
-Enviar
-
-</button>
-
-</div>
+    </div>
 
 </section>
+
 
 </main>
 
-/*==========================================================
-=              PAINÉIS FLUTUANTES
-==========================================================*/
 
 <div
 id="tablePanelOverlay"

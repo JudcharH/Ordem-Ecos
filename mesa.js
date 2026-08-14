@@ -4728,18 +4728,33 @@ function toggleTableChat(){
 
     }
 
-    tableChat.classList.toggle(
-        "collapsed"
-    );
+
+    const playArea =
+        document.querySelector(
+            ".table-play-area"
+        );
+
+
+    const collapsed =
+        tableChat.classList.toggle(
+            "collapsed"
+        );
+
+
+    playArea
+        ?.classList
+        .toggle(
+            "chat-collapsed",
+            collapsed
+        );
+
 
     if(collapseChat){
 
         collapseChat.textContent =
-            tableChat.classList.contains(
-                "collapsed"
-            )
-                ? "⌃"
-                : "⌄";
+            collapsed
+                ? "‹"
+                : "›";
 
     }
 
