@@ -41,7 +41,7 @@ let currentTableRole = null;
 
 let selectedPosition = null;
 
-let selectedPosition = null;
+let lastInitiativeRequestShown = null;
 
 
 /*==========================================================
