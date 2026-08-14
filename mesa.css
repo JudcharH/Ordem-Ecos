@@ -15,7 +15,7 @@ height:100vh;
 display:grid;
 
 grid-template-columns:
-126px
+142px
 minmax(0,1fr);
 overflow:hidden;
 
@@ -211,7 +211,27 @@ gap:8px;
 
 padding:16px 12px;
 
-overflow-y:auto;
+overflow-y:hidden;
+overflow-x:hidden;
+
+
+}
+
+.table-sidebar{
+
+overflow:hidden;
+
+}
+
+.table-menu{
+
+scrollbar-width:none;
+
+}
+
+.table-menu::-webkit-scrollbar{
+
+display:none;
 
 }
 
@@ -1641,7 +1661,7 @@ backdrop-filter:blur(2px);
 
 position:absolute;
 
-left:126px;
+left:142px;
 
 top:0;
 bottom:0;
@@ -1649,7 +1669,7 @@ bottom:0;
 width:
 min(
 460px,
-calc(100vw - 126px)
+calc(100vw - 142px)
 );
 
 display:flex;
@@ -2223,19 +2243,19 @@ transform:translateY(0);
 .table-app{
 
 grid-template-columns:
-126px
+142px
 minmax(0,1fr);
 
 }
 
 .table-side-panel{
 
-left:126px;
+left:142px;
 
 width:
 min(
 430px,
-calc(100vw - 126px)
+calc(100vw - 142px)
 );
 
 }
@@ -2882,7 +2902,7 @@ height:100vh;
 display:grid;
 
 grid-template-columns:
-126px
+142px
 minmax(0,1fr);
 
 overflow:hidden;
@@ -2894,8 +2914,8 @@ overflow:hidden;
 
 position:relative;
 
-width:126px;
-min-width:126px;
+width:142px;
+min-width:142px;
 
 height:100vh;
 
