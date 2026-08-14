@@ -2736,13 +2736,13 @@ if(
     }
 
 
-    /*======================================================
-    =              PARTES DO CORPO
-    ======================================================*/
-
-    calculateBodyMaximums();
+calculateBodyMaximums();
 
 calculateCharacterDefense();
+
+calculateCharacterDamageReduction();
+
+}
 
 /*==========================================================
 =              CALCULAR REDUÇÃO DE DANO
@@ -2791,6 +2791,17 @@ function calculateCharacterDamageReduction(){
 
 }
 
+
+/*==========================================================
+=              BÔNUS AUTOMÁTICO DE RD
+==========================================================*/
+
+function calculateAutomaticDamageReduction(){
+
+    return 0;
+
+}
+
 /*==========================================================
 =              BÔNUS AUTOMÁTICO DE RD
 ==========================================================*/
@@ -2811,7 +2822,7 @@ function calculateAutomaticDamageReduction(){
 
     
 
-}
+
 
 /*==========================================================
 =              PV AUTOMÁTICO DAS PARTES
