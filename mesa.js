@@ -178,6 +178,8 @@ function initTable(){
 
     }
 
+    initializeCombatState();
+
     fillTableHeader();
 
     loadScene();
@@ -466,6 +468,19 @@ const playerMenuItems = [
 
 const masterMenuItems = [
 
+
+    {
+    id:"initiative",
+    icon:"⚡",
+    label:"Iniciativa"
+},
+
+{
+    id:"next-round",
+    icon:"⟳",
+    label:"Passar Rodada"
+},
+
     {
         id:"enemies",
         icon:"☠",
@@ -595,6 +610,19 @@ function handleMenuAction(
 
     switch(action){
 
+        case "initiative":
+
+    openInitiativeControlPanel();
+
+    break;
+
+
+case "next-round":
+
+    openNextRoundConfirmation();
+
+    break;
+
         case "character":
 
             openCharacterPanel();
@@ -672,6 +700,544 @@ function handleMenuAction(
             break;
 
     }
+
+}
+
+/*==========================================================
+=              PAINEL DE INICIATIVA
+==========================================================*/
+
+function openInitiativeControlPanel(){
+
+    if(
+        currentTableRole !== "master"
+    ){
+
+        return;
+
+    }
+
+
+    const combat =
+        currentTableCampaign.combat;
+
+
+    const pending =
+        combat.initiativeRequest?.active ===
+        true;
+
+
+    const participants =
+        Array.isArray(
+            combat.turnOrder
+        )
+            ? combat.turnOrder
+            : [];
+
+
+    openTablePanel(
+        "COMBATE",
+        "Iniciativa",
+        `
+
+        <div class="table-panel-section">
+
+            <div class="table-panel-card">
+
+                <h3>
+                    Estado atual
+                </h3>
+
+                <p>
+                    Combate:
+                    <strong>
+                        ${
+                            combat.active
+                                ? "Ativo"
+                                : "Inativo"
+                        }
+                    </strong>
+                </p>
+
+                <p>
+                    Rodada:
+                    <strong>
+                        ${combat.round || 0}
+                    </strong>
+                </p>
+
+                <p>
+                    Solicitação:
+                    <strong>
+                        ${
+                            pending
+                                ? "Aguardando jogadores"
+                                : "Nenhuma"
+                        }
+                    </strong>
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="requestInitiativeButton"
+                class="primary-button full-button">
+
+                ${
+                    pending
+                        ? "Solicitar novamente"
+                        : "Solicitar iniciativa"
+                }
+
+            </button>
+
+
+            ${
+                participants.length
+                    ? `
+
+                        <div class="table-panel-card">
+
+                            <h3>
+                                Ordem atual
+                            </h3>
+
+                            ${participants
+                                .map(
+                                    (participant,index) => `
+
+                                        <p>
+
+                                            ${index + 1}.
+                                            ${escapeTableHTML(
+                                                participant.name ||
+                                                "Participante"
+                                            )}
+
+                                            ${
+                                                participant.result !==
+                                                undefined
+                                                    ? `— ${participant.result}`
+                                                    : ""
+                                            }
+
+                                        </p>
+
+                                    `
+                                )
+                                .join("")}
+
+                        </div>
+
+                    `
+                    : ""
+            }
+
+
+            ${
+                combat.active
+                    ? `
+
+                        <button
+                            type="button"
+                            id="endCombatButton"
+                            class="secondary-button full-button">
+
+                            Encerrar combate
+
+                        </button>
+
+                    `
+                    : ""
+            }
+
+        </div>
+
+        `
+    );
+
+
+    document
+        .getElementById(
+            "requestInitiativeButton"
+        )
+        ?.addEventListener(
+            "click",
+            requestInitiativeRolls
+        );
+
+
+    document
+        .getElementById(
+            "endCombatButton"
+        )
+        ?.addEventListener(
+            "click",
+            endTableCombat
+        );
+
+}
+
+/*==========================================================
+=              SOLICITAR INICIATIVA
+==========================================================*/
+
+function requestInitiativeRolls(){
+
+    if(
+        currentTableRole !== "master"
+    ){
+
+        return;
+
+    }
+
+
+    const players =
+        Array.isArray(
+            currentTableCampaign.players
+        )
+            ? currentTableCampaign.players
+            : [];
+
+
+    const enemies =
+        Array.isArray(
+            currentTableCampaign.enemies
+        )
+            ? currentTableCampaign.enemies
+            : [];
+
+
+    const expectedParticipants = [];
+
+
+    players.forEach(player => {
+
+        if(!player.characterId){
+
+            return;
+
+        }
+
+
+        expectedParticipants.push({
+
+            type:"player",
+
+            id:player.characterId,
+
+            characterId:
+                player.characterId,
+
+            name:
+                player.name ||
+                "Jogador",
+
+            position:
+                Number(
+                    player.position
+                ) || null,
+
+            rolled:false,
+
+            result:null
+
+        });
+
+    });
+
+
+    enemies.forEach(enemy => {
+
+        expectedParticipants.push({
+
+            type:"enemy",
+
+            id:
+                enemy.enemyId ||
+                enemy.id,
+
+            enemyId:
+                enemy.enemyId ||
+                enemy.id,
+
+            name:
+                enemy.name ||
+                "Ameaça",
+
+            position:
+                Number(
+                    enemy.position
+                ) || null,
+
+            rolled:false,
+
+            result:null
+
+        });
+
+    });
+
+
+    currentTableCampaign.combat.active =
+        false;
+
+
+    currentTableCampaign.combat.round =
+        0;
+
+
+    currentTableCampaign.combat.currentTurnIndex =
+        0;
+
+
+    currentTableCampaign.combat.turnOrder =
+        [];
+
+
+    currentTableCampaign.combat.initiativeRequest = {
+
+        id:
+            `initiative_${Date.now()}`,
+
+        active:true,
+
+        requestedAt:
+            Date.now(),
+
+        requestedBy:"master",
+
+        participants:
+            expectedParticipants
+
+    };
+
+
+    currentTableCampaign.combat.updatedAt =
+        Date.now();
+
+
+    saveTableCampaign();
+
+
+    addSystemChatMessage(
+        "O mestre solicitou testes de iniciativa."
+    );
+
+
+    openInitiativeControlPanel();
+
+}
+
+/*==========================================================
+=              CONFIRMAR NOVA RODADA
+==========================================================*/
+
+function openNextRoundConfirmation(){
+
+    if(
+        currentTableRole !== "master"
+    ){
+
+        return;
+
+    }
+
+
+    const combat =
+        currentTableCampaign.combat;
+
+
+    const nextRound =
+        Math.max(
+            1,
+            Number(
+                combat.round
+            ) + 1
+        );
+
+
+    openTablePanel(
+        "COMBATE",
+        "Passar Rodada",
+        `
+
+        <div class="table-panel-section">
+
+            <div class="table-panel-card">
+
+                <h3>
+                    Iniciar Rodada ${nextRound}
+                </h3>
+
+                <p>
+                    Todos os jogadores e ameaças recuperarão o PA máximo.
+                </p>
+
+                <p>
+                    O turno voltará ao primeiro participante da iniciativa.
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="confirmNextRoundButton"
+                class="primary-button full-button">
+
+                Confirmar nova rodada
+
+            </button>
+
+        </div>
+
+        `
+    );
+
+
+    document
+        .getElementById(
+            "confirmNextRoundButton"
+        )
+        ?.addEventListener(
+            "click",
+            passTableRound
+        );
+
+}
+
+/*==========================================================
+=              RESTAURAR PA DOS JOGADORES
+==========================================================*/
+
+function restorePlayersActionPoints(){
+
+    const players =
+        Array.isArray(
+            currentTableCampaign.players
+        )
+            ? currentTableCampaign.players
+            : [];
+
+
+    players.forEach(player => {
+
+        const characterId =
+            player.characterId;
+
+
+        if(!characterId){
+
+            return;
+
+        }
+
+
+        const character =
+            tableCharacters.find(
+                item =>
+                    item.id ===
+                    characterId
+            );
+
+
+        if(!character){
+
+            return;
+
+        }
+
+
+        if(
+            !character.status ||
+            typeof character.status !== "object"
+        ){
+
+            character.status = {};
+
+        }
+
+
+        const maximum =
+            Math.max(
+                0,
+                Number(
+                    character.status.paMax
+                ) || 0
+            );
+
+
+        character.status.paAtual =
+            maximum;
+
+    });
+
+}
+
+/*==========================================================
+=              RESTAURAR PA DAS AMEAÇAS
+==========================================================*/
+
+function restoreEnemiesActionPoints(){
+
+    const enemies =
+        Array.isArray(
+            currentTableCampaign.enemies
+        )
+            ? currentTableCampaign.enemies
+            : [];
+
+
+    enemies.forEach(enemy => {
+
+        /*
+            Suporta ameaça com status.
+        */
+
+        if(
+            enemy.status &&
+            typeof enemy.status === "object"
+        ){
+
+            const maximum =
+                Math.max(
+                    0,
+                    Number(
+                        enemy.status.paMax
+                    ) || 0
+                );
+
+
+            enemy.status.paAtual =
+                maximum;
+
+
+            return;
+
+        }
+
+
+        /*
+            Suporta ameaça com PA diretamente.
+        */
+
+        const maximum =
+            Math.max(
+                0,
+                Number(
+                    enemy.paMax
+                ) || 0
+            );
+
+
+        enemy.paAtual =
+            maximum;
+
+    });
 
 }
 
@@ -5642,3 +6208,211 @@ window.addEventListener(
 
     }
 );
+
+/*==========================================================
+=              ESTADO DE COMBATE
+==========================================================*/
+
+function createDefaultCombatState(){
+
+    return {
+
+        active:false,
+
+        round:0,
+
+        currentTurnIndex:0,
+
+        turnOrder:[],
+
+        initiativeRequest:null,
+
+        updatedAt:Date.now()
+
+    };
+
+}
+
+
+function initializeCombatState(){
+
+    if(
+        !currentTableCampaign.combat ||
+        typeof currentTableCampaign.combat !== "object"
+    ){
+
+        currentTableCampaign.combat =
+            createDefaultCombatState();
+
+        saveTableCampaign();
+
+        return;
+
+    }
+
+
+    const combat =
+        currentTableCampaign.combat;
+
+
+    combat.active =
+        Boolean(
+            combat.active
+        );
+
+
+    combat.round =
+        Math.max(
+            0,
+            Number(
+                combat.round
+            ) || 0
+        );
+
+
+    combat.currentTurnIndex =
+        Math.max(
+            0,
+            Number(
+                combat.currentTurnIndex
+            ) || 0
+        );
+
+
+    combat.turnOrder =
+        Array.isArray(
+            combat.turnOrder
+        )
+            ? combat.turnOrder
+            : [];
+
+
+    combat.initiativeRequest =
+        combat.initiativeRequest &&
+        typeof combat.initiativeRequest === "object"
+            ? combat.initiativeRequest
+            : null;
+
+}
+
+/*==========================================================
+=              SALVAR FICHAS DA MESA
+==========================================================*/
+
+function saveTableCharacters(){
+
+    localStorage.setItem(
+        TABLE_CHARACTER_STORAGE,
+        JSON.stringify(
+            tableCharacters
+        )
+    );
+
+}
+
+/*==========================================================
+=              PASSAR RODADA
+==========================================================*/
+
+function passTableRound(){
+
+    if(
+        currentTableRole !== "master"
+    ){
+
+        return;
+
+    }
+
+
+    const combat =
+        currentTableCampaign.combat;
+
+
+    combat.active =
+        true;
+
+
+    combat.round =
+        Math.max(
+            1,
+            Number(
+                combat.round
+            ) + 1
+        );
+
+
+    combat.currentTurnIndex =
+        0;
+
+
+    combat.initiativeRequest =
+        null;
+
+
+    combat.updatedAt =
+        Date.now();
+
+
+    restorePlayersActionPoints();
+
+    restoreEnemiesActionPoints();
+
+
+    saveTableCharacters();
+
+    saveTableCampaign();
+
+
+    /*
+        Atualiza a ficha do próprio jogador,
+        caso a aba seja recarregada ou sincronizada.
+    */
+
+    refreshCurrentTableCharacter();
+
+    renderCombatPositions();
+
+
+    closeCurrentPanel();
+
+
+    addSystemChatMessage(
+        `Rodada ${combat.round} iniciada. Todos recuperaram seu PA máximo.`
+    );
+
+}
+
+/*==========================================================
+=              ENCERRAR COMBATE
+==========================================================*/
+
+function endTableCombat(){
+
+    if(
+        currentTableRole !== "master"
+    ){
+
+        return;
+
+    }
+
+
+    currentTableCampaign.combat =
+        createDefaultCombatState();
+
+
+    saveTableCampaign();
+
+
+    closeCurrentPanel();
+
+
+    addSystemChatMessage(
+        "O mestre encerrou o combate."
+    );
+
+
+    renderCombatPositions();
+
+}
