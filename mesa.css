@@ -527,9 +527,9 @@ background:#09090D;
 
 position:relative;
 
-width:calc(100% - 8px);
+width:100%;
 
-margin-left:8px;
+margin-left:0;
 
 height:100%;
 
@@ -2563,13 +2563,7 @@ border-radius:999px;
 =              APROVEITAR TODA A TELA
 ==========================================================*/
 
-.table-app{
 
-grid-template-columns:
-126px
-minmax(0,1fr);
-
-}
 
 
 .table-main{
@@ -2924,7 +2918,7 @@ margin:0;
 
 padding:
 4px 8px 6px
-10px;
+14px;
 
 overflow:hidden;
 
@@ -2961,5 +2955,11 @@ overflow:hidden;
 
 width:100%;
 min-width:0;
+
+}
+
+.table-map-column{
+
+border-radius:14px;
 
 }
