@@ -94,6 +94,27 @@ const characterDefense =
         "characterDefense"
     );
 
+    /*==========================================================
+=              REDUÇÃO DE DANO
+==========================================================*/
+
+const characterRDBase =
+    document.getElementById(
+        "characterRDBase"
+    );
+
+
+const characterRDBonus =
+    document.getElementById(
+        "characterRDBonus"
+    );
+
+
+const characterRD =
+    document.getElementById(
+        "characterRD"
+    );
+
 
 /*==========================================================
 =                       FOTO
@@ -377,6 +398,8 @@ if(!editingCharacter){
     renderSkillPointsSummary();
 
     calculateCharacterDefense();
+
+    calculateCharacterDamageReduction();
 
 }
 
@@ -1314,6 +1337,34 @@ function saveCharacter(){
 
 },
 
+damageReduction:{
+
+    base:
+        Math.max(
+            0,
+            Number(
+                characterRDBase?.value
+            ) || 0
+        ),
+
+    automaticBonus:
+        Math.max(
+            0,
+            Number(
+                characterRDBonus?.value
+            ) || 0
+        ),
+
+    total:
+        Math.max(
+            0,
+            Number(
+                characterRD?.value
+            ) || 0
+        )
+
+},
+
 
         /*==================================================
 =                       STATUS
@@ -1920,6 +1971,51 @@ if(characterDefenseBonus){
         ) || 0;
 
 }
+
+const damageReduction =
+    editingCharacter.damageReduction || {};
+
+
+if(characterRDBase){
+
+    characterRDBase.value =
+        Math.max(
+            0,
+            Number(
+                damageReduction.base
+            ) || 0
+        );
+
+}
+
+
+if(characterRDBonus){
+
+    characterRDBonus.value =
+        Math.max(
+            0,
+            Number(
+                damageReduction.automaticBonus
+            ) || 0
+        );
+
+}
+
+
+if(characterRD){
+
+    characterRD.value =
+        Math.max(
+            0,
+            Number(
+                damageReduction.total
+            ) || 0
+        );
+
+}
+
+
+calculateCharacterDamageReduction();
 
 
 
@@ -2648,6 +2744,71 @@ if(
 
 calculateCharacterDefense();
 
+/*==========================================================
+=              CALCULAR REDUÇÃO DE DANO
+==========================================================*/
+
+function calculateCharacterDamageReduction(){
+
+    const manualBase =
+        Math.max(
+            0,
+            Number(
+                characterRDBase?.value
+            ) || 0
+        );
+
+
+    const automaticBonus =
+        Math.max(
+            0,
+            calculateAutomaticDamageReduction()
+        );
+
+
+    const total =
+        Math.max(
+            0,
+            manualBase +
+            automaticBonus
+        );
+
+
+    if(characterRDBonus){
+
+        characterRDBonus.value =
+            automaticBonus;
+
+    }
+
+
+    if(characterRD){
+
+        characterRD.value =
+            total;
+
+    }
+
+}
+
+/*==========================================================
+=              BÔNUS AUTOMÁTICO DE RD
+==========================================================*/
+
+function calculateAutomaticDamageReduction(){
+
+    /*
+        Depois serão analisados:
+        habilidades,
+        assimilações,
+        itens,
+        condições e próteses.
+    */
+
+    return 0;
+
+}
+
     
 
 }
@@ -3032,6 +3193,11 @@ attributeAGI?.addEventListener(
 characterDefenseBonus?.addEventListener(
     "input",
     calculateCharacterDefense
+);
+
+characterRDBase?.addEventListener(
+    "input",
+    calculateCharacterDamageReduction
 );
 
 }
