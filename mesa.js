@@ -41,6 +41,8 @@ let currentTableRole = null;
 
 let selectedPosition = null;
 
+let selectedPosition = null;
+
 
 /*==========================================================
 =                    ELEMENTOS
@@ -191,6 +193,8 @@ function initTable(){
     bindTableEvents();
 
     renderCombatPositions();
+
+    checkInitiativeRequest();
 
 }
 
@@ -1019,6 +1023,10 @@ function requestInitiativeRolls(){
     currentTableCampaign.combat.updatedAt =
         Date.now();
 
+
+    saveTableCampaign();
+
+    rollEnemyInitiatives();
 
     saveTableCampaign();
 
@@ -5473,6 +5481,807 @@ function refreshCurrentTableCharacter(){
 
 }
 
+/*==========================================================
+=              ATUALIZAR CAMPANHA DA MESA
+==========================================================*/
+
+function refreshCurrentTableCampaign(){
+
+    let campaigns = [];
+
+    try{
+
+        campaigns =
+            JSON.parse(
+                localStorage.getItem(
+                    TABLE_CAMPAIGN_STORAGE
+                ) || "[]"
+            );
+
+    }
+    catch(error){
+
+        console.error(
+            "Erro ao atualizar campanha:",
+            error
+        );
+
+        return false;
+
+    }
+
+
+    const updatedCampaign =
+        campaigns.find(
+            campaign =>
+                campaign.id ===
+                currentTableCampaign?.id
+        );
+
+
+    if(!updatedCampaign){
+
+        return false;
+
+    }
+
+
+    tableCampaigns =
+        campaigns;
+
+
+    currentTableCampaign =
+        updatedCampaign;
+
+
+    initializeCombatState();
+
+
+    return true;
+
+}
+
+/*==========================================================
+=              CAMPANHA AO VIVO
+==========================================================*/
+
+window.addEventListener(
+    "storage",
+    event => {
+
+        if(
+            event.key !==
+            TABLE_CAMPAIGN_STORAGE
+        ){
+
+            return;
+
+        }
+
+
+        refreshCurrentTableCampaign();
+
+        refreshCurrentTableCharacter();
+
+        renderCombatPositions();
+
+        checkInitiativeRequest();
+
+    }
+);
+
+/*==========================================================
+=              VERIFICAR INICIATIVA
+==========================================================*/
+
+function checkInitiativeRequest(){
+
+    if(
+        currentTableRole !== "player" ||
+        !currentTableCharacter ||
+        !currentTableCampaign
+    ){
+
+        return;
+
+    }
+
+
+    const request =
+        currentTableCampaign
+            .combat
+            ?.initiativeRequest;
+
+
+    if(
+        !request ||
+        request.active !== true
+    ){
+
+        return;
+
+    }
+
+
+    const participant =
+        request.participants
+            ?.find(
+                item =>
+                    item.type === "player" &&
+                    item.characterId ===
+                    currentTableCharacter.id
+            );
+
+
+    if(
+        !participant ||
+        participant.rolled === true
+    ){
+
+        return;
+
+    }
+
+
+    if(
+        lastInitiativeRequestShown ===
+        request.id
+    ){
+
+        return;
+
+    }
+
+
+    lastInitiativeRequestShown =
+        request.id;
+
+
+    openPlayerInitiativePanel();
+
+}
+
+/*==========================================================
+=              PAINEL DO JOGADOR
+==========================================================*/
+
+function openPlayerInitiativePanel(){
+
+    if(
+        currentTableRole !== "player" ||
+        !currentTableCharacter
+    ){
+
+        return;
+
+    }
+
+
+    const attributes =
+        currentTableCharacter.attributes || {};
+
+
+    const attributeButtons = [
+
+        {
+            id:"for",
+            name:"FOR",
+            value:
+                Number(
+                    attributes.for
+                ) || 1
+        },
+
+        {
+            id:"agi",
+            name:"AGI",
+            value:
+                Number(
+                    attributes.agi
+                ) || 1
+        },
+
+        {
+            id:"int",
+            name:"INT",
+            value:
+                Number(
+                    attributes.int
+                ) || 1
+        },
+
+        {
+            id:"vig",
+            name:"VIG",
+            value:
+                Number(
+                    attributes.vig
+                ) || 1
+        },
+
+        {
+            id:"pre",
+            name:"PRE",
+            value:
+                Number(
+                    attributes.pre
+                ) || 1
+        }
+
+    ];
+
+
+    openTablePanel(
+        "COMBATE",
+        "Rolar Iniciativa",
+        `
+
+        <div class="table-panel-section">
+
+            <div class="table-panel-card">
+
+                <h3>
+                    Teste solicitado
+                </h3>
+
+                <p>
+                    Escolha qual atributo será utilizado.
+                </p>
+
+                <p>
+                    Serão rolados vários d20 conforme o atributo, usando o maior resultado, mais o dado de treino de Presteza.
+                </p>
+
+            </div>
+
+
+            <div class="initiative-attribute-grid">
+
+                ${
+                    attributeButtons
+                        .map(
+                            attribute => `
+
+                                <button
+                                    type="button"
+                                    class="initiative-attribute-button"
+                                    data-attribute="${attribute.id}">
+
+                                    <strong>
+                                        ${attribute.name}
+                                    </strong>
+
+                                    <span>
+                                        ${attribute.value}d20
+                                    </span>
+
+                                </button>
+
+                            `
+                        )
+                        .join("")
+                }
+
+            </div>
+
+        </div>
+
+        `
+    );
+
+
+    document
+        .querySelectorAll(
+            ".initiative-attribute-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    rollPlayerInitiative(
+                        button.dataset.attribute
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+/*==========================================================
+=              PEGAR PRESTEZA
+==========================================================*/
+
+function getCharacterReadinessSkill(
+    character
+){
+
+    const skills =
+        Array.isArray(
+            character.skills
+        )
+            ? character.skills
+            : [];
+
+
+    return skills.find(skill => {
+
+        const id =
+            String(
+                skill.id || ""
+            )
+                .toLowerCase()
+                .trim();
+
+
+        const name =
+            String(
+                skill.name || ""
+            )
+                .toLowerCase()
+                .trim();
+
+
+        return (
+            id === "presteza" ||
+            name === "presteza"
+        );
+
+    }) || null;
+
+}
+
+/*==========================================================
+=              ROLAR INICIATIVA DO JOGADOR
+==========================================================*/
+
+function rollPlayerInitiative(
+    attributeName
+){
+
+    refreshCurrentTableCampaign();
+
+    refreshCurrentTableCharacter();
+
+
+    if(
+        currentTableRole !== "player" ||
+        !currentTableCharacter
+    ){
+
+        return;
+
+    }
+
+
+    const request =
+        currentTableCampaign
+            .combat
+            ?.initiativeRequest;
+
+
+    if(
+        !request ||
+        request.active !== true
+    ){
+
+        addSystemChatMessage(
+            "Não existe uma solicitação de iniciativa ativa."
+        );
+
+        return;
+
+    }
+
+
+    const participant =
+        request.participants
+            ?.find(
+                item =>
+                    item.type === "player" &&
+                    item.characterId ===
+                    currentTableCharacter.id
+            );
+
+
+    if(!participant){
+
+        return;
+
+    }
+
+
+    if(participant.rolled){
+
+        addSystemChatMessage(
+            "Você já rolou sua iniciativa."
+        );
+
+        closeCurrentPanel();
+
+        return;
+
+    }
+
+
+    const attributeValue =
+        Math.max(
+            1,
+            Number(
+                currentTableCharacter
+                    .attributes
+                    ?.[attributeName]
+            ) || 1
+        );
+
+
+    const d20Rolls = [];
+
+
+    for(
+        let index = 0;
+        index < attributeValue;
+        index++
+    ){
+
+        d20Rolls.push(
+            Math.floor(
+                Math.random() * 20
+            ) + 1
+        );
+
+    }
+
+
+    const bestD20 =
+        Math.max(
+            ...d20Rolls
+        );
+
+
+    const readiness =
+        getCharacterReadinessSkill(
+            currentTableCharacter
+        );
+
+
+    const trainingFormula =
+        readiness?.training &&
+        readiness.training !== "0"
+            ? readiness.training
+            : "0";
+
+
+    const trainingResult =
+        rollDiceExpression(
+            trainingFormula
+        );
+
+
+    const trainingValue =
+        trainingResult?.total || 0;
+
+
+    const skillModifier =
+        (
+            Number(
+                readiness?.bonus
+            ) || 0
+        )
+        +
+        (
+            Number(
+                readiness?.penalty
+            ) || 0
+        );
+
+
+    const total =
+        bestD20 +
+        trainingValue +
+        skillModifier;
+
+
+    participant.rolled =
+        true;
+
+
+    participant.result =
+        total;
+
+
+    participant.attribute =
+        attributeName;
+
+
+    participant.attributeValue =
+        attributeValue;
+
+
+    participant.d20Rolls =
+        d20Rolls;
+
+
+    participant.bestD20 =
+        bestD20;
+
+
+    participant.readinessTraining =
+        trainingFormula;
+
+
+    participant.readinessRoll =
+        trainingValue;
+
+
+    participant.modifier =
+        skillModifier;
+
+
+    participant.rolledAt =
+        Date.now();
+
+
+    currentTableCampaign
+        .combat
+        .updatedAt =
+        Date.now();
+
+
+    saveTableCampaign();
+
+
+    const detail = [
+
+        `${attributeValue}d20 [${d20Rolls.join(", ")}]`,
+
+        `maior ${bestD20}`,
+
+        trainingFormula !== "0"
+            ? `Presteza ${trainingFormula} = ${trainingValue}`
+            : "Presteza sem treino",
+
+        skillModifier
+            ? `modificador ${skillModifier >= 0 ? "+" : ""}${skillModifier}`
+            : ""
+
+    ]
+        .filter(Boolean)
+        .join(" • ");
+
+
+    addRollChatMessage(
+        `Iniciativa • ${currentTableCharacter.name}`,
+        `${attributeValue}d20 + ${trainingFormula}`,
+        total,
+        detail
+    );
+
+
+    closeCurrentPanel();
+
+
+    addSystemChatMessage(
+        `Iniciativa registrada: ${total}.`
+    );
+
+
+    finalizeInitiativeIfReady();
+
+}
+
+/*==========================================================
+=              ROLAR INICIATIVA DAS AMEAÇAS
+==========================================================*/
+
+function rollEnemyInitiatives(){
+
+    const request =
+        currentTableCampaign
+            .combat
+            ?.initiativeRequest;
+
+
+    if(!request){
+
+        return;
+
+    }
+
+
+    let enemyLibrary = [];
+
+    try{
+
+        enemyLibrary =
+            JSON.parse(
+                localStorage.getItem(
+                    "ordem_enemies"
+                ) || "[]"
+            );
+
+    }
+    catch{
+
+        enemyLibrary = [];
+
+    }
+
+
+    request.participants
+        .filter(
+            participant =>
+                participant.type === "enemy" &&
+                participant.rolled !== true
+        )
+        .forEach(participant => {
+
+            const enemy =
+                enemyLibrary.find(
+                    item =>
+                        item.id ===
+                        participant.enemyId
+                ) || {};
+
+
+            const attributes =
+                enemy.attributes || {};
+
+
+            const agility =
+                Math.max(
+                    1,
+                    Number(
+                        attributes.agi ??
+                        enemy.agi ??
+                        enemy.agility
+                    ) || 1
+                );
+
+
+            const d20Rolls = [];
+
+
+            for(
+                let index = 0;
+                index < agility;
+                index++
+            ){
+
+                d20Rolls.push(
+                    Math.floor(
+                        Math.random() * 20
+                    ) + 1
+                );
+
+            }
+
+
+            const bestD20 =
+                Math.max(
+                    ...d20Rolls
+                );
+
+
+            const skills =
+                Array.isArray(
+                    enemy.skills
+                )
+                    ? enemy.skills
+                    : [];
+
+
+            const readiness =
+                skills.find(skill => {
+
+                    const id =
+                        String(
+                            skill.id || ""
+                        ).toLowerCase();
+
+
+                    const name =
+                        String(
+                            skill.name || ""
+                        ).toLowerCase();
+
+
+                    return (
+                        id === "presteza" ||
+                        name === "presteza"
+                    );
+
+                });
+
+
+            const trainingFormula =
+                readiness?.training &&
+                readiness.training !== "0"
+                    ? readiness.training
+                    : "0";
+
+
+            const trainingResult =
+                rollDiceExpression(
+                    trainingFormula
+                );
+
+
+            const trainingValue =
+                trainingResult?.total || 0;
+
+
+            const modifier =
+                (
+                    Number(
+                        readiness?.bonus
+                    ) || 0
+                )
+                +
+                (
+                    Number(
+                        readiness?.penalty
+                    ) || 0
+                );
+
+
+            participant.rolled =
+                true;
+
+
+            participant.result =
+                bestD20 +
+                trainingValue +
+                modifier;
+
+
+            participant.attribute =
+                "agi";
+
+
+            participant.attributeValue =
+                agility;
+
+
+            participant.d20Rolls =
+                d20Rolls;
+
+
+            participant.bestD20 =
+                bestD20;
+
+
+            participant.readinessTraining =
+                trainingFormula;
+
+
+            participant.readinessRoll =
+                trainingValue;
+
+
+            participant.modifier =
+                modifier;
+
+
+            participant.rolledAt =
+                Date.now();
+
+        });
+
+
+    currentTableCampaign
+        .combat
+        .updatedAt =
+        Date.now();
+
+
+    saveTableCampaign();
+
+}
+
 
 /*==========================================================
 =              SINCRONIZAÇÃO AO VIVO
@@ -6158,6 +6967,10 @@ function refreshTableLiveData(){
 
     renderCombatPositions();
 
+    checkInitiativeRequest();
+
+finalizeInitiativeIfReady();
+
 
     /*
         Se o painel de ficha estiver aberto,
@@ -6414,5 +7227,253 @@ function endTableCombat(){
 
 
     renderCombatPositions();
+
+}
+
+/*==========================================================
+=              FINALIZAR INICIATIVA
+==========================================================*/
+
+function finalizeInitiativeIfReady(){
+
+    refreshCurrentTableCampaign();
+
+
+    const combat =
+        currentTableCampaign
+            ?.combat;
+
+
+    const request =
+        combat?.initiativeRequest;
+
+
+    if(
+        !request ||
+        request.active !== true
+    ){
+
+        return false;
+
+    }
+
+
+    const participants =
+        Array.isArray(
+            request.participants
+        )
+            ? request.participants
+            : [];
+
+
+    if(!participants.length){
+
+        return false;
+
+    }
+
+
+    const allRolled =
+        participants.every(
+            participant =>
+                participant.rolled === true &&
+                Number.isFinite(
+                    Number(
+                        participant.result
+                    )
+                )
+        );
+
+
+    if(!allRolled){
+
+        return false;
+
+    }
+
+
+    const ordered =
+        [...participants]
+            .sort(
+                (first,second) => {
+
+                    const resultDifference =
+                        Number(
+                            second.result
+                        ) -
+                        Number(
+                            first.result
+                        );
+
+
+                    if(resultDifference !== 0){
+
+                        return resultDifference;
+
+                    }
+
+
+                    const attributeDifference =
+                        Number(
+                            second.attributeValue
+                        ) -
+                        Number(
+                            first.attributeValue
+                        );
+
+
+                    if(attributeDifference !== 0){
+
+                        return attributeDifference;
+
+                    }
+
+
+                    return String(
+                        first.name || ""
+                    ).localeCompare(
+                        String(
+                            second.name || ""
+                        ),
+                        "pt-BR"
+                    );
+
+                }
+            )
+            .map(
+                (participant,index) => ({
+
+                    ...participant,
+
+                    order:
+                        index + 1
+
+                })
+            );
+
+
+    combat.active =
+        true;
+
+
+    combat.round =
+        1;
+
+
+    combat.currentTurnIndex =
+        0;
+
+
+    combat.turnOrder =
+        ordered;
+
+
+    combat.initiativeRequest =
+        null;
+
+
+    combat.updatedAt =
+        Date.now();
+
+
+    saveTableCampaign();
+
+
+    renderCombatPositions();
+
+
+    showInitiativeOrderInChat(
+        ordered
+    );
+
+
+    return true;
+
+}
+
+/*==========================================================
+=              ORDEM NO CHAT
+==========================================================*/
+
+function showInitiativeOrderInChat(
+    participants
+){
+
+    if(!chatMessages){
+
+        return;
+
+    }
+
+
+    const message =
+        document.createElement(
+            "div"
+        );
+
+
+    message.className =
+        "chat-roll-message initiative-order-message";
+
+
+    message.innerHTML = `
+
+        <div class="chat-roll-header">
+
+            <strong>
+                Ordem de Iniciativa
+            </strong>
+
+            <span class="chat-roll-label">
+                RODADA 1
+            </span>
+
+        </div>
+
+
+        <div class="initiative-order-list">
+
+            ${
+                participants
+                    .map(
+                        (participant,index) => `
+
+                            <div class="initiative-order-item">
+
+                                <span>
+                                    ${index + 1}
+                                </span>
+
+                                <strong>
+                                    ${escapeTableHTML(
+                                        participant.name ||
+                                        "Participante"
+                                    )}
+                                </strong>
+
+                                <b>
+                                    ${Number(
+                                        participant.result
+                                    ) || 0}
+                                </b>
+
+                            </div>
+
+                        `
+                    )
+                    .join("")
+            }
+
+        </div>
+
+    `;
+
+
+    chatMessages.appendChild(
+        message
+    );
+
+
+    scrollTableChat();
 
 }
