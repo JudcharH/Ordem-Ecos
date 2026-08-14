@@ -43,6 +43,7 @@ let selectedPosition = null;
 
 let lastInitiativeRequestShown = null;
 
+let pendingDamageApplication = null;
 
 /*==========================================================
 =                    ELEMENTOS
@@ -3083,19 +3084,34 @@ function rollQuickAttack(
             .join(" + ");
 
 
-    addRollChatMessage(
+addRollChatMessage(
 
-        type === "damage"
-            ? `Dano • ${attack.name || "Ataque"}`
-            : `Ataque • ${attack.name || "Ataque"}`,
+    type === "damage"
+        ? `Dano • ${attack.name || "Ataque"}`
+        : `Ataque • ${attack.name || "Ataque"}`,
 
-        formula,
+    formula,
 
-        result.total,
+    result.total,
 
-        detail
+    detail,
 
-    );
+    {
+        rollKind:
+            type,
+
+        attackIndex:
+            index,
+
+        attackName:
+            attack.name ||
+            "Ataque",
+
+        applied:
+            false
+    }
+
+);
 
 }
 
@@ -6241,7 +6257,8 @@ function addRollChatMessage(
     label,
     formula,
     total,
-    detail
+    detail,
+    metadata = {}
 ){
 
     if(
@@ -6302,6 +6319,25 @@ function addRollChatMessage(
 
         detail:
             String(detail || ""),
+
+            rollKind:
+    metadata.rollKind ||
+    "generic",
+
+attackIndex:
+    metadata.attackIndex ??
+    null,
+
+attackName:
+    String(
+        metadata.attackName ||
+        ""
+    ),
+
+applied:
+    Boolean(
+        metadata.applied
+    ),
 
         createdAt:
             Date.now()
@@ -6539,6 +6575,14 @@ document.addEventListener(
             return;
 
         }
+
+        if(pendingDamageApplication){
+
+    cancelDamageTargetSelection();
+
+    return;
+
+}
 
         if(
             positionModal &&
@@ -8749,7 +8793,7 @@ function renderPublicChat(){
 
     });
 
-
+bindApplyDamageButtons();
     scrollTableChat();
 
 }
@@ -9017,6 +9061,26 @@ function createRollChatElement(
 
         </div>
 
+        ${
+    message.rollKind === "damage" &&
+    message.applied !== true
+        ? `
+
+            <button
+                type="button"
+                class="chat-apply-damage-button"
+                data-message-id="${escapeTableHTML(
+                    message.id
+                )}">
+
+                Aplicar dano
+
+            </button>
+
+        `
+        : ""
+}
+
         <span class="chat-message-time">
 
             ${formatPublicChatTime(
@@ -9029,6 +9093,33 @@ function createRollChatElement(
 
 
     return element;
+
+}
+
+/*==========================================================
+=              BOTÃO APLICAR DANO
+==========================================================*/
+
+function bindApplyDamageButtons(){
+
+    document
+        .querySelectorAll(
+            ".chat-apply-damage-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    startDamageTargetSelection(
+                        button.dataset.messageId
+                    );
+
+                }
+            );
+
+        });
 
 }
 
@@ -9053,5 +9144,250 @@ function formatPublicChatTime(
                 "2-digit"
         }
     );
+
+}
+
+/*==========================================================
+=              INICIAR SELEÇÃO DE ALVO
+==========================================================*/
+
+function startDamageTargetSelection(
+    messageId
+){
+
+    refreshCurrentTableCampaign();
+
+
+    const messages =
+        Array.isArray(
+            currentTableCampaign
+                .chatMessages
+        )
+            ? currentTableCampaign
+                .chatMessages
+            : [];
+
+
+    const message =
+        messages.find(
+            item =>
+                item.id ===
+                messageId
+        );
+
+
+    if(!message){
+
+        addSystemChatMessage(
+            "A rolagem de dano não foi encontrada."
+        );
+
+        return;
+
+    }
+
+
+    if(
+        message.rollKind !== "damage"
+    ){
+
+        return;
+
+    }
+
+
+    if(message.applied === true){
+
+        addSystemChatMessage(
+            "Esse dano já foi aplicado."
+        );
+
+        return;
+
+    }
+
+
+    pendingDamageApplication = {
+
+        messageId:
+            message.id,
+
+        damage:
+            Math.max(
+                0,
+                Number(
+                    message.total
+                ) || 0
+            ),
+
+        attackName:
+            message.attackName ||
+            "Ataque",
+
+        attackerCharacterId:
+            message.characterId ||
+            null,
+
+        author:
+            message.author ||
+            "Atacante"
+
+    };
+
+
+    document
+        .querySelector(
+            ".table-play-area"
+        )
+        ?.classList
+        .add(
+            "selecting-damage-target"
+        );
+
+
+    markDamageTargets();
+
+
+    addLocalDamageNotice(
+        `Selecione no mapa quem receberá ${pendingDamageApplication.damage} de dano.`
+    );
+
+}
+
+/*==========================================================
+=              MARCAR ALVOS DE DANO
+==========================================================*/
+
+function markDamageTargets(){
+
+    document
+        .querySelectorAll(
+            ".combat-position.occupied"
+        )
+        .forEach(position => {
+
+            position.classList.add(
+                "damage-target-selectable"
+            );
+
+        });
+
+
+    document
+        .querySelectorAll(
+            ".npc-position.occupied"
+        )
+        .forEach(position => {
+
+            position.classList.add(
+                "damage-target-selectable"
+            );
+
+        });
+
+}
+
+/*==========================================================
+=              AVISO LOCAL DE DANO
+==========================================================*/
+
+function addLocalDamageNotice(
+    text
+){
+
+    document
+        .querySelector(
+            ".damage-selection-notice"
+        )
+        ?.remove();
+
+
+    const notice =
+        document.createElement(
+            "div"
+        );
+
+
+    notice.className =
+        "damage-selection-notice";
+
+
+    notice.innerHTML = `
+
+        <strong>
+            Aplicar dano
+        </strong>
+
+        <span>
+            ${escapeTableHTML(
+                text
+            )}
+        </span>
+
+        <button
+            type="button"
+            class="damage-selection-cancel">
+
+            Cancelar
+
+        </button>
+
+    `;
+
+
+    document.body.appendChild(
+        notice
+    );
+
+
+    notice
+        .querySelector(
+            ".damage-selection-cancel"
+        )
+        ?.addEventListener(
+            "click",
+            cancelDamageTargetSelection
+        );
+
+}
+
+/*==========================================================
+=              CANCELAR SELEÇÃO DE DANO
+==========================================================*/
+
+function cancelDamageTargetSelection(){
+
+    pendingDamageApplication =
+        null;
+
+
+    document
+        .querySelector(
+            ".table-play-area"
+        )
+        ?.classList
+        .remove(
+            "selecting-damage-target"
+        );
+
+
+    document
+        .querySelectorAll(
+            ".damage-target-selectable"
+        )
+        .forEach(element => {
+
+            element.classList.remove(
+                "damage-target-selectable"
+            );
+
+        });
+
+
+    document
+        .querySelector(
+            ".damage-selection-notice"
+        )
+        ?.remove();
 
 }

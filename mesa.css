@@ -3632,3 +3632,194 @@ border-color:
 rgba(130,200,220,.25);
 
 }
+
+/*==========================================================
+=              APLICAR DANO
+==========================================================*/
+
+.chat-apply-damage-button{
+
+width:100%;
+
+min-height:30px;
+
+margin-top:8px;
+
+padding:6px 10px;
+
+border-radius:9px;
+
+background:
+rgba(155,42,42,.22);
+
+border:
+1px solid
+rgba(255,95,95,.42);
+
+color:
+#FFD1D1;
+
+font-size:10px;
+
+font-weight:800;
+
+cursor:pointer;
+
+transition:.2s;
+
+}
+
+
+.chat-apply-damage-button:hover{
+
+background:
+rgba(190,48,48,.42);
+
+border-color:
+#FF7777;
+
+color:white;
+
+}
+
+
+.damage-target-selectable
+.position-token-slot{
+
+cursor:crosshair;
+
+border:
+3px solid
+#FF6767 !important;
+
+box-shadow:
+0 0 16px
+rgba(255,70,70,.95),
+0 0 35px
+rgba(175,25,25,.65) !important;
+
+animation:
+damageTargetPulse
+.8s ease-in-out
+infinite alternate;
+
+}
+
+
+@keyframes damageTargetPulse{
+
+from{
+
+filter:
+brightness(1);
+
+}
+
+to{
+
+filter:
+brightness(1.4);
+
+transform:
+scale(1.08);
+
+}
+
+}
+
+
+.damage-selection-notice{
+
+position:fixed;
+
+left:50%;
+
+top:18px;
+
+transform:
+translateX(-50%);
+
+z-index:3000;
+
+min-width:
+min(440px,calc(100vw - 30px));
+
+display:grid;
+
+grid-template-columns:
+auto
+minmax(0,1fr)
+auto;
+
+align-items:center;
+
+gap:12px;
+
+padding:
+11px 14px;
+
+border-radius:14px;
+
+background:
+rgba(25,12,15,.97);
+
+border:
+1px solid
+rgba(255,85,85,.55);
+
+box-shadow:
+0 0 30px
+rgba(160,30,30,.38);
+
+color:white;
+
+}
+
+
+.damage-selection-notice strong{
+
+font-family:
+'Orbitron',
+sans-serif;
+
+font-size:11px;
+
+color:
+#FF9696;
+
+}
+
+
+.damage-selection-notice span{
+
+font-size:11px;
+
+color:
+var(--text2);
+
+}
+
+
+.damage-selection-cancel{
+
+height:30px;
+
+padding:
+0 10px;
+
+border-radius:8px;
+
+background:#30191C;
+
+border:
+1px solid #71363C;
+
+color:#FFD0D0;
+
+font-size:10px;
+
+font-weight:800;
+
+cursor:pointer;
+
+}
