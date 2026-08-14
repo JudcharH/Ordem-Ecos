@@ -1510,6 +1510,10 @@ function loadMusic(){
 =                    FICHA DO JOGADOR
 ==========================================================*/
 
+/*==========================================================
+=                    FICHA DO JOGADOR
+==========================================================*/
+
 function openCharacterPanel(){
 
     refreshCurrentTableCharacter();
@@ -1521,123 +1525,289 @@ function openCharacterPanel(){
 
     }
 
+
+    const character =
+        currentTableCharacter;
+
+
     const attrs =
-        currentTableCharacter.attributes || {};
+        character.attributes || {};
 
 
     const status =
-        currentTableCharacter.status || {};
+        character.status || {};
+
+
+    const defense =
+        character.defense || {};
+
+
+    const damageReduction =
+        character.damageReduction || {};
+
+
+    const lifeMode =
+        character.lifeMode === "body"
+            ? "body"
+            : "classic";
+
+
+    const defenseTotal =
+        Math.max(
+            0,
+            Number(
+                defense.total
+            ) || 0
+        );
+
+
+    const rdTotal =
+        Math.max(
+            0,
+            Number(
+                damageReduction.total
+            ) || 0
+        );
+
+
+    const lifeHTML =
+        lifeMode === "body"
+            ? createTableBodyLifeHTML(
+                character
+            )
+            : createTableClassicLifeHTML(
+                character
+            );
+
 
     const html = `
 
-        <div class="table-panel-section">
+        <div class="table-character-sheet">
 
-            <h3 class="table-panel-section-title">
-                ${escapeTableHTML(
-                    currentTableCharacter.name ||
-                    "Personagem"
+            <div class="table-character-sheet-content">
+
+
+                <div class="table-panel-section">
+
+                    <h3 class="table-panel-section-title">
+
+                        ${escapeTableHTML(
+                            character.name ||
+                            "Personagem"
+                        )}
+
+                    </h3>
+
+
+                    <div class="table-panel-card">
+
+                        <p>
+
+                            Origem:
+
+                            <strong>
+
+                                ${
+                                    character.origin
+                                        ? escapeTableHTML(
+                                            character.origin
+                                        )
+                                        : "—"
+                                }
+
+                            </strong>
+
+                        </p>
+
+
+                        <p>
+
+                            Nível:
+
+                            <strong>
+
+                                ${Number(
+                                    character.level
+                                ) || 1}
+
+                            </strong>
+
+                        </p>
+
+
+                        <p>
+
+                            Sistema de Vida:
+
+                            <strong>
+
+                                ${
+                                    lifeMode === "body"
+                                        ? "Partes do Corpo"
+                                        : "PV Clássico"
+                                }
+
+                            </strong>
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="table-panel-section">
+
+                    <h3 class="table-panel-section-title">
+                        Recursos
+                    </h3>
+
+
+                    <div class="table-panel-list">
+
+                        ${lifeHTML}
+
+
+                        <div class="table-panel-item">
+
+                            <strong>
+                                PD
+                            </strong>
+
+                            <span>
+
+                                ${status.pdAtual ?? 0}
+                                /
+                                ${status.pdMax ?? 0}
+
+                            </span>
+
+                        </div>
+
+
+                        <div class="table-panel-item">
+
+                            <strong>
+                                PA
+                            </strong>
+
+                            <span>
+
+                                ${status.paAtual ?? 0}
+                                /
+                                ${status.paMax ?? 0}
+
+                            </span>
+
+                        </div>
+
+
+                        <div class="table-panel-item table-defense-item">
+
+                            <strong>
+                                Defesa
+                            </strong>
+
+                            <span>
+                                ${defenseTotal}
+                            </span>
+
+                        </div>
+
+
+                        <div class="table-panel-item table-rd-item">
+
+                            <strong>
+                                RD
+                            </strong>
+
+                            <span>
+                                ${rdTotal}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="table-panel-section">
+
+                    <h3 class="table-panel-section-title">
+                        Atributos
+                    </h3>
+
+
+                    <div class="table-panel-list">
+
+                        <div class="table-panel-item">
+
+                            <strong>FOR</strong>
+
+                            <span>
+                                ${attrs.for ?? 1}
+                            </span>
+
+                        </div>
+
+
+                        <div class="table-panel-item">
+
+                            <strong>AGI</strong>
+
+                            <span>
+                                ${attrs.agi ?? 1}
+                            </span>
+
+                        </div>
+
+
+                        <div class="table-panel-item">
+
+                            <strong>INT</strong>
+
+                            <span>
+                                ${attrs.int ?? 1}
+                            </span>
+
+                        </div>
+
+
+                        <div class="table-panel-item">
+
+                            <strong>VIG</strong>
+
+                            <span>
+                                ${attrs.vig ?? 1}
+                            </span>
+
+                        </div>
+
+
+                        <div class="table-panel-item">
+
+                            <strong>PRE</strong>
+
+                            <span>
+                                ${attrs.pre ?? 1}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                ${createTableConditionsSummary(
+                    character
                 )}
-            </h3>
 
-            <div class="table-panel-card">
 
-                <p>
-                    Origem:
-                    <strong>
-                        ${
-                            currentTableCharacter.origin
-                                ? escapeTableHTML(
-                                    currentTableCharacter.origin
-                                )
-                                : "—"
-                        }
-                    </strong>
-                </p>
-
-                <p>
-                    Nível:
-                    <strong>
-                        ${Number(
-                            currentTableCharacter.level
-                        ) || 1}
-                    </strong>
-                </p>
-
-            </div>
-
-        </div>
-
-        <div class="table-panel-section">
-
-            <h3 class="table-panel-section-title">
-                Recursos
-            </h3>
-
-            <div class="table-panel-list">
-
-                <div class="table-panel-item">
-                    <strong>PV</strong>
-                    <span>
-                        ${status.pvAtual ?? 0}
-                        /
-                        ${status.pvMax ?? 0}
-                    </span>
-                </div>
-
-                <div class="table-panel-item">
-                    <strong>PD</strong>
-                    <span>
-                        ${status.pdAtual ?? 0}
-                        /
-                        ${status.pdMax ?? 0}
-                    </span>
-                </div>
-
-                <div class="table-panel-item">
-                    <strong>PA</strong>
-                    <span>
-                        ${status.paAtual ?? 0}
-                        /
-                        ${status.paMax ?? 0}
-                    </span>
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="table-panel-section">
-
-            <h3 class="table-panel-section-title">
-                Atributos
-            </h3>
-
-            <div class="table-panel-list">
-
-                <div class="table-panel-item">
-                    <strong>FOR</strong>
-                    <span>${attrs.for ?? 1}</span>
-                </div>
-
-                <div class="table-panel-item">
-                    <strong>AGI</strong>
-                    <span>${attrs.agi ?? 1}</span>
-                </div>
-
-                <div class="table-panel-item">
-                    <strong>INT</strong>
-                    <span>${attrs.int ?? 1}</span>
-                </div>
-
-                <div class="table-panel-item">
-                    <strong>VIG</strong>
-                    <span>${attrs.vig ?? 1}</span>
-                </div>
-
-                <div class="table-panel-item">
-                    <strong>PRE</strong>
-                    <span>${attrs.pre ?? 1}</span>
-                </div>
+                ${createTableSkillsSummary(
+                    character
+                )}
 
             </div>
 
@@ -1645,13 +1815,631 @@ function openCharacterPanel(){
 
     `;
 
+
     openTablePanel(
         "PERSONAGEM",
         "Ficha",
         html
     );
 
+
     bindTableCharacterSkillButtons();
+
+}
+
+/*==========================================================
+=              VIDA CLÁSSICA NA MESA
+==========================================================*/
+
+function createTableClassicLifeHTML(
+    character
+){
+
+    const status =
+        character.status || {};
+
+
+    return `
+
+        <div class="table-panel-item table-life-item">
+
+            <strong>
+                PV
+            </strong>
+
+            <span>
+
+                ${status.pvAtual ?? 0}
+                /
+                ${status.pvMax ?? 0}
+
+            </span>
+
+        </div>
+
+
+        <div class="table-panel-item">
+
+            <strong>
+                PV Temporário
+            </strong>
+
+            <span>
+                ${status.pvTemp ?? 0}
+            </span>
+
+        </div>
+
+    `;
+
+}
+
+/*==========================================================
+=              PARTES DO CORPO NA MESA
+==========================================================*/
+
+function createTableBodyLifeHTML(
+    character
+){
+
+    const body =
+        character.body || {};
+
+
+    const bodyState =
+        character.bodyState || {};
+
+
+    const parts = [
+
+        {
+            id:"head",
+            label:"Cabeça",
+            value:
+                body.head
+        },
+
+        {
+            id:"chest",
+            label:"Torso",
+            value:
+                body.chest
+        },
+
+        {
+            id:"leftArm",
+            label:"Braço Esquerdo",
+            value:
+                body.leftArm
+        },
+
+        {
+            id:"rightArm",
+            label:"Braço Direito",
+            value:
+                body.rightArm
+        },
+
+        {
+            id:"leftLeg",
+            label:"Perna Esquerda",
+            value:
+                body.leftLeg
+        },
+
+        {
+            id:"rightLeg",
+            label:"Perna Direita",
+            value:
+                body.rightLeg
+        }
+
+    ];
+
+
+    const rows =
+        parts
+            .map(part => {
+
+                const state =
+                    bodyState[part.id] || {
+                        type:"natural"
+                    };
+
+
+                return createTableBodyPartRow(
+                    part,
+                    state
+                );
+
+            })
+            .join("");
+
+
+    return `
+
+        <div class="table-body-life">
+
+            <div class="table-body-life-header">
+
+                <strong>
+                    Partes do Corpo
+                </strong>
+
+                <span>
+                    PV atual
+                </span>
+
+            </div>
+
+
+            ${rows}
+
+
+            <div class="table-panel-item table-body-temp">
+
+                <strong>
+                    PV Temporário
+                </strong>
+
+                <span>
+                    ${body.temporaryPV ?? 0}
+                </span>
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+/*==========================================================
+=              LINHA DA PARTE DO CORPO
+==========================================================*/
+
+function createTableBodyPartRow(
+    part,
+    state
+){
+
+    if(
+        state.type === "missing"
+    ){
+
+        return `
+
+            <div class="table-panel-item table-body-part missing">
+
+                <strong>
+                    ${escapeTableHTML(
+                        part.label
+                    )}
+                </strong>
+
+                <span>
+                    Ausente
+                </span>
+
+            </div>
+
+        `;
+
+    }
+
+
+    if(
+        state.type === "prosthetic"
+    ){
+
+        const currentPV =
+            Math.max(
+                0,
+                Number(
+                    state.currentPV ??
+                    part.value
+                ) || 0
+            );
+
+
+        const maximumPV =
+            Math.max(
+                0,
+                Number(
+                    state.maxPV
+                ) || 0
+            );
+
+
+        return `
+
+            <div class="table-panel-item table-body-part prosthetic">
+
+                <div class="table-body-part-name">
+
+                    <strong>
+
+                        ${escapeTableHTML(
+                            part.label
+                        )}
+
+                    </strong>
+
+                    <small>
+
+                        ${escapeTableHTML(
+                            state.name ||
+                            "Prótese"
+                        )}
+
+                    </small>
+
+                </div>
+
+                <span>
+
+                    ${currentPV}
+                    /
+                    ${maximumPV}
+
+                </span>
+
+            </div>
+
+        `;
+
+    }
+
+
+    const currentPV =
+        Math.max(
+            0,
+            Number(
+                part.value
+            ) || 0
+        );
+
+
+    const maximumPV =
+        getTableBodyPartMaximum(
+            part.id,
+            currentPV,
+            state
+        );
+
+
+    return `
+
+        <div class="table-panel-item table-body-part natural">
+
+            <strong>
+
+                ${escapeTableHTML(
+                    part.label
+                )}
+
+            </strong>
+
+            <span>
+
+                ${currentPV}
+                /
+                ${maximumPV}
+
+            </span>
+
+        </div>
+
+    `;
+
+}
+
+/*==========================================================
+=              MÁXIMO DA PARTE DO CORPO
+==========================================================*/
+
+function getTableBodyPartMaximum(
+    partId,
+    currentPV,
+    state
+){
+
+    if(
+        state.type === "prosthetic"
+    ){
+
+        return Math.max(
+            0,
+            Number(
+                state.maxPV
+            ) || 0
+        );
+
+    }
+
+
+    if(
+        state.type === "missing"
+    ){
+
+        return 0;
+
+    }
+
+
+    const character =
+        currentTableCharacter;
+
+
+    const level =
+        Math.max(
+            1,
+            Number(
+                character?.level
+            ) || 1
+        );
+
+
+    const vig =
+        Math.max(
+            0,
+            Number(
+                character
+                    ?.attributes
+                    ?.vig
+            ) || 0
+        );
+
+
+    const vigByLevel =
+        vig * level;
+
+
+    const base =
+        (
+            partId === "head" ||
+            partId === "chest"
+        )
+            ? 2
+            : 1;
+
+
+    /*
+        Se futuramente o editor salvar o máximo,
+        ele terá prioridade.
+    */
+
+    const savedMaximum =
+        Number(
+            character
+                ?.bodyMaximums
+                ?.[partId]
+        );
+
+
+    if(
+        Number.isFinite(
+            savedMaximum
+        )
+    ){
+
+        return Math.max(
+            0,
+            savedMaximum
+        );
+
+    }
+
+
+    return Math.max(
+        currentPV,
+        base + vigByLevel
+    );
+
+}
+
+/*==========================================================
+=              CONDIÇÕES NA FICHA LATERAL
+==========================================================*/
+
+function createTableConditionsSummary(
+    character
+){
+
+    const conditions =
+        Array.isArray(
+            character.conditions
+        )
+            ? character.conditions
+            : [];
+
+
+    if(!conditions.length){
+
+        return "";
+
+    }
+
+
+    return `
+
+        <div class="table-panel-section">
+
+            <h3 class="table-panel-section-title">
+                Condições
+            </h3>
+
+
+            <div class="table-panel-list">
+
+                ${
+                    conditions
+                        .map(condition => {
+
+                            const name =
+                                typeof condition ===
+                                "string"
+                                    ? condition
+                                    : condition.name ||
+                                      "Condição";
+
+
+                            return `
+
+                                <div class="table-panel-item">
+
+                                    <strong>
+
+                                        ${escapeTableHTML(
+                                            name
+                                        )}
+
+                                    </strong>
+
+                                </div>
+
+                            `;
+
+                        })
+                        .join("")
+                }
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+/*==========================================================
+=              PERÍCIAS NA FICHA LATERAL
+==========================================================*/
+
+function createTableSkillsSummary(
+    character
+){
+
+    const skills =
+        Array.isArray(
+            character.skills
+        )
+            ? character.skills
+            : [];
+
+
+    if(!skills.length){
+
+        return "";
+
+    }
+
+
+    return `
+
+        <div class="table-panel-section">
+
+            <h3 class="table-panel-section-title">
+                Perícias
+            </h3>
+
+
+            <div class="table-panel-list">
+
+                ${
+                    skills
+                        .map(skill => {
+
+                            const training =
+                                skill.training &&
+                                skill.training !== "0"
+                                    ? skill.training
+                                    : "Sem treino";
+
+
+                            return `
+
+                                <button
+                                    type="button"
+                                    class="table-panel-item table-skill-button"
+                                    data-skill="${escapeTableHTML(
+                                        skill.id ||
+                                        skill.name ||
+                                        ""
+                                    )}">
+
+                                    <strong>
+
+                                        ${escapeTableHTML(
+                                            skill.name ||
+                                            "Perícia"
+                                        )}
+
+                                    </strong>
+
+                                    <span>
+
+                                        ${escapeTableHTML(
+                                            training
+                                        )}
+
+                                    </span>
+
+                                </button>
+
+                            `;
+
+                        })
+                        .join("")
+                }
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+/*==========================================================
+=              ATUALIZAR PAINEL DA FICHA
+==========================================================*/
+
+function refreshOpenCharacterPanel(){
+
+    if(
+        currentTableRole !== "player"
+    ){
+
+        return;
+
+    }
+
+
+    if(
+        !tablePanelOverlay ||
+        tablePanelOverlay
+            .classList
+            .contains("hidden")
+    ){
+
+        return;
+
+    }
+
+
+    if(
+        tablePanelTitle
+            ?.textContent
+            ?.trim() !== "Ficha"
+    ){
+
+        return;
+
+    }
+
+
+    openCharacterPanel();
 
 }
 
@@ -6678,6 +7466,8 @@ window.addEventListener(
 
         renderCombatPositions();
 
+        refreshOpenCharacterPanel();
+
     }
 );
 
@@ -7335,6 +8125,8 @@ function refreshTableLiveData(){
     renderCombatPositions();
 
     renderPublicChat();
+
+    refreshOpenCharacterPanel();
 
     checkInitiativeRequest();
 
