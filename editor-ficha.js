@@ -79,6 +79,45 @@ const characterAge =
         "characterAge"
     );
 
+    /*==========================================================
+=                    SISTEMA DE RPG
+==========================================================*/
+
+const characterSystem =
+    document.getElementById(
+        "characterSystem"
+    );
+
+
+const characterSystemPreview =
+    document.getElementById(
+        "characterSystemPreview"
+    );
+
+
+const characterSystemIcon =
+    document.getElementById(
+        "characterSystemIcon"
+    );
+
+
+const characterSystemName =
+    document.getElementById(
+        "characterSystemName"
+    );
+
+
+const characterSystemDescription =
+    document.getElementById(
+        "characterSystemDescription"
+    );
+
+
+const characterSystemWarning =
+    document.getElementById(
+        "characterSystemWarning"
+    );
+
     const characterDefenseBase =
     document.getElementById(
         "characterDefenseBase"
@@ -360,9 +399,13 @@ function initCharacterEditor(){
 
     loadCharacterEditorStorage();
 
+    populateCharacterSystemSelect();
+
     discoverEditingCharacter();
 
     bindCharacterEditorEvents();
+
+    updateCharacterSystemPreview();
 
     bindAutomaticStatEvents();
 
@@ -408,6 +451,119 @@ if(!editingCharacter){
 
 }
 
+/*==========================================================
+=              PREENCHER SISTEMAS DA FICHA
+==========================================================*/
+
+function populateCharacterSystemSelect(){
+
+    if(
+        !characterSystem ||
+        typeof getAllRPGSystems !==
+        "function"
+    ){
+
+        return;
+
+    }
+
+
+    characterSystem.innerHTML =
+        "";
+
+
+    getAllRPGSystems()
+        .forEach(system => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                system.id;
+
+
+            option.textContent =
+                system.enabled
+                    ? system.name
+                    : `${system.name} — Em desenvolvimento`;
+
+
+            option.disabled =
+                system.enabled !== true;
+
+
+            characterSystem.appendChild(
+                option
+            );
+
+        });
+
+
+    characterSystem.value =
+        DEFAULT_RPG_SYSTEM_ID;
+
+}
+
+/*==========================================================
+=              PREVIEW DO SISTEMA DA FICHA
+==========================================================*/
+
+function updateCharacterSystemPreview(){
+
+    if(!characterSystem){
+
+        return;
+
+    }
+
+
+    const system =
+        getRPGSystem(
+            characterSystem.value
+        );
+
+
+    if(characterSystemIcon){
+
+        characterSystemIcon.textContent =
+            system.icon || "◇";
+
+
+        characterSystemIcon.style.color =
+            system.color || "";
+
+    }
+
+
+    if(characterSystemName){
+
+        characterSystemName.textContent =
+            system.name;
+
+    }
+
+
+    if(characterSystemDescription){
+
+        characterSystemDescription.textContent =
+            system.description || "";
+
+    }
+
+
+    characterSystemPreview
+        ?.style
+        .setProperty(
+            "--system-color",
+            system.color ||
+            "#7B2CFF"
+        );
+
+}
+
 
 /*==========================================================
 =                 CARREGAR STORAGE
@@ -429,7 +585,61 @@ function loadCharacterEditorStorage(){
                 ? savedCharacters
                 : [];
 
+                let charactersChanged =
+    false;
+
+
+editorCharacters.forEach(character => {
+
+    if(!character.systemId){
+
+        character.systemId =
+            DEFAULT_RPG_SYSTEM_ID;
+
+        charactersChanged =
+            true;
+
+        return;
+
     }
+
+
+    const normalizedSystemId =
+        normalizeRPGSystemId(
+            character.systemId
+        );
+
+
+    if(
+        normalizedSystemId !==
+        character.systemId
+    ){
+
+        character.systemId =
+            normalizedSystemId;
+
+        charactersChanged =
+            true;
+
+    }
+
+});
+
+
+if(charactersChanged){
+
+    localStorage.setItem(
+        CHARACTER_EDITOR_STORAGE,
+        JSON.stringify(
+            editorCharacters
+        )
+    );
+
+}
+
+    }
+
+    
     catch(error){
 
         console.error(
@@ -455,6 +665,58 @@ function loadCharacterEditorStorage(){
             Array.isArray(savedCampaigns)
                 ? savedCampaigns
                 : [];
+
+                let campaignsChanged =
+    false;
+
+
+editorCampaigns.forEach(campaign => {
+
+    if(!campaign.systemId){
+
+        campaign.systemId =
+            DEFAULT_RPG_SYSTEM_ID;
+
+        campaignsChanged =
+            true;
+
+        return;
+
+    }
+
+
+    const normalizedSystemId =
+        normalizeRPGSystemId(
+            campaign.systemId
+        );
+
+
+    if(
+        normalizedSystemId !==
+        campaign.systemId
+    ){
+
+        campaign.systemId =
+            normalizedSystemId;
+
+        campaignsChanged =
+            true;
+
+    }
+
+});
+
+
+if(campaignsChanged){
+
+    localStorage.setItem(
+        CAMPAIGN_EDITOR_STORAGE,
+        JSON.stringify(
+            editorCampaigns
+        )
+    );
+
+}
 
     }
     catch(error){
@@ -518,6 +780,15 @@ function discoverEditingCharacter(){
 ==========================================================*/
 
 function bindCharacterEditorEvents(){
+
+    characterSystem?.addEventListener(
+    "change",
+    () => {
+
+        updateCharacterSystemPreview();
+
+    }
+);
 
     lifeMode?.addEventListener(
         "change",
@@ -1111,11 +1382,39 @@ function linkCharacterToCampaignByCode(){
 
     }
 
+    const characterSystemId =
+    normalizeRPGSystemId(
+        characterSystem?.value
+    );
+
+
+const campaignSystemId =
+    normalizeRPGSystemId(
+        campaign.systemId
+    );
+
+
+if(
+    !areRPGSystemsCompatible(
+        characterSystemId,
+        campaignSystemId
+    )
+){
+
+    showCharacterEditorMessage(
+        "Sistema incompatível",
+        `A campanha utiliza ${getRPGSystem(campaignSystemId).name}, mas esta ficha utiliza ${getRPGSystem(characterSystemId).name}.`
+    );
+
+    return;
+
+}
+
 
     const maxPlayers =
         Number(
             campaign.maxPlayers
-        ) || 4;
+        ) || 6;
 
     const players =
         Array.isArray(
@@ -1176,6 +1475,20 @@ function linkCharacterToCampaignByCode(){
         `A ficha será vinculada à campanha "${campaign.name}" quando for salva.`
     );
 
+    if(characterSystem){
+
+    characterSystem.disabled =
+        true;
+
+}
+
+
+characterSystemWarning
+    ?.classList
+    .remove(
+        "hidden"
+    );
+
 }
 
 
@@ -1186,6 +1499,20 @@ function linkCharacterToCampaignByCode(){
 function unlinkCharacterFromCampaign(){
 
     linkedCampaignId = null;
+
+    if(characterSystem){
+
+    characterSystem.disabled =
+        false;
+
+}
+
+
+characterSystemWarning
+    ?.classList
+    .add(
+        "hidden"
+    );
 
 
     linkedCampaignInfo
@@ -1239,6 +1566,17 @@ function saveCharacter(){
             ?.value
             .trim() || "";
 
+            const selectedSystemId =
+    normalizeRPGSystemId(
+        characterSystem?.value
+    );
+
+
+const selectedSystem =
+    getRPGSystem(
+        selectedSystemId
+    );
+
 
     if(!name){
 
@@ -1268,7 +1606,12 @@ function saveCharacter(){
         ...oldCharacter,
 
         id:
+
+        
             characterId,
+
+            systemId:
+    selectedSystemId,
 
         name:
             name,
@@ -1545,6 +1888,44 @@ conditions:
 
     };
 
+    if(linkedCampaignId){
+
+    const linkedCampaign =
+        editorCampaigns.find(
+            campaign =>
+                campaign.id ===
+                linkedCampaignId
+        );
+
+
+    if(linkedCampaign){
+
+        const campaignSystemId =
+            normalizeRPGSystemId(
+                linkedCampaign.systemId
+            );
+
+
+        if(
+            !areRPGSystemsCompatible(
+                selectedSystemId,
+                campaignSystemId
+            )
+        ){
+
+            showCharacterEditorMessage(
+                "Sistemas incompatíveis",
+                `Esta ficha utiliza ${selectedSystem.name}, mas a campanha utiliza ${getRPGSystem(campaignSystemId).name}.`
+            );
+
+            return;
+
+        }
+
+    }
+
+}
+
 
     saveCharacterToStorage(
         characterData
@@ -1806,7 +2187,7 @@ function syncCharacterCampaign(
             const maxPlayers =
                 Number(
                     campaign.maxPlayers
-                ) || 4;
+                ) || 6;
 
 
             if(
@@ -1909,6 +2290,43 @@ function loadCharacterIntoEditor(){
             editingCharacter.age || "";
 
     }
+
+    const editingSystemId =
+    normalizeRPGSystemId(
+        editingCharacter.systemId
+    );
+
+
+if(characterSystem){
+
+    characterSystem.value =
+        editingSystemId;
+
+}
+
+
+updateCharacterSystemPreview();
+
+const hasLinkedCampaign =
+    Boolean(
+        editingCharacter.campaignId
+    );
+
+
+if(characterSystem){
+
+    characterSystem.disabled =
+        hasLinkedCampaign;
+
+}
+
+
+characterSystemWarning
+    ?.classList
+    .toggle(
+        "hidden",
+        !hasLinkedCampaign
+    );
 
     if(selectedBodyPart){
 
@@ -7498,6 +7916,41 @@ function spendAbilityResources(
         return false;
 
     }
+
+    if(
+    !isValidRPGSystem(
+        selectedSystemId
+    )
+){
+
+    showCharacterEditorMessage(
+        "Sistema inválido",
+        "Selecione um sistema de RPG válido."
+    );
+
+    characterSystem?.focus();
+
+    return;
+
+}
+
+
+if(
+    !isRPGSystemEnabled(
+        selectedSystemId
+    )
+){
+
+    showCharacterEditorMessage(
+        "Sistema indisponível",
+        `${selectedSystem.name} ainda está em desenvolvimento.`
+    );
+
+    characterSystem?.focus();
+
+    return;
+
+}
 
 
     /*======================================================

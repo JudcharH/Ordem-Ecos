@@ -468,7 +468,7 @@ function loadCampaignData(){
         editingCampaign.description || "";
 
     campaignMaxPlayers.value =
-        editingCampaign.maxPlayers || 4;
+        editingCampaign.maxPlayers || 6;
 
     campaignVisibility.value =
         editingCampaign.visibility || "private";
@@ -1017,7 +1017,7 @@ async function saveCampaign(){
     const maxPlayers =
         Number(
             campaignMaxPlayers?.value
-        ) || 4;
+        ) || 6;
 
     const visibility =
         campaignVisibility?.value ||
