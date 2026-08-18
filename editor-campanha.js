@@ -40,6 +40,45 @@ const campaignDescription =
         "campaignEditorDescription"
     );
 
+    /*==========================================================
+=                    SISTEMA DE RPG
+==========================================================*/
+
+const campaignSystem =
+    document.getElementById(
+        "campaignSystem"
+    );
+
+
+const campaignSystemPreview =
+    document.getElementById(
+        "campaignSystemPreview"
+    );
+
+
+const campaignSystemIcon =
+    document.getElementById(
+        "campaignSystemIcon"
+    );
+
+
+const campaignSystemName =
+    document.getElementById(
+        "campaignSystemName"
+    );
+
+
+const campaignSystemDescription =
+    document.getElementById(
+        "campaignSystemDescription"
+    );
+
+
+const campaignSystemWarning =
+    document.getElementById(
+        "campaignSystemWarning"
+    );
+
 const campaignMaxPlayers =
     document.getElementById(
         "campaignMaxPlayers"
@@ -124,16 +163,143 @@ const masterPasswordStrengthText =
 /*==========================================================
 =                    INICIALIZAÇÃO
 ==========================================================*/
-
 function initCampaignEditor(){
 
     loadCampaigns();
+
+    populateCampaignSystemSelect();
 
     discoverEditingCampaign();
 
     bindEvents();
 
     updateDescriptionCounter();
+
+    updateCampaignSystemPreview();
+
+}
+
+/*==========================================================
+=              PREENCHER SISTEMAS DA CAMPANHA
+==========================================================*/
+
+function populateCampaignSystemSelect(){
+
+    if(
+        !campaignSystem ||
+        typeof getAllRPGSystems !==
+        "function"
+    ){
+
+        return;
+
+    }
+
+
+    const systems =
+        getAllRPGSystems();
+
+
+    campaignSystem.innerHTML =
+        "";
+
+
+    systems.forEach(system => {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+
+        option.value =
+            system.id;
+
+
+        option.textContent =
+            system.enabled
+                ? system.name
+                : `${system.name} — Em desenvolvimento`;
+
+
+        /*
+            Sistemas futuros aparecem,
+            mas ainda não podem ser selecionados.
+        */
+
+        option.disabled =
+            system.enabled !== true;
+
+
+        campaignSystem.appendChild(
+            option
+        );
+
+    });
+
+
+    campaignSystem.value =
+        DEFAULT_RPG_SYSTEM_ID;
+
+}
+
+/*==========================================================
+=              PREVIEW DO SISTEMA
+==========================================================*/
+
+function updateCampaignSystemPreview(){
+
+    if(!campaignSystem){
+
+        return;
+
+    }
+
+
+    const system =
+        getRPGSystem(
+            campaignSystem.value
+        );
+
+
+    if(campaignSystemIcon){
+
+        campaignSystemIcon.textContent =
+            system.icon || "◇";
+
+
+        campaignSystemIcon.style.color =
+            system.color || "";
+
+    }
+
+
+    if(campaignSystemName){
+
+        campaignSystemName.textContent =
+            system.name;
+
+    }
+
+
+    if(campaignSystemDescription){
+
+        campaignSystemDescription.textContent =
+            system.description || "";
+
+    }
+
+
+    if(campaignSystemPreview){
+
+        campaignSystemPreview.style
+            .setProperty(
+                "--system-color",
+                system.color ||
+                "#7B2CFF"
+            );
+
+    }
 
 }
 
@@ -167,6 +333,17 @@ function bindEvents(){
         removeCoverImage
 
     );
+
+    campaignSystem?.addEventListener(
+    "change",
+    () => {
+
+        updateCampaignSystemPreview();
+
+        markUnsaved();
+
+    }
+);
 
     generateInviteCode?.addEventListener(
 
@@ -296,6 +473,49 @@ function loadCampaignData(){
     campaignVisibility.value =
         editingCampaign.visibility || "private";
 
+        const editingSystemId =
+    normalizeRPGSystemId(
+        editingCampaign.systemId
+    );
+
+
+if(campaignSystem){
+
+    campaignSystem.value =
+        editingSystemId;
+
+}
+
+
+updateCampaignSystemPreview();
+
+const campaignPlayers =
+    Array.isArray(
+        editingCampaign.players
+    )
+        ? editingCampaign.players
+        : [];
+
+
+const systemIsLocked =
+    campaignPlayers.length > 0;
+
+
+if(campaignSystem){
+
+    campaignSystem.disabled =
+        systemIsLocked;
+
+}
+
+
+campaignSystemWarning
+    ?.classList
+    .toggle(
+        "hidden",
+        !systemIsLocked
+    );
+
     inviteCode.textContent =
         editingCampaign.inviteCode;
 
@@ -406,25 +626,93 @@ function loadCampaigns(){
 
     try{
 
-        campaigns =
+        const savedCampaigns =
             JSON.parse(
-
                 localStorage.getItem(
                     STORAGE_KEY
                 )
+            );
 
-            ) || [];
+
+        campaigns =
+            Array.isArray(
+                savedCampaigns
+            )
+                ? savedCampaigns
+                : [];
+
+
+        let changed =
+            false;
+
+
+        campaigns.forEach(campaign => {
+
+            /*
+                Toda campanha criada antes da
+                implementação pertence ao
+                Sistema Paranormal.
+            */
+
+            if(!campaign.systemId){
+
+                campaign.systemId =
+                    DEFAULT_RPG_SYSTEM_ID;
+
+                changed =
+                    true;
+
+            }
+            else{
+
+                const normalized =
+                    normalizeRPGSystemId(
+                        campaign.systemId
+                    );
+
+
+                if(
+                    normalized !==
+                    campaign.systemId
+                ){
+
+                    campaign.systemId =
+                        normalized;
+
+                    changed =
+                        true;
+
+                }
+
+            }
+
+        });
+
+
+        if(changed){
+
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify(
+                    campaigns
+                )
+            );
+
+        }
 
     }
+    catch(error){
 
-    catch{
+        console.error(
+            "Erro ao carregar campanhas:",
+            error
+        );
 
         campaigns = [];
 
     }
 
 }
-
 /*==========================================================
 =              EDITOR-CAMPANHA.JS - PARTE 2
 ==========================================================*/
@@ -700,6 +988,7 @@ function markUnsaved(){
 [
     campaignName,
     campaignDescription,
+    campaignSystem,
     campaignMaxPlayers,
     campaignVisibility
 
@@ -733,6 +1022,17 @@ async function saveCampaign(){
     const visibility =
         campaignVisibility?.value ||
         "private";
+
+        const selectedSystemId =
+    normalizeRPGSystemId(
+        campaignSystem?.value
+    );
+
+
+const selectedSystem =
+    getRPGSystem(
+        selectedSystemId
+    );
 
     const masterPassword =
         campaignMasterPassword?.value || "";
@@ -793,6 +1093,41 @@ async function saveCampaign(){
 
     }
 
+    if(
+    !isValidRPGSystem(
+        selectedSystemId
+    )
+){
+
+    showEditorMessage(
+        "Sistema inválido",
+        "Selecione um sistema de RPG válido."
+    );
+
+    campaignSystem?.focus();
+
+    return;
+
+}
+
+
+if(
+    !isRPGSystemEnabled(
+        selectedSystemId
+    )
+){
+
+    showEditorMessage(
+        "Sistema indisponível",
+        `${selectedSystem.name} ainda está em desenvolvimento.`
+    );
+
+    campaignSystem?.focus();
+
+    return;
+
+}
+
 
     /*======================================================
     =                    CAPA
@@ -849,6 +1184,34 @@ async function saveCampaign(){
         editingCampaign.visibility =
             visibility;
 
+            const existingPlayers =
+    Array.isArray(
+        editingCampaign.players
+    )
+        ? editingCampaign.players
+        : [];
+
+
+/*
+    Se já houver jogadores,
+    mantém o sistema antigo.
+*/
+
+if(existingPlayers.length === 0){
+
+    editingCampaign.systemId =
+        selectedSystemId;
+
+}
+else{
+
+    editingCampaign.systemId =
+        normalizeRPGSystemId(
+            editingCampaign.systemId
+        );
+
+}
+
         editingCampaign.inviteCode =
             currentInviteCode;
 
@@ -877,6 +1240,9 @@ async function saveCampaign(){
             name:name,
 
             description:description,
+
+            systemId:
+    selectedSystemId,
 
             maxPlayers:maxPlayers,
 
