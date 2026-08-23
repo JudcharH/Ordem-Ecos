@@ -6361,6 +6361,15 @@ applied:
         metadata.applied
     ),
 
+    isCounterAttack:
+    Boolean(
+        metadata.isCounterAttack
+    ),
+
+forcedTargetCharacterId:
+    metadata.forcedTargetCharacterId ||
+    null,
+
         createdAt:
             Date.now()
 
@@ -9987,6 +9996,38 @@ function openAttackReactionPanel(
 
                 </button>
 
+                <button
+    type="button"
+    class="attack-reaction-button"
+    data-reaction="counter"
+    ${currentPA < 1 ? "disabled" : ""}>
+
+    <strong>
+        Contra-atacar
+    </strong>
+
+    <span>
+        1 PA • após resolver o ataque, pode atacar o agressor
+    </span>
+
+</button>
+
+
+<button
+    type="button"
+    class="attack-reaction-button"
+    data-reaction="ability">
+
+    <strong>
+        Habilidade
+    </strong>
+
+    <span>
+        Usar uma habilidade de reação adquirida
+    </span>
+
+</button>
+
 
                 <button
                     type="button"
@@ -10021,9 +10062,22 @@ function openAttackReactionPanel(
                 "click",
                 () => {
 
-                    answerAttackReaction(
-                        button.dataset.reaction
-                    );
+                   const reaction =
+    button.dataset.reaction;
+
+
+if(reaction === "ability"){
+
+    openAttackReactionAbilityPanel();
+
+    return;
+
+}
+
+
+answerAttackReaction(
+    reaction
+);
 
                 }
             );
@@ -10033,7 +10087,248 @@ function openAttackReactionPanel(
 }
 
 /*==========================================================
+=              HABILIDADES DE REAÇÃO
+==========================================================*/
+
+function openAttackReactionAbilityPanel(){
+
+    refreshCurrentTableCharacter();
+
+
+    const character =
+        currentTableCharacter;
+
+
+    const abilities =
+        Array.isArray(
+            character?.abilities
+        )
+            ? character.abilities
+            : [];
+
+
+    const reactionAbilityIds = [
+
+        "desvio-absoluto",
+
+        "revidar",
+
+        "devolver-ataque",
+
+        "sempre-alerta"
+
+    ];
+
+
+    const availableAbilities =
+        abilities.filter(ability => {
+
+            const abilityId =
+                String(
+                    ability.id ||
+                    ability.abilityId ||
+                    ""
+                )
+                    .trim()
+                    .toLowerCase();
+
+
+            return reactionAbilityIds.includes(
+                abilityId
+            );
+
+        });
+
+
+    if(!availableAbilities.length){
+
+        openTablePanel(
+            "REAÇÃO",
+            "Habilidades",
+            `
+
+                <div class="editor-empty-state">
+
+                    <span>◇</span>
+
+                    <p>
+                        Nenhuma habilidade de reação disponível.
+                    </p>
+
+                    <button
+                        type="button"
+                        id="returnToAttackReaction"
+                        class="secondary-button">
+
+                        Voltar
+
+                    </button>
+
+                </div>
+
+            `
+        );
+
+
+        document
+            .getElementById(
+                "returnToAttackReaction"
+            )
+            ?.addEventListener(
+                "click",
+                () => {
+
+                    const request =
+                        currentTableCampaign
+                            .combat
+                            ?.pendingAttack;
+
+
+                    if(request){
+
+                        openAttackReactionPanel(
+                            request
+                        );
+
+                    }
+
+                }
+            );
+
+
+        return;
+
+    }
+
+
+    openTablePanel(
+        "REAÇÃO",
+        "Escolher Habilidade",
+        `
+
+            <div class="table-panel-list">
+
+                ${
+                    availableAbilities
+                        .map(ability => `
+
+                            <button
+                                type="button"
+                                class="table-panel-card reaction-ability-choice"
+                                data-ability-id="${escapeTableHTML(
+                                    ability.id ||
+                                    ability.abilityId ||
+                                    ""
+                                )}">
+
+                                <h3>
+                                    ${escapeTableHTML(
+                                        ability.name ||
+                                        "Habilidade"
+                                    )}
+                                </h3>
+
+                                <p>
+                                    ${escapeTableHTML(
+                                        ability.description ||
+                                        ""
+                                    )}
+                                </p>
+
+                            </button>
+
+                        `)
+                        .join("")
+                }
+
+            </div>
+
+        `
+    );
+
+
+    document
+        .querySelectorAll(
+            ".reaction-ability-choice"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    selectAttackReactionAbility(
+                        button.dataset.abilityId
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+function selectAttackReactionAbility(
+    abilityId
+){
+
+    showLocalReactionMessage(
+        `A habilidade ${abilityId} será implementada na etapa de habilidades de reação.`
+    );
+
+}
+
+function showLocalReactionMessage(
+    text
+){
+
+    const notice =
+        document.createElement(
+            "div"
+        );
+
+
+    notice.className =
+        "damage-selection-notice";
+
+
+    notice.innerHTML = `
+
+        <strong>
+            Habilidade
+        </strong>
+
+        <span>
+            ${escapeTableHTML(text)}
+        </span>
+
+        <button type="button">
+            Fechar
+        </button>
+
+    `;
+
+
+    document.body.appendChild(
+        notice
+    );
+
+
+    notice
+        .querySelector("button")
+        ?.addEventListener(
+            "click",
+            () => notice.remove()
+        );
+
+}
+
+/*==========================================================
 =              ROLAR PRESTEZA DA ESQUIVA
+==========================================================*/
+
+/*==========================================================
+=              PRESTEZA DA ESQUIVA
 ==========================================================*/
 
 function rollDodgeReadiness(
@@ -10052,9 +10347,13 @@ function rollDodgeReadiness(
 
             total:0,
 
-            formula:"Sem treino",
+            trainingValue:0,
 
-            detail:"0"
+            modifier:0,
+
+            formula:"0",
+
+            detail:"Sem treino em Presteza"
 
         };
 
@@ -10064,18 +10363,44 @@ function rollDodgeReadiness(
     const trainingFormula =
         readiness.training &&
         readiness.training !== "0"
-            ? readiness.training
+            ? String(
+                readiness.training
+            )
             : "0";
 
 
-    const trainingRoll =
+    const trainingResult =
         rollDiceExpression(
             trainingFormula
         );
 
 
     const trainingValue =
-        trainingRoll?.total || 0;
+        Math.max(
+            0,
+            Number(
+                trainingResult?.total
+            ) || 0
+        );
+
+
+    let conditionModifier = 0;
+
+
+    if(
+        typeof getTableSkillConditionModifier ===
+        "function"
+    ){
+
+        conditionModifier =
+            Number(
+                getTableSkillConditionModifier(
+                    character,
+                    readiness
+                )
+            ) || 0;
+
+    }
 
 
     const modifier =
@@ -10091,10 +10416,7 @@ function rollDodgeReadiness(
             ) || 0
         )
         +
-        getTableSkillConditionModifier(
-            character,
-            readiness
-        );
+        conditionModifier;
 
 
     return {
@@ -10103,11 +10425,20 @@ function rollDodgeReadiness(
             trainingValue +
             modifier,
 
+        trainingValue,
+
+        modifier,
+
         formula:
             trainingFormula,
 
         detail:
-            `${trainingValue}${modifier ? ` ${modifier >= 0 ? "+" : ""}${modifier}` : ""}`
+            `${trainingFormula}: ${trainingValue}` +
+            (
+                modifier
+                    ? ` ${modifier >= 0 ? "+" : ""}${modifier}`
+                    : ""
+            )
 
     };
 
@@ -10202,32 +10533,38 @@ function answerAttackReaction(
         null;
 
 
-    if(reactionType === "dodge"){
+if(reactionType === "dodge"){
 
-        paCost = 1;
-
-
-        if(currentPA < paCost){
-
-            addSystemChatMessage(
-                `${character.name} não possui PA suficiente para Esquivar.`
-            );
-
-            return;
-
-        }
+    paCost = 1;
 
 
-        readinessResult =
-            rollDodgeReadiness(
-                character
-            );
+    if(currentPA < paCost){
 
+        addSystemChatMessage(
+            `${character.name} não possui PA suficiente para Esquivar.`
+        );
 
-        finalDefense +=
-            readinessResult.total;
+        return;
 
     }
+
+
+    readinessResult =
+        rollDodgeReadiness(
+            character
+        );
+
+
+    finalDefense =
+        baseDefense +
+        Math.max(
+            0,
+            Number(
+                readinessResult.total
+            ) || 0
+        );
+
+}
     else if(reactionType === "block"){
 
         paCost = 1;
@@ -10253,6 +10590,37 @@ function answerAttackReaction(
             );
 
     }
+
+else if(reactionType === "counter"){
+
+    paCost = 1;
+
+
+    if(currentPA < paCost){
+
+        addSystemChatMessage(
+            `${character.name} não possui PA suficiente para Contra-atacar.`
+        );
+
+        return;
+
+    }
+
+
+    /*
+        Contra-atacar não altera a Defesa.
+        O ataque original é resolvido normalmente.
+    */
+
+    finalDefense =
+        baseDefense;
+
+
+    reactionRD =
+        baseRD;
+
+}
+
     else{
 
         reactionType =
@@ -10319,6 +10687,100 @@ function answerAttackReaction(
         ) >=
         finalDefense;
 
+        if(request.hit){
+
+    currentTableCampaign
+        .combat
+        .damageContext = {
+
+            id:
+                `damage_${Date.now()}`,
+
+            active:
+                true,
+
+            attackRequestId:
+                request.id,
+
+            attackName:
+                request.attackName,
+
+            attackerCharacterId:
+                request.attackerCharacterId ||
+                null,
+
+            targetCharacterId:
+                character.id,
+
+            targetName:
+                character.name ||
+                "Alvo",
+
+            reaction:
+                reactionType,
+
+            damageReduction:
+                reactionType === "block"
+                    ? reactionRD
+                    : baseRD,
+
+            consumed:
+                false,
+
+            createdAt:
+                Date.now()
+
+        };
+
+}
+else{
+
+    currentTableCampaign
+        .combat
+        .damageContext =
+        null;
+
+}
+
+        if(
+    reactionType === "counter"
+){
+
+    currentTableCampaign
+        .combat
+        .counterAttackOpportunity = {
+
+            id:
+                `counter_${Date.now()}`,
+
+            active:
+                true,
+
+            characterId:
+                character.id,
+
+            characterName:
+                character.name ||
+                "Personagem",
+
+            targetCharacterId:
+                request.attackerCharacterId ||
+                null,
+
+            targetName:
+                request.attackerName ||
+                "Atacante",
+
+            originalAttackId:
+                request.id,
+
+            createdAt:
+                Date.now()
+
+        };
+
+}
+
 
     request.updatedAt =
         Date.now();
@@ -10352,6 +10814,265 @@ function answerAttackReaction(
         request,
         character
     );
+
+    if(
+    reactionType === "counter"
+){
+
+    openCounterAttackPanel();
+
+}
+
+}
+
+/*==========================================================
+=              PAINEL DE CONTRA-ATAQUE
+==========================================================*/
+
+function openCounterAttackPanel(){
+
+    refreshCurrentTableCharacter();
+
+
+    const opportunity =
+        currentTableCampaign
+            .combat
+            ?.counterAttackOpportunity;
+
+
+    if(
+        !opportunity ||
+        opportunity.active !== true ||
+        opportunity.characterId !==
+        currentTableCharacter?.id
+    ){
+
+        return;
+
+    }
+
+
+    const attacks =
+        Array.isArray(
+            currentTableCharacter.quickAttacks
+        )
+            ? currentTableCharacter.quickAttacks
+            : [];
+
+
+    const validAttacks =
+        attacks.filter(
+            attack =>
+                attack &&
+                (
+                    attack.name ||
+                    attack.roll
+                )
+        );
+
+
+    openTablePanel(
+        "REAÇÃO",
+        "Contra-atacar",
+        `
+
+            <div class="table-panel-card">
+
+                <h3>
+                    Alvo: ${escapeTableHTML(
+                        opportunity.targetName ||
+                        "Atacante"
+                    )}
+                </h3>
+
+                <p>
+                    Escolha um ataque. A rolagem será marcada como Contra-ataque.
+                </p>
+
+            </div>
+
+
+            <div class="table-panel-list">
+
+                ${
+                    validAttacks.length
+                        ? validAttacks
+                            .map((attack,index) => `
+
+                                <button
+                                    type="button"
+                                    class="table-panel-card counter-attack-choice"
+                                    data-attack-index="${index}">
+
+                                    <h3>
+                                        ${escapeTableHTML(
+                                            attack.name ||
+                                            `Ataque ${index + 1}`
+                                        )}
+                                    </h3>
+
+                                    <p>
+                                        ${escapeTableHTML(
+                                            attack.roll ||
+                                            "Sem fórmula"
+                                        )}
+                                    </p>
+
+                                </button>
+
+                            `)
+                            .join("")
+                        : `
+
+                            <div class="editor-empty-state">
+
+                                <span>⚔</span>
+
+                                <p>
+                                    Nenhum ataque rápido configurado.
+                                </p>
+
+                            </div>
+
+                        `
+                }
+
+            </div>
+
+        `
+    );
+
+
+    document
+        .querySelectorAll(
+            ".counter-attack-choice"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    rollCounterAttack(
+                        Number(
+                            button.dataset.attackIndex
+                        )
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+function rollCounterAttack(
+    attackIndex
+){
+
+    refreshCurrentTableCampaign();
+
+    refreshCurrentTableCharacter();
+
+
+    const opportunity =
+        currentTableCampaign
+            .combat
+            ?.counterAttackOpportunity;
+
+
+    if(
+        !opportunity ||
+        opportunity.active !== true
+    ){
+
+        return;
+
+    }
+
+
+    const attack =
+        currentTableCharacter
+            ?.quickAttacks
+            ?.[attackIndex];
+
+
+    if(!attack){
+
+        return;
+
+    }
+
+
+    const formula =
+        resolveCharacterFormula(
+            attack.roll ||
+            "1d20",
+            currentTableCharacter
+        );
+
+
+    const result =
+        rollDiceExpression(
+            formula
+        );
+
+
+    if(!result){
+
+        return;
+
+    }
+
+
+    addRollChatMessage(
+
+        `Contra-ataque • ${attack.name || "Ataque"}`,
+
+        formula,
+
+        result.total,
+
+        result.detail ||
+        "",
+
+        {
+
+            rollKind:
+                "attack",
+
+            attackIndex,
+
+            attackName:
+                attack.name ||
+                "Ataque",
+
+            applied:
+                false,
+
+            isCounterAttack:
+                true,
+
+            forcedTargetCharacterId:
+                opportunity.targetCharacterId
+
+        }
+
+    );
+
+
+    opportunity.active =
+        false;
+
+
+    opportunity.usedAt =
+        Date.now();
+
+
+    saveTableCampaign();
+
+
+    closeCurrentPanel();
 
 }
 
@@ -10826,15 +11547,40 @@ function applyClassicDamageToCharacter(
         );
 
 
-    const damageReduction =
-        Math.max(
+const normalDamageReduction =
+    Math.max(
+        0,
+        Number(
+            character
+                .damageReduction
+                ?.total
+        ) || 0
+    );
+
+
+const damageContext =
+    currentTableCampaign
+        ?.combat
+        ?.damageContext;
+
+
+const canUseReactionRD =
+    damageContext &&
+    damageContext.active === true &&
+    damageContext.consumed !== true &&
+    damageContext.targetCharacterId ===
+    character.id;
+
+
+const damageReduction =
+    canUseReactionRD
+        ? Math.max(
             0,
             Number(
-                character
-                    .damageReduction
-                    ?.total
+                damageContext.damageReduction
             ) || 0
-        );
+        )
+        : normalDamageReduction;
 
 
     const reducedDamage =
@@ -10918,6 +11664,16 @@ function applyClassicDamageToCharacter(
 
             actualPVLost,
 
+            usedReactionDamageReduction:
+    Boolean(
+        canUseReactionRD
+    ),
+
+reaction:
+    canUseReactionRD
+        ? damageContext.reaction
+        : null,
+
             pvBefore:
                 currentPVBefore,
 
@@ -10930,7 +11686,11 @@ function applyClassicDamageToCharacter(
             temporaryAfter:
                 character.status.pvTemp
 
+                
+
         };
+
+        
 
 
     const saved =
@@ -11063,6 +11823,30 @@ function finishDamageApplication(
         ...pendingDamageApplication
     };
 
+    const damageContext =
+    currentTableCampaign
+        ?.combat
+        ?.damageContext;
+
+
+if(
+    damageContext &&
+    damageContext.active === true &&
+    damageContext.targetCharacterId ===
+    character.id
+){
+
+    damageContext.consumed =
+        true;
+
+    damageContext.active =
+        false;
+
+    damageContext.consumedAt =
+        Date.now();
+
+}
+
 
     markDamageMessageAsApplied(
         damageData.messageId,
@@ -11070,7 +11854,7 @@ function finishDamageApplication(
         application
     );
 
-
+saveTableCampaign();
     cancelDamageTargetSelection();
 
 
@@ -11089,13 +11873,27 @@ function finishDamageApplication(
     );
 
 
-    if(application.damageReduction > 0){
+if(application.damageReduction > 0){
+
+    if(
+        application.usedReactionDamageReduction &&
+        application.reaction === "block"
+    ){
+
+        details.push(
+            `O Bloqueio aplicou RD ${application.damageReduction}, reduzindo o dano para ${application.reducedDamage}.`
+        );
+
+    }
+    else{
 
         details.push(
             `A RD ${application.damageReduction} reduziu o dano para ${application.reducedDamage}.`
         );
 
     }
+
+}
     else{
 
         details.push(
