@@ -1441,6 +1441,22 @@ function closeCurrentPositionModal(){
 
 }
 
+/*==========================================================
+=              HABILIDADES DE REAÇÃO
+==========================================================*/
+
+const ATTACK_REACTION_ABILITY_IDS = [
+
+    "desvio-absoluto",
+
+    "revidar",
+
+    "devolver-ataque",
+
+    "sempre-alerta"
+
+];
+
 
 /*==========================================================
 =                    CENÁRIO
@@ -10099,25 +10115,14 @@ function openAttackReactionAbilityPanel(){
         currentTableCharacter;
 
 
-    const abilities =
-        Array.isArray(
-            character?.abilities
-        )
-            ? character.abilities
-            : [];
+const abilities =
+    getCharacterAcquiredAbilities(
+        character
+    );
 
 
-    const reactionAbilityIds = [
-
-        "desvio-absoluto",
-
-        "revidar",
-
-        "devolver-ataque",
-
-        "sempre-alerta"
-
-    ];
+const reactionAbilityIds =
+    ATTACK_REACTION_ABILITY_IDS;
 
 
     const availableAbilities =
@@ -10135,6 +10140,19 @@ function openAttackReactionAbilityPanel(){
 
             return reactionAbilityIds.includes(
                 abilityId
+            );
+
+        });
+
+        const availableAbilities =
+    abilities
+        .map(
+            normalizeCharacterAbility
+        )
+        .filter(ability => {
+
+            return reactionAbilityIds.includes(
+                ability.id
             );
 
         });
@@ -10208,38 +10226,73 @@ function openAttackReactionAbilityPanel(){
 
             <div class="table-panel-list">
 
-                ${
-                    availableAbilities
-                        .map(ability => `
+${
 
-                            <button
-                                type="button"
-                                class="table-panel-card reaction-ability-choice"
-                                data-ability-id="${escapeTableHTML(
-                                    ability.id ||
-                                    ability.abilityId ||
-                                    ""
-                                )}">
+    availableAbilities
+        .map(ability => {
 
-                                <h3>
-                                    ${escapeTableHTML(
-                                        ability.name ||
-                                        "Habilidade"
-                                    )}
-                                </h3>
+            const paCost =
+                Number(
+                    ability.useCost?.type === "pa"
+                        ? ability.useCost.value
+                        : ability.activationCost?.type === "pa"
+                            ? ability.activationCost.value
+                            : 0
+                ) || 0;
 
-                                <p>
-                                    ${escapeTableHTML(
-                                        ability.description ||
-                                        ""
-                                    )}
-                                </p>
 
-                            </button>
+            const currentPA =
+                Number(
+                    character.status?.paAtual
+                ) || 0;
 
-                        `)
-                        .join("")
-                }
+
+            const unavailable =
+                paCost > currentPA;
+
+
+            return `
+
+                <button
+                    type="button"
+                    class="table-panel-card reaction-ability-choice"
+                    data-ability-id="${escapeTableHTML(
+                        ability.id
+                    )}"
+                    ${unavailable ? "disabled" : ""}>
+
+                    <h3>
+                        ${escapeTableHTML(
+                            ability.name ||
+                            "Habilidade"
+                        )}
+                    </h3>
+
+                    <p>
+                        ${escapeTableHTML(
+                            ability.description ||
+                            ""
+                        )}
+                    </p>
+
+                    <span class="reaction-ability-cost">
+
+                        ${
+                            paCost > 0
+                                ? `${paCost} PA`
+                                : "Sem custo de PA"
+                        }
+
+                    </span>
+
+                </button>
+
+            `;
+
+        })
+        .join("")
+
+}
 
             </div>
 
@@ -10323,6 +10376,140 @@ function showLocalReactionMessage(
 
 }
 
+
+/*==========================================================
+=              HABILIDADES ADQUIRIDAS
+==========================================================*/
+
+function getCharacterAcquiredAbilities(
+    character
+){
+
+    if(!character){
+
+        return [];
+
+    }
+
+
+    const possibleLists = [
+
+        character.abilities,
+
+        character.acquiredAbilities,
+
+        character.systemData
+            ?.abilities
+
+    ];
+
+
+    const abilities =
+        possibleLists.find(
+            list =>
+                Array.isArray(list)
+        ) || [];
+
+
+    return abilities.filter(
+        ability => {
+
+            if(!ability){
+
+                return false;
+
+            }
+
+
+            /*
+                Algumas fichas podem guardar apenas o ID.
+            */
+
+            if(
+                typeof ability ===
+                "string"
+            ){
+
+                return Boolean(
+                    ability.trim()
+                );
+
+            }
+
+
+            return Boolean(
+                ability.id ||
+                ability.abilityId ||
+                ability.name
+            );
+
+        }
+    );
+
+}
+
+/*==========================================================
+=              NORMALIZAR HABILIDADE
+==========================================================*/
+
+function normalizeCharacterAbility(
+    ability
+){
+
+    if(
+        typeof ability ===
+        "string"
+    ){
+
+        const abilityId =
+            ability
+                .trim()
+                .toLowerCase();
+
+
+        const definition =
+            typeof CHARACTER_ABILITIES !==
+            "undefined"
+                ? CHARACTER_ABILITIES.find(
+                    item =>
+                        item.id ===
+                        abilityId
+                )
+                : null;
+
+
+        return definition || {
+
+            id:
+                abilityId,
+
+            name:
+                ability,
+
+            description:
+                ""
+
+        };
+
+    }
+
+
+    return {
+
+        ...ability,
+
+        id:
+            String(
+                ability.id ||
+                ability.abilityId ||
+                ""
+            )
+                .trim()
+                .toLowerCase()
+
+    };
+
+}
 /*==========================================================
 =              ROLAR PRESTEZA DA ESQUIVA
 ==========================================================*/
@@ -10852,12 +11039,10 @@ function openCounterAttackPanel(){
     }
 
 
-    const attacks =
-        Array.isArray(
-            currentTableCharacter.quickAttacks
-        )
-            ? currentTableCharacter.quickAttacks
-            : [];
+const attacks =
+    getCharacterReadyAttacks(
+        currentTableCharacter
+    );
 
 
     const validAttacks =
@@ -10991,10 +11176,14 @@ function rollCounterAttack(
     }
 
 
-    const attack =
+const attacks =
+    getCharacterReadyAttacks(
         currentTableCharacter
-            ?.quickAttacks
-            ?.[attackIndex];
+    );
+
+
+const attack =
+    attacks[attackIndex];
 
 
     if(!attack){
@@ -11004,12 +11193,19 @@ function rollCounterAttack(
     }
 
 
-    const formula =
-        resolveCharacterFormula(
-            attack.roll ||
-            "1d20",
-            currentTableCharacter
-        );
+const rawFormula =
+    attack.attack ||
+    attack.roll ||
+    attack.test ||
+    attack.formula ||
+    "1d20";
+
+
+const formula =
+    resolveCharacterFormula(
+        rawFormula,
+        currentTableCharacter
+    );
 
 
     const result =
@@ -11073,6 +11269,79 @@ function rollCounterAttack(
 
 
     closeCurrentPanel();
+
+}
+
+/*==========================================================
+=              ATAQUES PRONTOS DA FICHA
+==========================================================*/
+
+function getCharacterReadyAttacks(
+    character
+){
+
+    if(!character){
+
+        return [];
+
+    }
+
+
+    const possibleLists = [
+
+        character.quickAttacks,
+
+        character.attacks,
+
+        character.combatAttacks,
+
+        character.attackList
+
+    ];
+
+
+    const attackList =
+        possibleLists.find(
+            list =>
+                Array.isArray(list)
+        ) || [];
+
+
+    return attackList.filter(
+        attack => {
+
+            if(!attack){
+
+                return false;
+
+            }
+
+
+            const name =
+                String(
+                    attack.name ||
+                    attack.title ||
+                    ""
+                ).trim();
+
+
+            const attackFormula =
+                String(
+                    attack.attack ||
+                    attack.roll ||
+                    attack.test ||
+                    attack.formula ||
+                    ""
+                ).trim();
+
+
+            return Boolean(
+                name &&
+                attackFormula
+            );
+
+        }
+    );
 
 }
 
