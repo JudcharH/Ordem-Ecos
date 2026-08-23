@@ -10125,24 +10125,7 @@ const reactionAbilityIds =
     ATTACK_REACTION_ABILITY_IDS;
 
 
-    const availableAbilities =
-        abilities.filter(ability => {
 
-            const abilityId =
-                String(
-                    ability.id ||
-                    ability.abilityId ||
-                    ""
-                )
-                    .trim()
-                    .toLowerCase();
-
-
-            return reactionAbilityIds.includes(
-                abilityId
-            );
-
-        });
 
         const availableAbilities =
     abilities
