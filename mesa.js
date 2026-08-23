@@ -2409,15 +2409,6 @@ function createTableSkillsSummary(
 function refreshOpenCharacterPanel(){
 
     if(
-        currentTableRole !== "player"
-    ){
-
-        return;
-
-    }
-
-
-    if(
         !tablePanelOverlay ||
         tablePanelOverlay
             .classList
@@ -4995,15 +4986,30 @@ else{
 
 }
 
-        tokenSlot.onclick = () => {
+tokenSlot.onclick = event => {
 
-            openOccupiedPosition(
-                type,
-                entity,
-                position
-            );
+    event.stopPropagation();
 
-        };
+
+    if(pendingDamageApplication){
+
+        applyPendingDamageToTarget(
+            type,
+            entity
+        );
+
+        return;
+
+    }
+
+
+    openOccupiedPosition(
+        type,
+        entity,
+        position
+    );
+
+};
 
         return;
 
@@ -9081,6 +9087,73 @@ function createRollChatElement(
         : ""
 }
 
+${
+    message.rollKind === "damage" &&
+    message.applied === true &&
+    message.damageApplication
+        ? `
+
+            <div class="chat-damage-applied">
+
+                <strong>
+                    Dano aplicado
+                </strong>
+
+                <span>
+
+                    Alvo:
+                    ${escapeTableHTML(
+                        message.appliedTarget?.name ||
+                        "Personagem"
+                    )}
+
+                </span>
+
+                <span>
+
+                    ${Number(
+                        message.damageApplication.originalDamage
+                    ) || 0}
+
+                    de dano
+
+                    −
+
+                    ${Number(
+                        message.damageApplication.damageReduction
+                    ) || 0}
+
+                    de RD
+
+                    =
+
+                    ${Number(
+                        message.damageApplication.finalDamage
+                    ) || 0}
+
+                </span>
+
+                <span>
+
+                    PV:
+                    ${Number(
+                        message.damageApplication.pvBefore
+                    ) || 0}
+
+                    →
+
+                    ${Number(
+                        message.damageApplication.pvAfter
+                    ) || 0}
+
+                </span>
+
+            </div>
+
+        `
+        : ""
+}
+
         <span class="chat-message-time">
 
             ${formatPublicChatTime(
@@ -9260,9 +9333,17 @@ function startDamageTargetSelection(
 
 function markDamageTargets(){
 
+    /*
+        Nesta primeira versão, o dano automático
+        funciona somente em personagens jogadores.
+
+        Ameaças terão seus próprios PV de combate
+        dentro da campanha posteriormente.
+    */
+
     document
         .querySelectorAll(
-            ".combat-position.occupied"
+            ".player-position.occupied"
         )
         .forEach(position => {
 
@@ -9272,18 +9353,533 @@ function markDamageTargets(){
 
         });
 
+}
 
-    document
-        .querySelectorAll(
-            ".npc-position.occupied"
-        )
-        .forEach(position => {
+/*==========================================================
+=              APLICAR DANO AO ALVO
+==========================================================*/
 
-            position.classList.add(
-                "damage-target-selectable"
+function applyPendingDamageToTarget(
+    type,
+    entity
+){
+
+    if(!pendingDamageApplication){
+
+        return;
+
+    }
+
+
+    /*
+        Por enquanto apenas personagens.
+    */
+
+    if(
+        type !== "player" ||
+        !entity?.characterId
+    ){
+
+        addLocalDamageNotice(
+            "Nesta etapa, o dano automático só pode ser aplicado em personagens jogadores."
+        );
+
+        return;
+
+    }
+
+
+    const character =
+        getLiveCharacter(
+            entity.characterId
+        );
+
+
+    if(!character){
+
+        addLocalDamageNotice(
+            "Não foi possível encontrar a ficha desse personagem."
+        );
+
+        return;
+
+    }
+
+
+    const lifeMode =
+        character.lifeMode === "body"
+            ? "body"
+            : "classic";
+
+
+    /*
+        O sistema de membros será feito na próxima etapa.
+    */
+
+    if(lifeMode === "body"){
+
+        cancelDamageTargetSelection();
+
+
+        addSystemChatMessage(
+            `${character.name || "O personagem"} utiliza Partes do Corpo. O dano precisa ser distribuído entre os membros.`
+        );
+
+        return;
+
+    }
+
+
+    applyClassicDamageToCharacter(
+        character
+    );
+
+}
+
+/*==========================================================
+=              DANO EM PV CLÁSSICO
+==========================================================*/
+
+function applyClassicDamageToCharacter(
+    character
+){
+
+    if(
+        !character ||
+        !pendingDamageApplication
+    ){
+
+        return;
+
+    }
+
+
+    if(
+        !character.status ||
+        typeof character.status !== "object"
+    ){
+
+        character.status = {};
+
+    }
+
+
+    const originalDamage =
+        Math.max(
+            0,
+            Number(
+                pendingDamageApplication.damage
+            ) || 0
+        );
+
+
+    const damageReduction =
+        Math.max(
+            0,
+            Number(
+                character
+                    .damageReduction
+                    ?.total
+            ) || 0
+        );
+
+
+    const reducedDamage =
+        Math.max(
+            0,
+            originalDamage -
+            damageReduction
+        );
+
+
+    const temporaryPVBefore =
+        Math.max(
+            0,
+            Number(
+                character.status.pvTemp
+            ) || 0
+        );
+
+
+    const currentPVBefore =
+        Math.max(
+            0,
+            Number(
+                character.status.pvAtual
+            ) || 0
+        );
+
+
+    /*
+        PV temporário absorve primeiro.
+    */
+
+    const temporaryAbsorbed =
+        Math.min(
+            temporaryPVBefore,
+            reducedDamage
+        );
+
+
+    const damageAfterTemporary =
+        Math.max(
+            0,
+            reducedDamage -
+            temporaryAbsorbed
+        );
+
+
+    const actualPVLost =
+        Math.min(
+            currentPVBefore,
+            damageAfterTemporary
+        );
+
+
+    character.status.pvTemp =
+        Math.max(
+            0,
+            temporaryPVBefore -
+            temporaryAbsorbed
+        );
+
+
+    character.status.pvAtual =
+        Math.max(
+            0,
+            currentPVBefore -
+            damageAfterTemporary
+        );
+
+
+    const application =
+        {
+
+            originalDamage,
+
+            damageReduction,
+
+            reducedDamage,
+
+            temporaryAbsorbed,
+
+            actualPVLost,
+
+            pvBefore:
+                currentPVBefore,
+
+            pvAfter:
+                character.status.pvAtual,
+
+            temporaryBefore:
+                temporaryPVBefore,
+
+            temporaryAfter:
+                character.status.pvTemp
+
+        };
+
+
+    const saved =
+        saveDamagedCharacter(
+            character
+        );
+
+
+    if(!saved){
+
+        addLocalDamageNotice(
+            "Não foi possível salvar o dano na ficha."
+        );
+
+        return;
+
+    }
+
+
+    finishDamageApplication(
+        character,
+        application
+    );
+
+}
+
+/*==========================================================
+=              SALVAR PERSONAGEM FERIDO
+==========================================================*/
+
+function saveDamagedCharacter(
+    updatedCharacter
+){
+
+    if(!updatedCharacter?.id){
+
+        return false;
+
+    }
+
+
+    let characters = [];
+
+
+    try{
+
+        characters =
+            JSON.parse(
+                localStorage.getItem(
+                    TABLE_CHARACTER_STORAGE
+                ) || "[]"
             );
 
-        });
+    }
+    catch(error){
+
+        console.error(
+            "Erro ao carregar fichas para aplicar dano:",
+            error
+        );
+
+        return false;
+
+    }
+
+
+    if(!Array.isArray(characters)){
+
+        return false;
+
+    }
+
+
+    const characterIndex =
+        characters.findIndex(
+            character =>
+                character.id ===
+                updatedCharacter.id
+        );
+
+
+    if(characterIndex === -1){
+
+        return false;
+
+    }
+
+
+    characters[characterIndex] =
+        updatedCharacter;
+
+
+    tableCharacters =
+        characters;
+
+
+    localStorage.setItem(
+        TABLE_CHARACTER_STORAGE,
+        JSON.stringify(
+            characters
+        )
+    );
+
+
+    if(
+        currentTableCharacter?.id ===
+        updatedCharacter.id
+    ){
+
+        currentTableCharacter =
+            updatedCharacter;
+
+    }
+
+
+    return true;
+
+}
+
+/*==========================================================
+=              FINALIZAR APLICAÇÃO DO DANO
+==========================================================*/
+
+function finishDamageApplication(
+    character,
+    application
+){
+
+    const damageData = {
+        ...pendingDamageApplication
+    };
+
+
+    markDamageMessageAsApplied(
+        damageData.messageId,
+        character,
+        application
+    );
+
+
+    cancelDamageTargetSelection();
+
+
+    refreshCurrentTableCharacter();
+
+    renderCombatPositions();
+
+    refreshOpenCharacterPanel();
+
+
+    const details = [];
+
+
+    details.push(
+        `${damageData.attackName || "Ataque"} causou ${application.originalDamage} de dano em ${character.name || "Personagem"}.`
+    );
+
+
+    if(application.damageReduction > 0){
+
+        details.push(
+            `A RD ${application.damageReduction} reduziu o dano para ${application.reducedDamage}.`
+        );
+
+    }
+    else{
+
+        details.push(
+            "O alvo não possuía RD."
+        );
+
+    }
+
+
+    if(application.temporaryAbsorbed > 0){
+
+        details.push(
+            `${application.temporaryAbsorbed} de dano foi absorvido pelo PV temporário.`
+        );
+
+    }
+
+
+    if(application.actualPVLost > 0){
+
+        details.push(
+            `O alvo perdeu ${application.actualPVLost} PV.`
+        );
+
+    }
+
+
+    if(application.reducedDamage === 0){
+
+        details.push(
+            "Todo o dano foi impedido."
+        );
+
+    }
+
+
+    details.push(
+        `PV atual: ${application.pvAfter}.`
+    );
+
+
+    addSystemChatMessage(
+        details.join(" ")
+    );
+
+}
+
+/*==========================================================
+=              MARCAR DANO COMO APLICADO
+==========================================================*/
+
+function markDamageMessageAsApplied(
+    messageId,
+    targetCharacter,
+    application
+){
+
+    refreshCurrentTableCampaign();
+
+
+    const messages =
+        Array.isArray(
+            currentTableCampaign.chatMessages
+        )
+            ? currentTableCampaign.chatMessages
+            : [];
+
+
+    const message =
+        messages.find(
+            item =>
+                item.id ===
+                messageId
+        );
+
+
+    if(!message){
+
+        return false;
+
+    }
+
+
+    message.applied =
+        true;
+
+
+    message.appliedAt =
+        Date.now();
+
+
+    message.appliedTarget = {
+
+        type:"player",
+
+        characterId:
+            targetCharacter.id,
+
+        name:
+            targetCharacter.name ||
+            "Personagem"
+
+    };
+
+
+    message.damageApplication = {
+
+        originalDamage:
+            application.originalDamage,
+
+        damageReduction:
+            application.damageReduction,
+
+        finalDamage:
+            application.reducedDamage,
+
+        temporaryAbsorbed:
+            application.temporaryAbsorbed,
+
+        pvLost:
+            application.actualPVLost,
+
+        pvBefore:
+            application.pvBefore,
+
+        pvAfter:
+            application.pvAfter
+
+    };
+
+
+    saveTableCampaign();
+
+    renderPublicChat();
+
+
+    return true;
 
 }
 

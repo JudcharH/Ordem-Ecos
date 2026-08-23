@@ -3823,3 +3823,56 @@ font-weight:800;
 cursor:pointer;
 
 }
+
+/*==========================================================
+=              DANO APLICADO NO CHAT
+==========================================================*/
+
+.chat-damage-applied{
+
+display:flex;
+
+flex-direction:column;
+
+gap:3px;
+
+margin-top:8px;
+
+padding:8px 9px;
+
+border-radius:9px;
+
+background:
+rgba(90,25,30,.18);
+
+border:
+1px solid
+rgba(220,70,80,.25);
+
+}
+
+
+.chat-damage-applied strong{
+
+font-size:9px;
+
+font-weight:800;
+
+letter-spacing:.7px;
+
+text-transform:uppercase;
+
+color:#FF999F;
+
+}
+
+
+.chat-damage-applied span{
+
+font-size:10px;
+
+line-height:1.4;
+
+color:var(--text2);
+
+}
