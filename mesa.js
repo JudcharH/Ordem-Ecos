@@ -45,6 +45,8 @@ let lastInitiativeRequestShown = null;
 
 let pendingDamageApplication = null;
 
+let lastAttackReactionShown = null;
+
 /*==========================================================
 =                    ELEMENTOS
 ==========================================================*/
@@ -200,6 +202,8 @@ function initTable(){
     renderPublicChat();
 
     checkInitiativeRequest();
+
+    checkPendingAttackReaction();
 
 }
 
@@ -4991,6 +4995,18 @@ tokenSlot.onclick = event => {
     event.stopPropagation();
 
 
+    if(pendingAttackApplication){
+
+        applyPendingAttackToTarget(
+            type,
+            entity
+        );
+
+        return;
+
+    }
+
+
     if(pendingDamageApplication){
 
         applyPendingDamageToTarget(
@@ -6581,6 +6597,14 @@ document.addEventListener(
             return;
 
         }
+
+        if(pendingAttackApplication){
+
+    cancelAttackTargetSelection();
+
+    return;
+
+}
 
         if(pendingDamageApplication){
 
@@ -8180,6 +8204,8 @@ function refreshTableLiveData(){
 
     checkInitiativeRequest();
 
+    checkPendingAttackReaction();
+
 finalizeInitiativeIfReady();
 
 
@@ -8241,6 +8267,8 @@ function createDefaultCombatState(){
 
     return {
 
+        
+
         active:false,
 
         round:0,
@@ -8251,9 +8279,14 @@ function createDefaultCombatState(){
 
         initiativeRequest:null,
 
+        pendingAttack:null,
+
         updatedAt:Date.now()
+        
 
     };
+
+    
 
 }
 
@@ -8316,6 +8349,12 @@ function initializeCombatState(){
         typeof combat.initiativeRequest === "object"
             ? combat.initiativeRequest
             : null;
+
+            combat.pendingAttack =
+    combat.pendingAttack &&
+    typeof combat.pendingAttack === "object"
+        ? combat.pendingAttack
+        : null;
 
 }
 
@@ -8799,8 +8838,11 @@ function renderPublicChat(){
 
     });
 
+    bindApplyAttackButtons();
+
 bindApplyDamageButtons();
-    scrollTableChat();
+
+scrollTableChat();
 
 }
 
@@ -9068,6 +9110,91 @@ function createRollChatElement(
         </div>
 
         ${
+    message.rollKind === "attack" &&
+    message.applied !== true
+        ? `
+
+            <button
+                type="button"
+                class="chat-apply-attack-button"
+                data-message-id="${escapeTableHTML(
+                    message.id
+                )}">
+
+                Aplicar ataque
+
+            </button>
+
+        `
+        : ""
+}
+
+${
+    message.rollKind === "attack" &&
+    message.applied === true &&
+    message.attackApplication
+        ? `
+
+            <div class="
+                chat-attack-applied
+                ${
+                    message.attackApplication.hit
+                        ? "hit"
+                        : "miss"
+                }
+            ">
+
+                <strong>
+
+                    ${
+                        message.attackApplication.hit
+                            ? "Ataque acertou"
+                            : "Ataque errou"
+                    }
+
+                </strong>
+
+                <span>
+
+                    Alvo:
+                    ${escapeTableHTML(
+                        message.attackApplication.targetName ||
+                        "Personagem"
+                    )}
+
+                </span>
+
+                <span>
+
+                    Ataque:
+                    ${Number(
+                        message.attackApplication.attackResult
+                    ) || 0}
+
+                    • Defesa:
+                    ${Number(
+                        message.attackApplication.finalDefense
+                    ) || 0}
+
+                </span>
+
+                <span>
+
+                    Reação:
+                    ${escapeTableHTML(
+                        message.attackApplication.reaction ||
+                        "guard"
+                    )}
+
+                </span>
+
+            </div>
+
+        `
+        : ""
+}
+
+        ${
     message.rollKind === "damage" &&
     message.applied !== true
         ? `
@@ -9166,6 +9293,1232 @@ ${
 
 
     return element;
+
+}
+
+/*==========================================================
+=              BOTÃO APLICAR ATAQUE
+==========================================================*/
+
+function bindApplyAttackButtons(){
+
+    document
+        .querySelectorAll(
+            ".chat-apply-attack-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    startAttackTargetSelection(
+                        button.dataset.messageId
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+/*==========================================================
+=              INICIAR SELEÇÃO DE ATAQUE
+==========================================================*/
+
+function startAttackTargetSelection(
+    messageId
+){
+
+    refreshCurrentTableCampaign();
+
+
+    const messages =
+        Array.isArray(
+            currentTableCampaign
+                .chatMessages
+        )
+            ? currentTableCampaign
+                .chatMessages
+            : [];
+
+
+    const message =
+        messages.find(
+            item =>
+                item.id === messageId
+        );
+
+
+    if(!message){
+
+        addSystemChatMessage(
+            "A rolagem de ataque não foi encontrada."
+        );
+
+        return;
+
+    }
+
+
+    if(
+        message.rollKind !== "attack"
+    ){
+
+        return;
+
+    }
+
+
+    if(message.applied === true){
+
+        addSystemChatMessage(
+            "Esse ataque já foi aplicado."
+        );
+
+        return;
+
+    }
+
+
+    /*
+        Impede outro jogador de usar a rolagem.
+        O mestre pode controlar qualquer ataque.
+    */
+
+    if(
+        currentTableRole !== "master" &&
+        message.characterId !==
+        currentTableCharacter?.id
+    ){
+
+        addSystemChatMessage(
+            "Você não pode aplicar o ataque de outro personagem."
+        );
+
+        return;
+
+    }
+
+
+    pendingAttackApplication = {
+
+        messageId:
+            message.id,
+
+        attackResult:
+            Math.max(
+                0,
+                Number(
+                    message.total
+                ) || 0
+            ),
+
+        attackName:
+            message.attackName ||
+            "Ataque",
+
+        attackIndex:
+            message.attackIndex ??
+            null,
+
+        attackerCharacterId:
+            message.characterId ||
+            null,
+
+        attackerName:
+            message.author ||
+            "Atacante"
+
+    };
+
+
+    document
+        .querySelector(
+            ".table-play-area"
+        )
+        ?.classList
+        .add(
+            "selecting-attack-target"
+        );
+
+
+    markAttackTargets();
+
+
+    addLocalAttackNotice(
+        `Selecione quem será atacado por ${pendingAttackApplication.attackName}.`
+    );
+
+}
+
+/*==========================================================
+=              MARCAR ALVOS DE ATAQUE
+==========================================================*/
+
+function markAttackTargets(){
+
+    document
+        .querySelectorAll(
+            ".player-position.occupied"
+        )
+        .forEach(position => {
+
+            position.classList.add(
+                "attack-target-selectable"
+            );
+
+        });
+
+}
+
+/*==========================================================
+=              AVISO LOCAL DO ATAQUE
+==========================================================*/
+
+function addLocalAttackNotice(
+    text
+){
+
+    document
+        .querySelector(
+            ".attack-selection-notice"
+        )
+        ?.remove();
+
+
+    const notice =
+        document.createElement(
+            "div"
+        );
+
+
+    notice.className =
+        "attack-selection-notice";
+
+
+    notice.innerHTML = `
+
+        <strong>
+            Aplicar ataque
+        </strong>
+
+        <span>
+
+            ${escapeTableHTML(
+                text
+            )}
+
+        </span>
+
+        <button
+            type="button"
+            class="attack-selection-cancel">
+
+            Cancelar
+
+        </button>
+
+    `;
+
+
+    document.body.appendChild(
+        notice
+    );
+
+
+    notice
+        .querySelector(
+            ".attack-selection-cancel"
+        )
+        ?.addEventListener(
+            "click",
+            cancelAttackTargetSelection
+        );
+
+}
+
+/*==========================================================
+=              CANCELAR SELEÇÃO DE ATAQUE
+==========================================================*/
+
+function cancelAttackTargetSelection(){
+
+    pendingAttackApplication =
+        null;
+
+
+    document
+        .querySelector(
+            ".table-play-area"
+        )
+        ?.classList
+        .remove(
+            "selecting-attack-target"
+        );
+
+
+    document
+        .querySelectorAll(
+            ".attack-target-selectable"
+        )
+        .forEach(element => {
+
+            element.classList.remove(
+                "attack-target-selectable"
+            );
+
+        });
+
+
+    document
+        .querySelector(
+            ".attack-selection-notice"
+        )
+        ?.remove();
+
+}
+
+/*==========================================================
+=              APLICAR ATAQUE AO ALVO
+==========================================================*/
+
+function applyPendingAttackToTarget(
+    type,
+    entity
+){
+
+    if(!pendingAttackApplication){
+
+        return;
+
+    }
+
+
+    if(
+        type !== "player" ||
+        !entity?.characterId
+    ){
+
+        addLocalAttackNotice(
+            "Nesta etapa, ataques automáticos só podem selecionar personagens."
+        );
+
+        return;
+
+    }
+
+
+    const targetCharacter =
+        getLiveCharacter(
+            entity.characterId
+        );
+
+
+    if(!targetCharacter){
+
+        addLocalAttackNotice(
+            "A ficha do alvo não foi encontrada."
+        );
+
+        return;
+
+    }
+
+
+    /*
+        Impede atacar a própria ficha por engano.
+        Remova esta verificação futuramente se quiser
+        permitir ataques próprios.
+    */
+
+    if(
+        pendingAttackApplication
+            .attackerCharacterId &&
+        pendingAttackApplication
+            .attackerCharacterId ===
+        targetCharacter.id
+    ){
+
+        addLocalAttackNotice(
+            "Escolha outro personagem como alvo."
+        );
+
+        return;
+
+    }
+
+
+    createAttackReactionRequest(
+        targetCharacter
+    );
+
+}
+
+/*==========================================================
+=              CRIAR PEDIDO DE REAÇÃO
+==========================================================*/
+
+function createAttackReactionRequest(
+    targetCharacter
+){
+
+    if(
+        !pendingAttackApplication ||
+        !currentTableCampaign
+    ){
+
+        return;
+
+    }
+
+
+    if(
+        !currentTableCampaign.combat ||
+        typeof currentTableCampaign.combat !==
+        "object"
+    ){
+
+        currentTableCampaign.combat =
+            createDefaultCombatState();
+
+    }
+
+
+    const requestId =
+        `attack_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2,8)}`;
+
+
+    currentTableCampaign
+        .combat
+        .pendingAttack = {
+
+            id:
+                requestId,
+
+            active:
+                true,
+
+            messageId:
+                pendingAttackApplication
+                    .messageId,
+
+            attackName:
+                pendingAttackApplication
+                    .attackName,
+
+            attackResult:
+                pendingAttackApplication
+                    .attackResult,
+
+            attackIndex:
+                pendingAttackApplication
+                    .attackIndex,
+
+            attackerCharacterId:
+                pendingAttackApplication
+                    .attackerCharacterId,
+
+            attackerName:
+                pendingAttackApplication
+                    .attackerName,
+
+            targetCharacterId:
+                targetCharacter.id,
+
+            targetName:
+                targetCharacter.name ||
+                "Alvo",
+
+            reaction:
+                null,
+
+            resolved:
+                false,
+
+            createdAt:
+                Date.now()
+
+        };
+
+const attackerName =
+    pendingAttackApplication
+        .attackerName ||
+    "O atacante";
+
+
+saveTableCampaign();
+
+cancelAttackTargetSelection();
+
+
+addSystemChatMessage(
+    `${attackerName} atacou ${targetCharacter.name || "o alvo"}. Aguardando reação.`
+);
+
+
+checkPendingAttackReaction();
+
+}
+
+/*==========================================================
+=              VERIFICAR REAÇÃO PENDENTE
+==========================================================*/
+
+function checkPendingAttackReaction(){
+
+    if(
+        currentTableRole !== "player" ||
+        !currentTableCharacter ||
+        !currentTableCampaign
+    ){
+
+        return;
+
+    }
+
+
+    const request =
+        currentTableCampaign
+            .combat
+            ?.pendingAttack;
+
+
+    if(
+        !request ||
+        request.active !== true ||
+        request.resolved === true
+    ){
+
+        return;
+
+    }
+
+
+    if(
+        request.targetCharacterId !==
+        currentTableCharacter.id
+    ){
+
+        return;
+
+    }
+
+
+    if(request.reaction){
+
+        return;
+
+    }
+
+
+    if(
+        lastAttackReactionShown ===
+        request.id
+    ){
+
+        return;
+
+    }
+
+
+    lastAttackReactionShown =
+        request.id;
+
+
+    openAttackReactionPanel(
+        request
+    );
+
+}
+
+/*==========================================================
+=              PAINEL DE REAÇÃO
+==========================================================*/
+
+function openAttackReactionPanel(
+    request
+){
+
+    refreshCurrentTableCharacter();
+
+
+    const character =
+        currentTableCharacter;
+
+
+    const currentPA =
+        Math.max(
+            0,
+            Number(
+                character.status?.paAtual
+            ) || 0
+        );
+
+
+    const defense =
+        Math.max(
+            0,
+            Number(
+                character.defense?.total
+            ) || 0
+        );
+
+
+    const rd =
+        Math.max(
+            0,
+            Number(
+                character.damageReduction?.total
+            ) || 0
+        );
+
+
+    const vig =
+        Math.max(
+            0,
+            Number(
+                character.attributes?.vig
+            ) || 0
+        );
+
+
+    openTablePanel(
+        "REAÇÃO",
+        "Você foi atacado",
+        `
+
+        <div class="table-panel-section">
+
+            <div class="table-panel-card attack-reaction-summary">
+
+                <h3>
+
+                    ${escapeTableHTML(
+                        request.attackerName ||
+                        "Atacante"
+                    )}
+
+                </h3>
+
+                <p>
+
+                    Ataque:
+                    <strong>
+
+                        ${escapeTableHTML(
+                            request.attackName ||
+                            "Ataque"
+                        )}
+
+                    </strong>
+
+                </p>
+
+                <p>
+
+                    Resultado do ataque:
+                    <strong>
+
+                        ${Number(
+                            request.attackResult
+                        ) || 0}
+
+                    </strong>
+
+                </p>
+
+                <p>
+
+                    Sua Defesa:
+                    <strong>
+                        ${defense}
+                    </strong>
+
+                </p>
+
+                <p>
+
+                    Seu PA:
+                    <strong>
+                        ${currentPA}
+                    </strong>
+
+                </p>
+
+            </div>
+
+
+            <div class="attack-reaction-grid">
+
+                <button
+                    type="button"
+                    class="attack-reaction-button"
+                    data-reaction="dodge"
+                    ${currentPA < 1 ? "disabled" : ""}>
+
+                    <strong>
+                        Esquivar
+                    </strong>
+
+                    <span>
+                        1 PA • soma Presteza à Defesa
+                    </span>
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="attack-reaction-button"
+                    data-reaction="block"
+                    ${currentPA < 1 ? "disabled" : ""}>
+
+                    <strong>
+                        Bloquear
+                    </strong>
+
+                    <span>
+                        1 PA • RD ${rd} + VIG ${vig}
+                    </span>
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="attack-reaction-button"
+                    data-reaction="guard">
+
+                    <strong>
+                        Guardar
+                    </strong>
+
+                    <span>
+                        Não gasta PA
+                    </span>
+
+                </button>
+
+            </div>
+
+        </div>
+
+        `
+    );
+
+
+    document
+        .querySelectorAll(
+            ".attack-reaction-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    answerAttackReaction(
+                        button.dataset.reaction
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+/*==========================================================
+=              ROLAR PRESTEZA DA ESQUIVA
+==========================================================*/
+
+function rollDodgeReadiness(
+    character
+){
+
+    const readiness =
+        getCharacterReadinessSkill(
+            character
+        );
+
+
+    if(!readiness){
+
+        return {
+
+            total:0,
+
+            formula:"Sem treino",
+
+            detail:"0"
+
+        };
+
+    }
+
+
+    const trainingFormula =
+        readiness.training &&
+        readiness.training !== "0"
+            ? readiness.training
+            : "0";
+
+
+    const trainingRoll =
+        rollDiceExpression(
+            trainingFormula
+        );
+
+
+    const trainingValue =
+        trainingRoll?.total || 0;
+
+
+    const modifier =
+        (
+            Number(
+                readiness.bonus
+            ) || 0
+        )
+        +
+        (
+            Number(
+                readiness.penalty
+            ) || 0
+        )
+        +
+        getTableSkillConditionModifier(
+            character,
+            readiness
+        );
+
+
+    return {
+
+        total:
+            trainingValue +
+            modifier,
+
+        formula:
+            trainingFormula,
+
+        detail:
+            `${trainingValue}${modifier ? ` ${modifier >= 0 ? "+" : ""}${modifier}` : ""}`
+
+    };
+
+}
+
+/*==========================================================
+=              RESPONDER ATAQUE
+==========================================================*/
+
+function answerAttackReaction(
+    reactionType
+){
+
+    refreshCurrentTableCampaign();
+
+    refreshCurrentTableCharacter();
+
+
+    const request =
+        currentTableCampaign
+            .combat
+            ?.pendingAttack;
+
+
+    const character =
+        currentTableCharacter;
+
+
+    if(
+        !request ||
+        !character ||
+        request.targetCharacterId !==
+        character.id ||
+        request.resolved === true
+    ){
+
+        closeCurrentPanel();
+
+        return;
+
+    }
+
+
+    if(
+        !character.status ||
+        typeof character.status !== "object"
+    ){
+
+        character.status = {};
+
+    }
+
+
+    const baseDefense =
+        Math.max(
+            0,
+            Number(
+                character.defense?.total
+            ) || 0
+        );
+
+
+    const baseRD =
+        Math.max(
+            0,
+            Number(
+                character
+                    .damageReduction
+                    ?.total
+            ) || 0
+        );
+
+
+    const currentPA =
+        Math.max(
+            0,
+            Number(
+                character.status.paAtual
+            ) || 0
+        );
+
+
+    let paCost = 0;
+
+    let finalDefense =
+        baseDefense;
+
+    let reactionRD =
+        baseRD;
+
+    let readinessResult =
+        null;
+
+
+    if(reactionType === "dodge"){
+
+        paCost = 1;
+
+
+        if(currentPA < paCost){
+
+            addSystemChatMessage(
+                `${character.name} não possui PA suficiente para Esquivar.`
+            );
+
+            return;
+
+        }
+
+
+        readinessResult =
+            rollDodgeReadiness(
+                character
+            );
+
+
+        finalDefense +=
+            readinessResult.total;
+
+    }
+    else if(reactionType === "block"){
+
+        paCost = 1;
+
+
+        if(currentPA < paCost){
+
+            addSystemChatMessage(
+                `${character.name} não possui PA suficiente para Bloquear.`
+            );
+
+            return;
+
+        }
+
+
+        reactionRD +=
+            Math.max(
+                0,
+                Number(
+                    character.attributes?.vig
+                ) || 0
+            );
+
+    }
+    else{
+
+        reactionType =
+            "guard";
+
+        paCost =
+            0;
+
+    }
+
+
+    character.status.paAtual =
+        Math.max(
+            0,
+            currentPA -
+            paCost
+        );
+
+
+    saveDamagedCharacter(
+        character
+    );
+
+
+    request.reaction = {
+
+        type:
+            reactionType,
+
+        paCost,
+
+        baseDefense,
+
+        finalDefense,
+
+        baseRD,
+
+        reactionRD,
+
+        readiness:
+            readinessResult,
+
+        answeredAt:
+            Date.now()
+
+    };
+
+
+    request.resolved =
+        true;
+
+
+    request.active =
+        false;
+
+
+    /*
+        Empate pertence ao atacante.
+    */
+
+    request.hit =
+        Number(
+            request.attackResult
+        ) >=
+        finalDefense;
+
+
+    request.updatedAt =
+        Date.now();
+
+
+    currentTableCampaign
+        .combat
+        .updatedAt =
+        Date.now();
+
+
+    markAttackMessageAsApplied(
+        request
+    );
+
+
+    saveTableCampaign();
+
+
+    closeCurrentPanel();
+
+
+    refreshCurrentTableCharacter();
+
+    refreshOpenCharacterPanel();
+
+    renderPublicChat();
+
+
+    publishAttackResult(
+        request,
+        character
+    );
+
+}
+
+/*==========================================================
+=              MARCAR ATAQUE COMO APLICADO
+==========================================================*/
+
+function markAttackMessageAsApplied(
+    request
+){
+
+    const messages =
+        Array.isArray(
+            currentTableCampaign
+                .chatMessages
+        )
+            ? currentTableCampaign
+                .chatMessages
+            : [];
+
+
+    const message =
+        messages.find(
+            item =>
+                item.id ===
+                request.messageId
+        );
+
+
+    if(!message){
+
+        return false;
+
+    }
+
+
+    message.applied =
+        true;
+
+
+    message.appliedAt =
+        Date.now();
+
+
+    message.attackApplication = {
+
+        requestId:
+            request.id,
+
+        targetCharacterId:
+            request.targetCharacterId,
+
+        targetName:
+            request.targetName,
+
+        attackResult:
+            Number(
+                request.attackResult
+            ) || 0,
+
+        reaction:
+            request.reaction?.type ||
+            "guard",
+
+        baseDefense:
+            request.reaction
+                ?.baseDefense || 0,
+
+        finalDefense:
+            request.reaction
+                ?.finalDefense || 0,
+
+        reactionRD:
+            request.reaction
+                ?.reactionRD || 0,
+
+        paCost:
+            request.reaction
+                ?.paCost || 0,
+
+        hit:
+            Boolean(
+                request.hit
+            )
+
+    };
+
+
+    return true;
+
+}
+
+/*==========================================================
+=              RESULTADO DO ATAQUE
+==========================================================*/
+
+function publishAttackResult(
+    request,
+    targetCharacter
+){
+
+    const reactionNames = {
+
+        dodge:
+            "Esquivar",
+
+        block:
+            "Bloquear",
+
+        guard:
+            "Guardar"
+
+    };
+
+
+    const reactionName =
+        reactionNames[
+            request.reaction?.type
+        ] ||
+        "Guardar";
+
+
+    const attackResult =
+        Number(
+            request.attackResult
+        ) || 0;
+
+
+    const defense =
+        Number(
+            request.reaction
+                ?.finalDefense
+        ) || 0;
+
+
+    const hit =
+        request.hit === true;
+
+
+    const parts = [
+
+        `${targetCharacter.name || "O alvo"} escolheu ${reactionName}.`,
+
+        `Ataque ${attackResult} contra Defesa ${defense}.`,
+
+        hit
+            ? "O ataque acertou."
+            : "O ataque errou."
+
+    ];
+
+
+    if(
+        request.reaction?.type ===
+        "block"
+    ){
+
+        parts.push(
+            `Se houver dano, a RD deste ataque será ${request.reaction.reactionRD}.`
+        );
+
+    }
+
+
+    addSystemChatMessage(
+        parts.join(" ")
+    );
 
 }
 

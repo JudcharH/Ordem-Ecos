@@ -3876,3 +3876,356 @@ line-height:1.4;
 color:var(--text2);
 
 }
+
+/*==========================================================
+=              APLICAR ATAQUE
+==========================================================*/
+
+.chat-apply-attack-button{
+
+width:100%;
+min-height:30px;
+
+margin-top:8px;
+padding:6px 10px;
+
+border-radius:9px;
+
+background:
+rgba(90,65,170,.22);
+
+border:
+1px solid
+rgba(150,105,255,.45);
+
+color:#E5D4FF;
+
+font-size:10px;
+font-weight:800;
+
+cursor:pointer;
+
+transition:.2s;
+
+}
+
+
+.chat-apply-attack-button:hover{
+
+background:
+rgba(120,70,210,.42);
+
+border-color:
+#B986FF;
+
+color:white;
+
+}
+
+
+.attack-target-selectable
+.position-token-slot{
+
+cursor:crosshair;
+
+border:
+3px solid
+#B174FF !important;
+
+box-shadow:
+0 0 16px
+rgba(165,95,255,.95),
+0 0 35px
+rgba(100,35,190,.70) !important;
+
+animation:
+attackTargetPulse
+.8s ease-in-out
+infinite alternate;
+
+}
+
+
+@keyframes attackTargetPulse{
+
+from{
+
+filter:brightness(1);
+
+}
+
+to{
+
+filter:brightness(1.4);
+
+transform:scale(1.08);
+
+}
+
+}
+
+
+.attack-selection-notice{
+
+position:fixed;
+
+left:50%;
+top:18px;
+
+transform:
+translateX(-50%);
+
+z-index:3000;
+
+min-width:
+min(440px,calc(100vw - 30px));
+
+display:grid;
+
+grid-template-columns:
+auto minmax(0,1fr) auto;
+
+align-items:center;
+
+gap:12px;
+
+padding:11px 14px;
+
+border-radius:14px;
+
+background:
+rgba(20,13,31,.97);
+
+border:
+1px solid
+rgba(175,105,255,.58);
+
+box-shadow:
+0 0 30px
+rgba(105,40,190,.40);
+
+color:white;
+
+}
+
+
+.attack-selection-notice strong{
+
+font-family:
+'Orbitron',
+sans-serif;
+
+font-size:11px;
+
+color:#CDA6FF;
+
+}
+
+
+.attack-selection-notice span{
+
+font-size:11px;
+
+color:var(--text2);
+
+}
+
+
+.attack-selection-cancel{
+
+height:30px;
+
+padding:0 10px;
+
+border-radius:8px;
+
+background:#291B3C;
+
+border:1px solid #64408C;
+
+color:#E4CEFF;
+
+font-size:10px;
+font-weight:800;
+
+cursor:pointer;
+
+}
+
+
+/*==========================================================
+=              REAÇÕES
+==========================================================*/
+
+.attack-reaction-grid{
+
+display:grid;
+
+grid-template-columns:1fr;
+
+gap:10px;
+
+}
+
+
+.attack-reaction-button{
+
+min-height:66px;
+
+display:flex;
+
+flex-direction:column;
+
+align-items:flex-start;
+
+justify-content:center;
+
+gap:5px;
+
+padding:12px 14px;
+
+border-radius:13px;
+
+background:#191922;
+
+border:
+1px solid
+var(--border);
+
+color:white;
+
+text-align:left;
+
+cursor:pointer;
+
+transition:.2s;
+
+}
+
+
+.attack-reaction-button:hover:not(:disabled){
+
+transform:
+translateY(-2px);
+
+background:#251542;
+
+border-color:
+var(--primary);
+
+}
+
+
+.attack-reaction-button:disabled{
+
+opacity:.42;
+
+cursor:not-allowed;
+
+}
+
+
+.attack-reaction-button strong{
+
+font-family:
+'Orbitron',
+sans-serif;
+
+font-size:12px;
+
+}
+
+
+.attack-reaction-button span{
+
+font-size:10px;
+
+line-height:1.4;
+
+color:
+var(--text2);
+
+}
+
+
+/*==========================================================
+=              RESULTADO DO ATAQUE
+==========================================================*/
+
+.chat-attack-applied{
+
+display:flex;
+
+flex-direction:column;
+
+gap:3px;
+
+margin-top:8px;
+
+padding:8px 9px;
+
+border-radius:9px;
+
+}
+
+
+.chat-attack-applied.hit{
+
+background:
+rgba(120,35,40,.16);
+
+border:
+1px solid
+rgba(230,75,85,.28);
+
+}
+
+
+.chat-attack-applied.miss{
+
+background:
+rgba(35,95,135,.16);
+
+border:
+1px solid
+rgba(75,150,205,.28);
+
+}
+
+
+.chat-attack-applied strong{
+
+font-size:9px;
+
+font-weight:800;
+
+letter-spacing:.7px;
+
+text-transform:uppercase;
+
+}
+
+
+.chat-attack-applied.hit strong{
+
+color:#FF999F;
+
+}
+
+
+.chat-attack-applied.miss strong{
+
+color:#9ED5FF;
+
+}
+
+
+.chat-attack-applied span{
+
+font-size:10px;
+
+line-height:1.4;
+
+color:var(--text2);
+
+}
