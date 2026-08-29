@@ -517,3 +517,47 @@ function areRPGSystemsCompatible(
     );
 
 }
+
+
+/*==========================================================
+=       CARREGAR EXTENSÕES EXCLUSIVAS DA MESA
+==========================================================*/
+
+window.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        if(
+            !document.querySelector(
+                ".table-app"
+            )
+        ){
+            return;
+        }
+
+        if(
+            document.querySelector(
+                'script[data-table-reactions="true"]'
+            )
+        ){
+            return;
+        }
+
+        const script =
+            document.createElement("script");
+
+        script.src =
+            "mesa-reacoes.js";
+
+        script.async =
+            false;
+
+        script.dataset.tableReactions =
+            "true";
+
+        document.body.appendChild(
+            script
+        );
+
+    }
+);
