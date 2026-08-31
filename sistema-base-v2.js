@@ -48,20 +48,6 @@ function getEditingCharacter(){
     catch{return null;}
 }
 
-function normalizeDefenseAttribute(value){
-    return String(value||"corpo").trim().toLowerCase()==="foco"
-        ? "foco"
-        : "corpo";
-}
-
-function getDefenseAttribute(character=null){
-    return normalizeDefenseAttribute(
-        character?.combatConfig?.defenseAttribute||
-        character?.defenseAttribute||
-        "corpo"
-    );
-}
-
 function loadNewAttributes(){
     const character=getEditingCharacter();
     if(!character) return;
@@ -83,12 +69,24 @@ function calculateSystemBaseStats(){
     const corpo=Math.max(0,numberValue("attributeFOR",1));
     const foco=Math.max(0,numberValue("attributeAGI",1));
 
-    const character=getEditingCharacter();
-    const defenseAttribute=getDefenseAttribute(character);
-    const defenseAttributeValue=defenseAttribute==="foco"?foco:corpo;
+    /*
+        Progressão linear:
+        Nível 1: 7 + Corpo PV / 4 + Foco PM
+        Cada nível adicional: +7 PV / +4 PM
+        Aumentar Corpo ou Foco acrescenta apenas +1 ao máximo.
+    */
+    const pvMax=(7*level)+corpo;
+    const pmMax=(4*level)+foco;
 
-    const pvMax=(7+corpo)*level;
-    const pmMax=(4+foco)*level;
+    const editingCharacter=getEditingCharacter();
+    const configuredDefenseAttribute=
+        editingCharacter?.combatConfig?.defenseAttribute||"corpo";
+
+    const defenseAttributeValue=
+        configuredDefenseAttribute==="foco"
+            ? foco
+            : corpo;
+
     const defenseBase=5+defenseAttributeValue;
 
     setValue("characterPVMax",pvMax);
@@ -148,7 +146,8 @@ function migrateCharacterData(character){
 
     character.combatConfig={
         ...(character.combatConfig||{}),
-        defenseAttribute:getDefenseAttribute(character)
+        defenseAttribute:
+            character.combatConfig?.defenseAttribute||"corpo"
     };
 
     character.systemVersion=2;
@@ -207,5 +206,4 @@ else{
 
 window.calculateSystemBaseV2Stats=calculateSystemBaseStats;
 window.migrateSystemBaseV2Character=migrateCharacterData;
-window.getSystemBaseDefenseAttribute=getDefenseAttribute;
 })();
