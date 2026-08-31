@@ -109,7 +109,7 @@ function updateSummary(){
     summary.innerHTML=`<strong>Perícias treinadas: ${used} / ${limit}</strong>`;
 }
 
-function showSkillToast(title,detail,result=null){
+function showSkillToast(title,detail,result=null,critical=false){
     let toast=document.getElementById("systemV2SkillToast");
     if(!toast){
         toast=document.createElement("div");
@@ -119,10 +119,11 @@ function showSkillToast(title,detail,result=null){
         toast.addEventListener("click",()=>toast.classList.remove("visible"));
     }
 
+    toast.classList.toggle("critical",critical);
     toast.innerHTML=`
-        <span class="system-v2-skill-toast-icon">🎲</span>
+        <span class="system-v2-skill-toast-icon">${critical?"⭐":"🎲"}</span>
         <div>
-            <strong>${title}</strong>
+            <strong>${title}${critical?" — CRÍTICO":""}</strong>
             <p>${detail}</p>
             ${result===null?"":`<b>Total: ${result}</b>`}
         </div>
@@ -149,15 +150,18 @@ function rollSkill(row,event){
     const baseRoll=rollDie(12);
     const trainingSides=parseTraining(training);
     const trainingRoll=trainingSides?rollDie(trainingSides):0;
-    const result=baseRoll+trainingRoll+attributeValue+bonus-penalty;
+    const critical=baseRoll===12;
+    const criticalTrainingRoll=critical&&trainingSides?rollDie(trainingSides):0;
+    const result=baseRoll+trainingRoll+criticalTrainingRoll+attributeValue+bonus-penalty;
 
-    const parts=[`1d12: ${baseRoll}`];
+    const parts=[`d12 principal: ${baseRoll}${critical?" ⭐":""}`];
     if(trainingSides) parts.push(`${trainingLabel(training)}: ${trainingRoll}`);
+    if(criticalTrainingRoll) parts.push(`Treino extra do crítico (1d${trainingSides}): ${criticalTrainingRoll}`);
     parts.push(`${attribute.toUpperCase()}: +${attributeValue}`);
     if(bonus) parts.push(`Bônus: +${bonus}`);
     if(penalty) parts.push(`Penalidade: -${penalty}`);
 
-    showSkillToast(name,parts.join(" • "),result);
+    showSkillToast(name,parts.join(" • "),result,critical);
 }
 
 function enforceTrainingLimit(changedSelect,previousValue){
@@ -202,6 +206,7 @@ function adjustSkillsTable(){
             transform:translate(-50%,18px) scale(.97);
             transition:.22s ease;
         }
+        .system-v2-skill-toast.critical{border-color:rgba(255,210,80,.75);box-shadow:0 16px 45px rgba(0,0,0,.45),0 0 28px rgba(255,190,40,.22);}
         .system-v2-skill-toast.visible{opacity:1;pointer-events:auto;transform:translate(-50%,0) scale(1);}
         .system-v2-skill-toast-icon{font-size:24px;line-height:1;}
         .system-v2-skill-toast strong{display:block;font-family:'Orbitron',sans-serif;font-size:14px;margin-bottom:5px;}
@@ -280,7 +285,10 @@ function collectSkills(){
         training:row.querySelector(".system-v2-skill-training")?.value||"0",
         bonus:Number(row.querySelector(".system-v2-skill-bonus")?.value)||0,
         penalty:Math.max(0,Number(row.querySelector(".system-v2-skill-penalty")?.value)||0),
-        rollBase:"1d12"
+        rollBase:"1d12",
+        criticalOn:12,
+        criticalDie:"main",
+        criticalEffect:"roll-training-again"
     }));
 }
 
@@ -342,12 +350,22 @@ function observeLegacyRerenders(){
     skillsObserver.observe(list,{childList:true});
 }
 
+function loadQuickAttacksModule(){
+    if(document.querySelector('script[data-system-v2-attacks="true"]')) return;
+    const script=document.createElement("script");
+    script.src="sistema-base-ataques.js";
+    script.async=false;
+    script.dataset.systemV2Attacks="true";
+    document.body.appendChild(script);
+}
+
 function init(){
     if(!document.querySelector(".character-editor-page")) return;
     renderSkills();
     patchCharacterMigration();
     bindAttributeUpdates();
     observeLegacyRerenders();
+    loadQuickAttacksModule();
 }
 
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",()=>setTimeout(init,0));
