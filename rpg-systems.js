@@ -34,4 +34,5 @@ window.addEventListener("DOMContentLoaded",()=>{
     loadPageExtension("sistema-base-habilidades-nomes.js","system-base-ability-names",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
     loadPageExtension("grimorio-v2.js","grimoire-v2",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
     loadPageExtension("grimorio-editor-wizard.js","grimoire-editor-wizard",()=>Boolean(document.querySelector(".character-editor-page")));
+    loadPageExtension("grimorio-v25.js","grimoire-v25",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
 });
