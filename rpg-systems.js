@@ -111,4 +111,5 @@ function loadPageExtension(src,dataKey,guard){
 window.addEventListener("DOMContentLoaded",()=>{
     loadPageExtension("mesa-reacoes.js","table-reactions",()=>Boolean(document.querySelector(".table-app")));
     loadPageExtension("sistema-base-v2.js","system-base-v2",()=>Boolean(document.querySelector(".character-editor-page")));
+    loadPageExtension("sistema-base-habilidades-nomes.js","system-base-ability-names",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
 });
