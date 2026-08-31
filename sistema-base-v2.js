@@ -72,6 +72,64 @@ function calculateBodyPartMax(basePerLevel,level,corpo){
     return (basePerLevel*level)+corpo;
 }
 
+function getBodyMaximums(level,corpo){
+    return {
+        head:calculateBodyPartMax(1,level,corpo),
+        chest:calculateBodyPartMax(2,level,corpo),
+        leftArm:calculateBodyPartMax(1,level,corpo),
+        rightArm:calculateBodyPartMax(1,level,corpo),
+        leftLeg:calculateBodyPartMax(1,level,corpo),
+        rightLeg:calculateBodyPartMax(1,level,corpo)
+    };
+}
+
+function applyBodyPartMaximums(level,corpo){
+    const maximums=getBodyMaximums(level,corpo);
+    const inputIds={
+        head:"bodyHead",
+        chest:"bodyChest",
+        leftArm:"bodyLeftArm",
+        rightArm:"bodyRightArm",
+        leftLeg:"bodyLeftLeg",
+        rightLeg:"bodyRightLeg"
+    };
+
+    Object.entries(inputIds).forEach(([partName,inputId])=>{
+        const input=document.getElementById(inputId);
+        if(!input) return;
+
+        const state=(typeof characterBodyState!=="undefined")
+            ? characterBodyState?.[partName]
+            : null;
+
+        if(state?.type&&state.type!=="natural") return;
+
+        const maximum=maximums[partName];
+        const current=Number(input.value);
+
+        input.dataset.max=String(maximum);
+        input.max=String(maximum);
+
+        /*
+            O campo representa o PV atual. Não deve ser preenchido novamente
+            toda vez que nível ou Corpo mudarem. Apenas inicializamos campos
+            vazios e impedimos que o atual fique acima do novo máximo.
+        */
+        if(!Number.isFinite(current)||input.value===""){
+            input.value=String(maximum);
+        }
+        else if(current>maximum){
+            input.value=String(maximum);
+        }
+
+        input.dataset.initialized="true";
+    });
+
+    if(typeof renderBodyStates==="function"){
+        renderBodyStates();
+    }
+}
+
 function calculateSystemBaseStats(){
     const level=Math.max(1,numberValue("characterLevel",1));
     const corpo=Math.max(0,numberValue("attributeFOR",1));
@@ -92,23 +150,11 @@ function calculateSystemBaseStats(){
     setValue("characterDefense",Math.max(0,defenseBase+defenseBonus));
 
     /*
-        PV por membros segue a mesma progressão linear do PV clássico:
-        valor inicial do membro × nível + Corpo.
-
-        Cabeça e torso: 2 por nível + Corpo.
-        Braços e pernas: 1 por nível + Corpo.
+        PV máximo por membros:
+        Cabeça, braços e pernas: (1 × nível) + Corpo.
+        Torso: (2 × nível) + Corpo.
     */
-    const headMax=calculateBodyPartMax(2,level,corpo);
-    const chestMax=calculateBodyPartMax(2,level,corpo);
-    const armMax=calculateBodyPartMax(1,level,corpo);
-    const legMax=calculateBodyPartMax(1,level,corpo);
-
-    setValue("bodyHead",headMax);
-    setValue("bodyChest",chestMax);
-    setValue("bodyLeftArm",armMax);
-    setValue("bodyRightArm",armMax);
-    setValue("bodyLeftLeg",legMax);
-    setValue("bodyRightLeg",legMax);
+    applyBodyPartMaximums(level,corpo);
 
     const pv=document.getElementById("characterPV");
     const pm=document.getElementById("characterPD");
@@ -140,6 +186,7 @@ function migrateCharacterData(character){
     const corpo=Math.max(0,numberValue("attributeFOR",1));
     const foco=Math.max(0,numberValue("attributeAGI",1));
     const nexo=Math.max(0,numberValue("attributeINT",1));
+    const bodyMaximums=getBodyMaximums(level,corpo);
 
     character.attributes={
         ...(character.attributes||{}),
@@ -165,12 +212,12 @@ function migrateCharacterData(character){
 
     character.body={
         ...(character.body||{}),
-        headMax:calculateBodyPartMax(2,level,corpo),
-        chestMax:calculateBodyPartMax(2,level,corpo),
-        leftArmMax:calculateBodyPartMax(1,level,corpo),
-        rightArmMax:calculateBodyPartMax(1,level,corpo),
-        leftLegMax:calculateBodyPartMax(1,level,corpo),
-        rightLegMax:calculateBodyPartMax(1,level,corpo)
+        headMax:bodyMaximums.head,
+        chestMax:bodyMaximums.chest,
+        leftArmMax:bodyMaximums.leftArm,
+        rightArmMax:bodyMaximums.rightArm,
+        leftLegMax:bodyMaximums.leftLeg,
+        rightLegMax:bodyMaximums.rightLeg
     };
 
     character.combatConfig={
