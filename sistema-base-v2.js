@@ -1,6 +1,6 @@
 /*==========================================================
-=  SISTEMA BASE V2 — PRIMEIRA ETAPA DA MIGRAÇÃO
-=  Corpo, Foco, Nexo, PV, PM e pontos iniciais de perícia
+=  SISTEMA BASE V2 — MIGRAÇÃO PRINCIPAL
+=  Corpo, Foco, Nexo, PV, PM e Defesa
 ==========================================================*/
 (function(){
 "use strict";
@@ -64,55 +64,21 @@ function loadNewAttributes(){
     if(status.pmTemp!==undefined) setValue("characterPDTemp",status.pmTemp);
 }
 
-function calculateInitialSkillPoints(){
-    const nexo=Math.max(0,numberValue("attributeINT",1));
-    return 7+nexo;
-}
-
-function updateSkillPointsInterface(){
-    const summary=document.getElementById("skillPointsSummary");
-    if(!summary) return;
-
-    let badge=summary.querySelector("[data-system-base-skill-points]");
-
-    if(!badge){
-        badge=document.createElement("div");
-        badge.dataset.systemBaseSkillPoints="true";
-        badge.style.marginTop="8px";
-        badge.style.fontSize="12px";
-        badge.style.color="var(--text2, #b9b6c5)";
-        summary.appendChild(badge);
-    }
-
-    const total=calculateInitialSkillPoints();
-    badge.innerHTML=`Perícias iniciais: <strong>${total}</strong> <span style="opacity:.72">(7 + Nexo)</span>`;
-    summary.dataset.initialSkillPoints=String(total);
+function getDefenseAttribute(){
+    return getEditingCharacter()?.combatConfig?.defenseAttribute||"corpo";
 }
 
 function calculateSystemBaseStats(){
     const level=Math.max(1,numberValue("characterLevel",1));
     const corpo=Math.max(0,numberValue("attributeFOR",1));
     const foco=Math.max(0,numberValue("attributeAGI",1));
+    const nexo=Math.max(0,numberValue("attributeINT",1));
 
-    /*
-        Progressão linear:
-        Nível 1: 7 + Corpo PV / 4 + Foco PM
-        Cada nível adicional: +7 PV / +4 PM
-        Aumentar Corpo ou Foco acrescenta apenas +1 ao máximo.
-    */
     const pvMax=(7*level)+corpo;
     const pmMax=(4*level)+foco;
-
-    const editingCharacter=getEditingCharacter();
-    const configuredDefenseAttribute=
-        editingCharacter?.combatConfig?.defenseAttribute||"corpo";
-
-    const defenseAttributeValue=
-        configuredDefenseAttribute==="foco"
-            ? foco
-            : corpo;
-
+    const defenseAttributeValue=getDefenseAttribute()==="foco"?foco:corpo;
     const defenseBase=5+defenseAttributeValue;
+    const initialSkillPoints=7+nexo;
 
     setValue("characterPVMax",pvMax);
     setValue("characterPDMax",pmMax);
@@ -133,11 +99,13 @@ function calculateSystemBaseStats(){
 
     if(pv&&!pv.value) pv.value=String(pvMax);
     if(pm&&!pm.value) pm.value=String(pmMax);
-
     if(pv&&Number(pv.value)>pvMax) pv.value=String(pvMax);
     if(pm&&Number(pm.value)>pmMax) pm.value=String(pmMax);
 
-    updateSkillPointsInterface();
+    const summary=document.getElementById("skillPointsSummary");
+    if(summary&&!document.querySelector(".system-v2-skill-row")){
+        summary.innerHTML=`<strong>Perícias iniciais: ${initialSkillPoints}</strong><span>7 + Nexo (${nexo})</span>`;
+    }
 }
 
 function migrateCharacterData(character){
@@ -146,14 +114,12 @@ function migrateCharacterData(character){
     const corpo=Math.max(0,numberValue("attributeFOR",1));
     const foco=Math.max(0,numberValue("attributeAGI",1));
     const nexo=Math.max(0,numberValue("attributeINT",1));
-    const initialSkillPoints=7+nexo;
 
     character.attributes={
         ...(character.attributes||{}),
         corpo,
         foco,
         nexo,
-        /* aliases temporários para as telas ainda não migradas */
         for:corpo,
         agi:foco,
         int:nexo,
@@ -166,22 +132,20 @@ function migrateCharacterData(character){
         pmAtual:numberValue("characterPD",0),
         pmMax:numberValue("characterPDMax",0),
         pmTemp:numberValue("characterPDTemp",0),
-        /* aliases temporários */
         pdAtual:numberValue("characterPD",0),
         pdMax:numberValue("characterPDMax",0),
         pdTemp:numberValue("characterPDTemp",0)
     };
 
-    character.progression={
-        ...(character.progression||{}),
-        initialSkillPoints,
-        skillPointsFromNexo:nexo
-    };
-
     character.combatConfig={
         ...(character.combatConfig||{}),
-        defenseAttribute:
-            character.combatConfig?.defenseAttribute||"corpo"
+        defenseAttribute:character.combatConfig?.defenseAttribute||"corpo"
+    };
+
+    character.progression={
+        ...(character.progression||{}),
+        initialSkillPoints:7+nexo,
+        skillPointsFromNexo:nexo
     };
 
     character.systemVersion=2;
@@ -192,7 +156,10 @@ function patchStorageSave(){
     if(typeof window.saveCharacterToStorage!=="function") return;
     const original=window.saveCharacterToStorage;
     window.saveCharacterToStorage=function(characterData){
-        return original(migrateCharacterData(characterData));
+        const migration=typeof window.migrateSystemBaseV2Character==="function"
+            ? window.migrateSystemBaseV2Character
+            : migrateCharacterData;
+        return original(migration(characterData));
     };
 }
 
@@ -209,36 +176,37 @@ function updateInterface(){
 }
 
 function bindEvents(){
-    [
-        "characterLevel",
-        "attributeFOR",
-        "attributeAGI",
-        "attributeINT",
-        "characterDefenseBonus"
-    ].forEach(id=>{
-        document.getElementById(id)?.addEventListener("input",()=>{
-            queueMicrotask(calculateSystemBaseStats);
+    ["characterLevel","attributeFOR","attributeAGI","attributeINT","characterDefenseBonus"]
+        .forEach(id=>{
+            document.getElementById(id)?.addEventListener("input",()=>{
+                queueMicrotask(calculateSystemBaseStats);
+            });
         });
-    });
+}
+
+function loadSkillsModule(){
+    if(document.querySelector('script[data-system-v2-skills="true"]')) return;
+    const script=document.createElement("script");
+    script.src="sistema-base-pericias.js";
+    script.async=false;
+    script.dataset.systemV2Skills="true";
+    document.body.appendChild(script);
 }
 
 function init(){
     if(!document.querySelector(".character-editor-page")) return;
     updateInterface();
     loadNewAttributes();
+    window.migrateSystemBaseV2Character=migrateCharacterData;
     patchStorageSave();
     bindEvents();
     queueMicrotask(calculateSystemBaseStats);
+    loadSkillsModule();
 }
 
-if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",init);
-}
-else{
-    init();
-}
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init);
+else init();
 
 window.calculateSystemBaseV2Stats=calculateSystemBaseStats;
-window.calculateSystemBaseV2InitialSkillPoints=calculateInitialSkillPoints;
 window.migrateSystemBaseV2Character=migrateCharacterData;
 })();
