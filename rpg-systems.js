@@ -110,6 +110,7 @@ function loadPageExtension(src,dataKey,guard){
 
 window.addEventListener("DOMContentLoaded",()=>{
     loadPageExtension("mesa-reacoes.js","table-reactions",()=>Boolean(document.querySelector(".table-app")));
+    loadPageExtension("mesa-sistema-v2.js","table-system-v2",()=>Boolean(document.querySelector(".table-app")));
     loadPageExtension("mesa-habilidades-v2.js","table-abilities-v2",()=>Boolean(document.querySelector(".table-app")));
     loadPageExtension("mesa-efeitos-habilidades-v2.js","table-ability-effects-v2",()=>Boolean(document.querySelector(".table-app")));
     loadPageExtension("sistema-base-v2.js","system-base-v2",()=>Boolean(document.querySelector(".character-editor-page")));
