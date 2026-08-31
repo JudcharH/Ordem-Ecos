@@ -64,6 +64,16 @@ function parseTraining(value){
     return match?Number(match[1]):0;
 }
 
+function trainingLabel(value){
+    const labels={
+        "0":"Sem treino",
+        "1d4":"Treinado (1d4)",
+        "1d8":"Veterano (1d8)",
+        "1d12":"Especialista (1d12)"
+    };
+    return labels[value]||labels["0"];
+}
+
 function findSavedSkill(character,definition){
     const lists=[character?.skills,character?.pericias,character?.systemData?.skills];
     const list=lists.find(Array.isArray)||[];
@@ -88,26 +98,40 @@ function updateSummary(){
     if(!summary) return;
     const limit=initialSkillLimit();
     const used=trainedCount();
-    summary.innerHTML=`
-        <strong>Perícias treinadas: ${used} / ${limit}</strong>
-        <span>Base: 7 + Nexo (${readAttribute("nexo")})</span>
-    `;
+    summary.innerHTML=`<strong>Perícias treinadas: ${used} / ${limit}</strong>`;
 }
 
-function updateRow(row){
-    const attribute=row.dataset.attribute;
-    const training=row.querySelector(".system-v2-skill-training")?.value||"0";
-    const bonus=Number(row.querySelector(".system-v2-skill-bonus")?.value)||0;
-    const penalty=Math.max(0,Number(row.querySelector(".system-v2-skill-penalty")?.value)||0);
-    const attributeValue=readAttribute(attribute);
-    const total=row.querySelector(".system-v2-skill-total");
-    const trainingText=parseTraining(training)>0?training:"0";
-    if(total){
-        total.textContent=`1d12 + ${trainingText} + ${attributeValue} + ${bonus} - ${penalty}`;
+function showSkillToast(title,detail,result=null){
+    let toast=document.getElementById("systemV2SkillToast");
+    if(!toast){
+        toast=document.createElement("div");
+        toast.id="systemV2SkillToast";
+        toast.className="system-v2-skill-toast";
+        document.body.appendChild(toast);
+        toast.addEventListener("click",()=>toast.classList.remove("visible"));
     }
+
+    toast.innerHTML=`
+        <span class="system-v2-skill-toast-icon">🎲</span>
+        <div>
+            <strong>${title}</strong>
+            <p>${detail}</p>
+            ${result===null?"":`<b>Total: ${result}</b>`}
+        </div>
+    `;
+
+    toast.classList.remove("visible");
+    void toast.offsetWidth;
+    toast.classList.add("visible");
+
+    clearTimeout(showSkillToast.timeout);
+    showSkillToast.timeout=setTimeout(()=>toast.classList.remove("visible"),5000);
 }
 
-function rollSkill(row){
+function rollSkill(row,event){
+    event?.preventDefault();
+    event?.stopPropagation();
+
     const name=row.dataset.name;
     const attribute=row.dataset.attribute;
     const training=row.querySelector(".system-v2-skill-training")?.value||"0";
@@ -118,26 +142,70 @@ function rollSkill(row){
     const trainingSides=parseTraining(training);
     const trainingRoll=trainingSides?rollDie(trainingSides):0;
     const result=baseRoll+trainingRoll+attributeValue+bonus-penalty;
-    const detail=`1d12 (${baseRoll})${trainingSides?` + 1d${trainingSides} (${trainingRoll})`:""} + ${attribute.toUpperCase()} ${attributeValue}${bonus?` + bônus ${bonus}`:""}${penalty?` - penalidade ${penalty}`:""}`;
 
-    if(typeof window.showCharacterEditorMessage==="function"){
-        window.showCharacterEditorMessage(name,`${detail} = ${result}`,"🎲");
-    }
-    else{
-        alert(`${name}: ${detail} = ${result}`);
-    }
+    const parts=[`1d12: ${baseRoll}`];
+    if(trainingSides) parts.push(`${trainingLabel(training)}: ${trainingRoll}`);
+    parts.push(`${attribute.toUpperCase()}: +${attributeValue}`);
+    if(bonus) parts.push(`Bônus: +${bonus}`);
+    if(penalty) parts.push(`Penalidade: -${penalty}`);
+
+    showSkillToast(name,parts.join(" • "),result);
 }
 
 function enforceTrainingLimit(changedSelect,previousValue){
     if(trainedCount()<=initialSkillLimit()) return true;
     changedSelect.value=previousValue;
-    if(typeof window.showCharacterEditorMessage==="function"){
-        window.showCharacterEditorMessage("Limite de perícias",`Você pode treinar até ${initialSkillLimit()} perícias com seu Nexo atual.`,"!");
-    }
-    else{
-        alert(`Você pode treinar até ${initialSkillLimit()} perícias.`);
-    }
+    showSkillToast(
+        "Limite de perícias",
+        `Você pode treinar até ${initialSkillLimit()} perícias com seu Nexo atual.`
+    );
     return false;
+}
+
+function adjustSkillsTable(){
+    const header=document.querySelector(".skills-table-header");
+    if(header){
+        const labels=[...header.children];
+        const totalLabel=labels.find(label=>normalizeText(label.textContent)==="total");
+        totalLabel?.remove();
+    }
+
+    if(document.getElementById("systemV2SkillsStyle")) return;
+    const style=document.createElement("style");
+    style.id="systemV2SkillsStyle";
+    style.textContent=`
+        .skills-table-header,
+        .system-v2-skill-row{
+            grid-template-columns:minmax(170px,2fr) minmax(90px,.75fr) minmax(180px,1.35fr) minmax(72px,.55fr) minmax(72px,.55fr) minmax(88px,.65fr)!important;
+            align-items:center;
+            column-gap:10px;
+        }
+        .system-v2-skill-training{width:100%;min-width:0;}
+        .system-v2-skill-roll{width:100%;min-width:78px;}
+        .skill-attribute{text-align:center;font-weight:700;}
+        .system-v2-skill-toast{
+            position:fixed;left:50%;bottom:28px;z-index:5000;
+            width:min(560px,calc(100vw - 32px));
+            display:flex;gap:12px;align-items:flex-start;
+            padding:15px 18px;border-radius:15px;
+            background:rgba(21,21,30,.98);border:1px solid rgba(145,87,255,.55);
+            box-shadow:0 16px 45px rgba(0,0,0,.45),0 0 24px rgba(123,44,255,.15);
+            color:white;opacity:0;pointer-events:none;
+            transform:translate(-50%,18px) scale(.97);
+            transition:.22s ease;
+        }
+        .system-v2-skill-toast.visible{opacity:1;pointer-events:auto;transform:translate(-50%,0) scale(1);}
+        .system-v2-skill-toast-icon{font-size:24px;line-height:1;}
+        .system-v2-skill-toast strong{display:block;font-family:'Orbitron',sans-serif;font-size:14px;margin-bottom:5px;}
+        .system-v2-skill-toast p{font-size:12px;line-height:1.5;color:var(--text2);margin:0 0 5px;}
+        .system-v2-skill-toast b{font-family:'Orbitron',sans-serif;font-size:18px;color:white;}
+        @media(max-width:900px){
+            .skills-table-header,.system-v2-skill-row{
+                grid-template-columns:minmax(130px,1.5fr) 70px minmax(140px,1fr) 62px 62px 76px!important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 function renderSkills(){
@@ -145,6 +213,7 @@ function renderSkills(){
     if(!list) return;
     const character=getEditingCharacter();
 
+    adjustSkillsTable();
     list.innerHTML="";
 
     SYSTEM_SKILLS.forEach(definition=>{
@@ -162,13 +231,12 @@ function renderSkills(){
             <span class="skill-attribute">${definition.attribute.toUpperCase()}</span>
             <select class="system-v2-skill-training" aria-label="Treino de ${definition.name}">
                 <option value="0" ${training==="0"?"selected":""}>Sem treino</option>
-                <option value="1d4" ${training==="1d4"?"selected":""}>1d4</option>
-                <option value="1d8" ${training==="1d8"?"selected":""}>1d8</option>
-                <option value="1d12" ${training==="1d12"?"selected":""}>1d12</option>
+                <option value="1d4" ${training==="1d4"?"selected":""}>Treinado (1d4)</option>
+                <option value="1d8" ${training==="1d8"?"selected":""}>Veterano (1d8)</option>
+                <option value="1d12" ${training==="1d12"?"selected":""}>Especialista (1d12)</option>
             </select>
             <input class="system-v2-skill-bonus" type="number" value="${bonus}" aria-label="Bônus de ${definition.name}">
             <input class="system-v2-skill-penalty" type="number" min="0" value="${penalty}" aria-label="Penalidade de ${definition.name}">
-            <span class="system-v2-skill-total"></span>
             <button type="button" class="secondary-button system-v2-skill-roll">Rolar</button>
         `;
 
@@ -182,16 +250,11 @@ function renderSkills(){
             if(enforceTrainingLimit(trainingSelect,previous)){
                 trainingSelect.dataset.previousValue=trainingSelect.value;
             }
-            updateRow(row);
             updateSummary();
         });
 
-        row.querySelectorAll("input").forEach(input=>{
-            input.addEventListener("input",()=>updateRow(row));
-        });
-        row.querySelector(".system-v2-skill-roll")?.addEventListener("click",()=>rollSkill(row));
+        row.querySelector(".system-v2-skill-roll")?.addEventListener("click",event=>rollSkill(row,event));
         list.appendChild(row);
-        updateRow(row);
     });
 
     document.getElementById("buySkillPoints")?.classList.add("hidden");
@@ -229,10 +292,7 @@ function patchCharacterMigration(){
 
 function bindAttributeUpdates(){
     ["attributeFOR","attributeAGI","attributeINT"].forEach(id=>{
-        document.getElementById(id)?.addEventListener("input",()=>{
-            document.querySelectorAll(".system-v2-skill-row").forEach(updateRow);
-            updateSummary();
-        });
+        document.getElementById(id)?.addEventListener("input",updateSummary);
     });
 }
 
