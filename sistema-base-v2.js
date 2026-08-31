@@ -1,6 +1,6 @@
 /*==========================================================
 =  SISTEMA BASE V2 — PRIMEIRA ETAPA DA MIGRAÇÃO
-=  Corpo, Foco, Nexo, PV e PM
+=  Corpo, Foco, Nexo, PV, PM e pontos iniciais de perícia
 ==========================================================*/
 (function(){
 "use strict";
@@ -64,6 +64,31 @@ function loadNewAttributes(){
     if(status.pmTemp!==undefined) setValue("characterPDTemp",status.pmTemp);
 }
 
+function calculateInitialSkillPoints(){
+    const nexo=Math.max(0,numberValue("attributeINT",1));
+    return 7+nexo;
+}
+
+function updateSkillPointsInterface(){
+    const summary=document.getElementById("skillPointsSummary");
+    if(!summary) return;
+
+    let badge=summary.querySelector("[data-system-base-skill-points]");
+
+    if(!badge){
+        badge=document.createElement("div");
+        badge.dataset.systemBaseSkillPoints="true";
+        badge.style.marginTop="8px";
+        badge.style.fontSize="12px";
+        badge.style.color="var(--text2, #b9b6c5)";
+        summary.appendChild(badge);
+    }
+
+    const total=calculateInitialSkillPoints();
+    badge.innerHTML=`Perícias iniciais: <strong>${total}</strong> <span style="opacity:.72">(7 + Nexo)</span>`;
+    summary.dataset.initialSkillPoints=String(total);
+}
+
 function calculateSystemBaseStats(){
     const level=Math.max(1,numberValue("characterLevel",1));
     const corpo=Math.max(0,numberValue("attributeFOR",1));
@@ -111,6 +136,8 @@ function calculateSystemBaseStats(){
 
     if(pv&&Number(pv.value)>pvMax) pv.value=String(pvMax);
     if(pm&&Number(pm.value)>pmMax) pm.value=String(pmMax);
+
+    updateSkillPointsInterface();
 }
 
 function migrateCharacterData(character){
@@ -119,6 +146,7 @@ function migrateCharacterData(character){
     const corpo=Math.max(0,numberValue("attributeFOR",1));
     const foco=Math.max(0,numberValue("attributeAGI",1));
     const nexo=Math.max(0,numberValue("attributeINT",1));
+    const initialSkillPoints=7+nexo;
 
     character.attributes={
         ...(character.attributes||{}),
@@ -142,6 +170,12 @@ function migrateCharacterData(character){
         pdAtual:numberValue("characterPD",0),
         pdMax:numberValue("characterPDMax",0),
         pdTemp:numberValue("characterPDTemp",0)
+    };
+
+    character.progression={
+        ...(character.progression||{}),
+        initialSkillPoints,
+        skillPointsFromNexo:nexo
     };
 
     character.combatConfig={
@@ -205,5 +239,6 @@ else{
 }
 
 window.calculateSystemBaseV2Stats=calculateSystemBaseStats;
+window.calculateSystemBaseV2InitialSkillPoints=calculateInitialSkillPoints;
 window.migrateSystemBaseV2Character=migrateCharacterData;
 })();
