@@ -28,6 +28,9 @@ const SYSTEM_SKILLS=[
     {id:"sorte",name:"Sorte",attribute:"foco"}
 ];
 
+let renderingSkills=false;
+let skillsObserver=null;
+
 function normalizeText(value){
     return String(value||"")
         .normalize("NFD")
@@ -81,6 +84,11 @@ function findSavedSkill(character,definition){
         const candidate=normalizeText(skill?.id||skill?.name||skill?.skill||"");
         return candidate===definition.id||candidate===normalizeText(definition.name);
     })||null;
+}
+
+function findSnapshotSkill(snapshot,definition){
+    if(!Array.isArray(snapshot)) return null;
+    return snapshot.find(skill=>skill.id===definition.id)||null;
 }
 
 function initialSkillLimit(){
@@ -165,9 +173,9 @@ function enforceTrainingLimit(changedSelect,previousValue){
 function adjustSkillsTable(){
     const header=document.querySelector(".skills-table-header");
     if(header){
-        const labels=[...header.children];
-        const totalLabel=labels.find(label=>normalizeText(label.textContent)==="total");
-        totalLabel?.remove();
+        [...header.children].forEach(label=>{
+            if(normalizeText(label.textContent)==="total") label.remove();
+        });
     }
 
     if(document.getElementById("systemV2SkillsStyle")) return;
@@ -208,16 +216,18 @@ function adjustSkillsTable(){
     document.head.appendChild(style);
 }
 
-function renderSkills(){
+function renderSkills(snapshot=null){
     const list=document.getElementById("skillsEditorList");
     if(!list) return;
+
+    renderingSkills=true;
     const character=getEditingCharacter();
 
     adjustSkillsTable();
     list.innerHTML="";
 
     SYSTEM_SKILLS.forEach(definition=>{
-        const saved=findSavedSkill(character,definition)||{};
+        const saved=findSnapshotSkill(snapshot,definition)||findSavedSkill(character,definition)||{};
         const training=saved.training||saved.treino||saved.trainingDie||"0";
         const bonus=Number(saved.bonus)||0;
         const penalty=Math.abs(Number(saved.penalty??saved.penalidade)||0);
@@ -259,6 +269,7 @@ function renderSkills(){
 
     document.getElementById("buySkillPoints")?.classList.add("hidden");
     updateSummary();
+    renderingSkills=false;
 }
 
 function collectSkills(){
@@ -292,8 +303,43 @@ function patchCharacterMigration(){
 
 function bindAttributeUpdates(){
     ["attributeFOR","attributeAGI","attributeINT"].forEach(id=>{
-        document.getElementById(id)?.addEventListener("input",updateSummary);
+        const input=document.getElementById(id);
+        if(!input) return;
+
+        input.addEventListener("input",()=>{
+            const snapshot=collectSkills();
+
+            setTimeout(()=>{
+                const list=document.getElementById("skillsEditorList");
+                const hasOldRows=list && !list.querySelector(".system-v2-skill-row");
+
+                if(hasOldRows){
+                    renderSkills(snapshot);
+                }
+                else{
+                    updateSummary();
+                }
+            },0);
+        },true);
     });
+}
+
+function observeLegacyRerenders(){
+    const list=document.getElementById("skillsEditorList");
+    if(!list||skillsObserver) return;
+
+    skillsObserver=new MutationObserver(()=>{
+        if(renderingSkills) return;
+
+        const hasRows=list.children.length>0;
+        const hasV2Rows=Boolean(list.querySelector(".system-v2-skill-row"));
+
+        if(hasRows&&!hasV2Rows){
+            setTimeout(()=>renderSkills(),0);
+        }
+    });
+
+    skillsObserver.observe(list,{childList:true});
 }
 
 function init(){
@@ -301,6 +347,7 @@ function init(){
     renderSkills();
     patchCharacterMigration();
     bindAttributeUpdates();
+    observeLegacyRerenders();
 }
 
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",()=>setTimeout(init,0));
