@@ -68,6 +68,10 @@ function getDefenseAttribute(){
     return getEditingCharacter()?.combatConfig?.defenseAttribute||"corpo";
 }
 
+function calculateBodyPartMax(basePerLevel,level,corpo){
+    return (basePerLevel*level)+corpo;
+}
+
 function calculateSystemBaseStats(){
     const level=Math.max(1,numberValue("characterLevel",1));
     const corpo=Math.max(0,numberValue("attributeFOR",1));
@@ -87,12 +91,24 @@ function calculateSystemBaseStats(){
     const defenseBonus=numberValue("characterDefenseBonus",0);
     setValue("characterDefense",Math.max(0,defenseBase+defenseBonus));
 
-    setValue("bodyHead",2+corpo);
-    setValue("bodyChest",2+corpo);
-    setValue("bodyLeftArm",1+corpo);
-    setValue("bodyRightArm",1+corpo);
-    setValue("bodyLeftLeg",1+corpo);
-    setValue("bodyRightLeg",1+corpo);
+    /*
+        PV por membros segue a mesma progressão linear do PV clássico:
+        valor inicial do membro × nível + Corpo.
+
+        Cabeça e torso: 2 por nível + Corpo.
+        Braços e pernas: 1 por nível + Corpo.
+    */
+    const headMax=calculateBodyPartMax(2,level,corpo);
+    const chestMax=calculateBodyPartMax(2,level,corpo);
+    const armMax=calculateBodyPartMax(1,level,corpo);
+    const legMax=calculateBodyPartMax(1,level,corpo);
+
+    setValue("bodyHead",headMax);
+    setValue("bodyChest",chestMax);
+    setValue("bodyLeftArm",armMax);
+    setValue("bodyRightArm",armMax);
+    setValue("bodyLeftLeg",legMax);
+    setValue("bodyRightLeg",legMax);
 
     const pv=document.getElementById("characterPV");
     const pm=document.getElementById("characterPD");
@@ -104,13 +120,23 @@ function calculateSystemBaseStats(){
 
     const summary=document.getElementById("skillPointsSummary");
     if(summary&&!document.querySelector(".system-v2-skill-row")){
-        summary.innerHTML=`<strong>Perícias iniciais: ${initialSkillPoints}</strong><span>7 + Nexo (${nexo})</span>`;
+        summary.innerHTML=`<strong>Perícias iniciais: ${initialSkillPoints}</strong>`;
     }
+}
+
+function scheduleSystemBaseCalculation(){
+    calculateSystemBaseStats();
+    queueMicrotask(calculateSystemBaseStats);
+    requestAnimationFrame(()=>{
+        calculateSystemBaseStats();
+        requestAnimationFrame(calculateSystemBaseStats);
+    });
 }
 
 function migrateCharacterData(character){
     if(!character||typeof character!=="object") return character;
 
+    const level=Math.max(1,numberValue("characterLevel",1));
     const corpo=Math.max(0,numberValue("attributeFOR",1));
     const foco=Math.max(0,numberValue("attributeAGI",1));
     const nexo=Math.max(0,numberValue("attributeINT",1));
@@ -135,6 +161,16 @@ function migrateCharacterData(character){
         pdAtual:numberValue("characterPD",0),
         pdMax:numberValue("characterPDMax",0),
         pdTemp:numberValue("characterPDTemp",0)
+    };
+
+    character.body={
+        ...(character.body||{}),
+        headMax:calculateBodyPartMax(2,level,corpo),
+        chestMax:calculateBodyPartMax(2,level,corpo),
+        leftArmMax:calculateBodyPartMax(1,level,corpo),
+        rightArmMax:calculateBodyPartMax(1,level,corpo),
+        leftLegMax:calculateBodyPartMax(1,level,corpo),
+        rightLegMax:calculateBodyPartMax(1,level,corpo)
     };
 
     character.combatConfig={
@@ -176,11 +212,11 @@ function updateInterface(){
 }
 
 function bindEvents(){
-    ["characterLevel","attributeFOR","attributeAGI","attributeINT","characterDefenseBonus"]
+    ["characterLevel","attributeFOR","attributeAGI","attributeINT","characterDefenseBonus","lifeMode"]
         .forEach(id=>{
-            document.getElementById(id)?.addEventListener("input",()=>{
-                queueMicrotask(calculateSystemBaseStats);
-            });
+            const element=document.getElementById(id);
+            element?.addEventListener("input",scheduleSystemBaseCalculation,true);
+            element?.addEventListener("change",scheduleSystemBaseCalculation,true);
         });
 }
 
@@ -200,7 +236,7 @@ function init(){
     window.migrateSystemBaseV2Character=migrateCharacterData;
     patchStorageSave();
     bindEvents();
-    queueMicrotask(calculateSystemBaseStats);
+    scheduleSystemBaseCalculation();
     loadSkillsModule();
 }
 
@@ -208,5 +244,6 @@ if(document.readyState==="loading") document.addEventListener("DOMContentLoaded"
 else init();
 
 window.calculateSystemBaseV2Stats=calculateSystemBaseStats;
+window.scheduleSystemBaseV2Calculation=scheduleSystemBaseCalculation;
 window.migrateSystemBaseV2Character=migrateCharacterData;
 })();
