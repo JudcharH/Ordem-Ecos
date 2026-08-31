@@ -48,6 +48,20 @@ function getEditingCharacter(){
     catch{return null;}
 }
 
+function normalizeDefenseAttribute(value){
+    return String(value||"corpo").trim().toLowerCase()==="foco"
+        ? "foco"
+        : "corpo";
+}
+
+function getDefenseAttribute(character=null){
+    return normalizeDefenseAttribute(
+        character?.combatConfig?.defenseAttribute||
+        character?.defenseAttribute||
+        "corpo"
+    );
+}
+
 function loadNewAttributes(){
     const character=getEditingCharacter();
     if(!character) return;
@@ -69,9 +83,13 @@ function calculateSystemBaseStats(){
     const corpo=Math.max(0,numberValue("attributeFOR",1));
     const foco=Math.max(0,numberValue("attributeAGI",1));
 
+    const character=getEditingCharacter();
+    const defenseAttribute=getDefenseAttribute(character);
+    const defenseAttributeValue=defenseAttribute==="foco"?foco:corpo;
+
     const pvMax=(7+corpo)*level;
     const pmMax=(4+foco)*level;
-    const defenseBase=5+foco;
+    const defenseBase=5+defenseAttributeValue;
 
     setValue("characterPVMax",pvMax);
     setValue("characterPDMax",pmMax);
@@ -126,6 +144,11 @@ function migrateCharacterData(character){
         pdAtual:numberValue("characterPD",0),
         pdMax:numberValue("characterPDMax",0),
         pdTemp:numberValue("characterPDTemp",0)
+    };
+
+    character.combatConfig={
+        ...(character.combatConfig||{}),
+        defenseAttribute:getDefenseAttribute(character)
     };
 
     character.systemVersion=2;
@@ -184,4 +207,5 @@ else{
 
 window.calculateSystemBaseV2Stats=calculateSystemBaseStats;
 window.migrateSystemBaseV2Character=migrateCharacterData;
+window.getSystemBaseDefenseAttribute=getDefenseAttribute;
 })();
