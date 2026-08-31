@@ -83,51 +83,68 @@ function getBodyMaximums(level,corpo){
     };
 }
 
-function applyBodyPartMaximums(level,corpo){
-    const maximums=getBodyMaximums(level,corpo);
-    const inputIds={
-        head:"bodyHead",
-        chest:"bodyChest",
-        leftArm:"bodyLeftArm",
-        rightArm:"bodyRightArm",
-        leftLeg:"bodyLeftLeg",
-        rightLeg:"bodyRightLeg"
-    };
+const BODY_INPUT_IDS={
+    head:"bodyHead",
+    chest:"bodyChest",
+    leftArm:"bodyLeftArm",
+    rightArm:"bodyRightArm",
+    leftLeg:"bodyLeftLeg",
+    rightLeg:"bodyRightLeg"
+};
 
-    Object.entries(inputIds).forEach(([partName,inputId])=>{
+function isNaturalBodyPart(partName){
+    if(typeof characterBodyState==="undefined") return true;
+    const state=characterBodyState?.[partName];
+    return !state?.type||state.type==="natural";
+}
+
+function enforceNaturalBodyDisplay(maximums){
+    Object.entries(BODY_INPUT_IDS).forEach(([partName,inputId])=>{
+        if(!isNaturalBodyPart(partName)) return;
+
         const input=document.getElementById(inputId);
         if(!input) return;
 
-        const state=(typeof characterBodyState!=="undefined")
-            ? characterBodyState?.[partName]
-            : null;
-
-        if(state?.type&&state.type!=="natural") return;
-
         const maximum=maximums[partName];
-        const current=Number(input.value);
+        let current=Number(input.value);
 
         input.dataset.max=String(maximum);
         input.max=String(maximum);
-
-        /*
-            O campo representa o PV atual. Não deve ser preenchido novamente
-            toda vez que nível ou Corpo mudarem. Apenas inicializamos campos
-            vazios e impedimos que o atual fique acima do novo máximo.
-        */
-        if(!Number.isFinite(current)||input.value===""){
-            input.value=String(maximum);
-        }
-        else if(current>maximum){
-            input.value=String(maximum);
-        }
-
         input.dataset.initialized="true";
+
+        if(!Number.isFinite(current)||input.value===""||current>maximum){
+            current=maximum;
+            input.value=String(maximum);
+        }
+
+        const row=input.closest(".body-member-row");
+        const badge=row?.querySelector(".body-state-badge.natural");
+        if(badge){
+            badge.textContent=current<=0
+                ? "INUTILIZADO"
+                : `NATURAL • ${current}/${maximum}`;
+        }
     });
+}
+
+function applyBodyPartMaximums(level,corpo){
+    const maximums=getBodyMaximums(level,corpo);
+
+    /* Aplica antes do render antigo. */
+    enforceNaturalBodyDisplay(maximums);
 
     if(typeof renderBodyStates==="function"){
         renderBodyStates();
     }
+
+    /*
+        O render antigo ainda possui a fórmula anterior e pode sobrescrever
+        o campo e o selo NATURAL. Reaplicamos depois dele sem renderizar de
+        novo, evitando o cálculo antigo e qualquer ciclo de atualização.
+    */
+    queueMicrotask(()=>enforceNaturalBodyDisplay(maximums));
+    requestAnimationFrame(()=>enforceNaturalBodyDisplay(maximums));
+    setTimeout(()=>enforceNaturalBodyDisplay(maximums),0);
 }
 
 function calculateSystemBaseStats(){
@@ -212,6 +229,12 @@ function migrateCharacterData(character){
 
     character.body={
         ...(character.body||{}),
+        head:numberValue("bodyHead",bodyMaximums.head),
+        chest:numberValue("bodyChest",bodyMaximums.chest),
+        leftArm:numberValue("bodyLeftArm",bodyMaximums.leftArm),
+        rightArm:numberValue("bodyRightArm",bodyMaximums.rightArm),
+        leftLeg:numberValue("bodyLeftLeg",bodyMaximums.leftLeg),
+        rightLeg:numberValue("bodyRightLeg",bodyMaximums.rightLeg),
         headMax:bodyMaximums.head,
         chestMax:bodyMaximums.chest,
         leftArmMax:bodyMaximums.leftArm,
