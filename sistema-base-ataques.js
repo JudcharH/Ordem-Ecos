@@ -1,248 +1,37 @@
 /*==========================================================
-= SISTEMA BASE V2 — ATAQUES RÁPIDOS, CURA E CARREGADORES
+= SISTEMA BASE V2 — ATAQUES RÁPIDOS, CURA E LINK DE ARMAS
 ==========================================================*/
 (function(){
 "use strict";
-
 const STORAGE_KEY="ordem_characters";
 const DAMAGE_TYPES=["balistico","impacto","perfuracao","corte","fogo"];
-
-function normalizeText(value){
-    return String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase();
-}
-function getEditingCharacter(){
-    try{
-        const params=new URLSearchParams(location.search);
-        const id=params.get("id")||params.get("character");
-        const list=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
-        return Array.isArray(list)?list.find(item=>item.id===id)||null:null;
-    }catch{return null;}
-}
-function readAttribute(attribute){
-    const ids={corpo:"attributeFOR",foco:"attributeAGI",nexo:"attributeINT"};
-    const value=Number(document.getElementById(ids[attribute])?.value);
-    return Number.isFinite(value)?value:0;
-}
-function getSkill(skillId){
-    const row=document.querySelector(`.system-v2-skill-row[data-skill-id="${skillId}"]`);
-    if(row){
-        return {
-            training:row.querySelector(".system-v2-skill-training")?.value||"0",
-            bonus:Number(row.querySelector(".system-v2-skill-bonus")?.value)||0,
-            penalty:Math.max(0,Number(row.querySelector(".system-v2-skill-penalty")?.value)||0)
-        };
-    }
-    const character=getEditingCharacter();
-    const list=character?.skills||character?.pericias||[];
-    const saved=list.find(skill=>normalizeText(skill?.id||skill?.name)===skillId)||{};
-    return {
-        training:saved.training||saved.treino||"0",
-        bonus:Number(saved.bonus)||0,
-        penalty:Math.max(0,Number(saved.penalty??saved.penalidade)||0)
-    };
-}
-function formulaFor(skillId){
-    const configs={
-        luta:{attribute:"corpo",label:"Luta"},
-        pontaria:{attribute:"foco",label:"Pontaria"},
-        medicina:{attribute:"nexo",label:"Medicina"}
-    };
-    const config=configs[skillId]||configs.luta;
-    const skill=getSkill(skillId);
-    const attributeValue=readAttribute(config.attribute);
-    const parts=["1d12"];
-    if(skill.training!=="0")parts.push(skill.training);
-    parts.push(String(attributeValue));
-    if(skill.bonus)parts.push(String(skill.bonus));
-    if(skill.penalty)parts.push(`-${skill.penalty}`);
-    const criticalOn=typeof window.getSystemBaseCriticalThreshold==="function"
-        ?window.getSystemBaseCriticalThreshold({attackType:skillId})
-        :12;
-    return {
-        text:parts.join(" + ").replace(/\+ -/g,"- "),
-        skill:skillId,skillName:config.label,attribute:config.attribute,
-        attributeValue,training:skill.training,bonus:skill.bonus,penalty:skill.penalty,
-        baseDie:"1d12",criticalOn,criticalEffect:"roll-training-again"
-    };
-}
-function damageTypeLabel(value){
-    return {balistico:"Balístico",impacto:"Impacto",perfuracao:"Perfuração",corte:"Corte",fogo:"Fogo"}[value]||"Impacto";
-}
-function createSelect(id,options,value){
-    const select=document.createElement("select");
-    select.id=id;
-    options.forEach(option=>{
-        const element=document.createElement("option");
-        element.value=option.value;
-        element.textContent=option.label;
-        element.selected=option.value===value;
-        select.appendChild(element);
-    });
-    return select;
-}
-function insertFieldBefore(reference,labelText,control){
-    const field=document.createElement("div");
-    field.className="field system-v2-attack-field";
-    const label=document.createElement("label");
-    label.htmlFor=control.id;
-    label.textContent=labelText;
-    field.append(label,control);
-    reference.parentElement.insertBefore(field,reference);
-}
-function findSavedEntry(character,index){
-    const list=[character?.quickAttacks,character?.attacks,character?.ataquesRapidos].find(Array.isArray)||[];
-    return list[index-1]||{};
-}
-function updateAutomaticFormula(index){
-    const rollInput=document.getElementById(`attack${index}Roll`);
-    if(!rollInput)return;
-    const skillId=index===4?"medicina":document.getElementById(`attack${index}Skill`)?.value||"luta";
-    const formula=formulaFor(skillId);
-    rollInput.value=formula.text;
-    rollInput.dataset.skill=skillId;
-    rollInput.dataset.attribute=formula.attribute;
-    rollInput.dataset.criticalOn=String(formula.criticalOn);
-    rollInput.dataset.criticalEffect="roll-training-again";
-}
-function configureAttackCard(index,character){
-    const nameInput=document.getElementById(`attack${index}Name`);
-    const rollInput=document.getElementById(`attack${index}Roll`);
-    const damageInput=document.getElementById(`attack${index}Damage`);
-    const card=nameInput?.closest(".quick-attack-card");
-    if(!nameInput||!rollInput||!damageInput||!card)return;
-    const saved=findSavedEntry(character,index);
-    const header=card.querySelector("h3");
-    const rollField=rollInput.closest(".field");
-    const damageField=damageInput.closest(".field");
-    rollInput.readOnly=true;
-    rollInput.classList.add("system-v2-automatic-roll");
-
-    if(index<=3){
-        if(header)header.textContent=`Ataque ${index}`;
-        card.dataset.entryType="attack";
-        const skillValue=saved.skill||saved.testSkill||saved.pericia||"luta";
-        let skillSelect=document.getElementById(`attack${index}Skill`);
-        if(!skillSelect){
-            skillSelect=createSelect(`attack${index}Skill`,[
-                {value:"luta",label:"Luta — Corpo a corpo"},
-                {value:"pontaria",label:"Pontaria — À distância"}
-            ],skillValue);
-            insertFieldBefore(rollField,"Perícia do ataque",skillSelect);
-        }
-        let damageType=document.getElementById(`attack${index}DamageType`);
-        if(!damageType){
-            const savedType=normalizeText(saved.damageType||saved.tipoDano||"impacto").replace(/ç/g,"c");
-            damageType=createSelect(`attack${index}DamageType`,
-                DAMAGE_TYPES.map(value=>({value,label:damageTypeLabel(value)})),
-                DAMAGE_TYPES.includes(savedType)?savedType:"impacto");
-            const field=document.createElement("div");
-            field.className="field system-v2-damage-type-field";
-            const label=document.createElement("label");
-            label.htmlFor=damageType.id;
-            label.textContent="Tipo de dano";
-            field.append(label,damageType);
-            damageField.parentElement.insertBefore(field,damageField.nextElementSibling);
-        }
-        rollField.querySelector("label").textContent="Teste automático";
-        damageField.querySelector("label").textContent="Dano";
-        damageInput.placeholder="Ex: 2d10 + Corpo";
-        skillSelect.addEventListener("change",()=>updateAutomaticFormula(index));
-    }else{
-        if(header)header.textContent="Cura";
-        card.dataset.entryType="healing";
-        rollField.querySelector("label").textContent="Teste de Medicina";
-        damageField.querySelector("label").textContent="Cura";
-        nameInput.placeholder="Ex: Primeiros Socorros";
-        damageInput.placeholder="Ex: 2d8 + Nexo";
-        rollInput.dataset.skill="medicina";
-        document.getElementById("attack4DamageType")?.closest(".field")?.remove();
-    }
-    updateAutomaticFormula(index);
-}
-function collectQuickEntries(){
-    return [1,2,3,4].map(index=>{
-        const type=index===4?"healing":"attack";
-        const skill=index===4?"medicina":document.getElementById(`attack${index}Skill`)?.value||"luta";
-        const formula=formulaFor(skill);
-        const value=document.getElementById(`attack${index}Damage`)?.value?.trim()||"";
-        const entry={
-            slot:index,type,
-            name:document.getElementById(`attack${index}Name`)?.value?.trim()||"",
-            icon:document.getElementById(`attack${index}Icon`)?.dataset?.base64||"",
-            skill,skillName:formula.skillName,attribute:formula.attribute,
-            roll:formula.text,rollBase:"1d12",training:formula.training,
-            bonus:formula.bonus,penalty:formula.penalty,
-            criticalOn:formula.criticalOn,criticalDie:"main",criticalEffect:"roll-training-again"
-        };
-        if(type==="attack"){
-            entry.damage=value;
-            entry.damageType=document.getElementById(`attack${index}DamageType`)?.value||"impacto";
-        }else{
-            entry.healing=value;
-            entry.cure=value;
-            entry.damage="";
-            entry.damageType=null;
-        }
-        return entry;
-    });
-}
-function patchCharacterMigration(){
-    const original=window.migrateSystemBaseV2Character;
-    if(typeof original!=="function"||original.__systemV2AttacksPatched)return;
-    const patched=function(character){
-        const migrated=original(character);
-        const entries=collectQuickEntries();
-        migrated.quickAttacks=entries;
-        migrated.attacks=entries;
-        migrated.ataquesRapidos=entries;
-        migrated.quickHealing=entries[3];
-        return migrated;
-    };
-    patched.__systemV2AttacksPatched=true;
-    window.migrateSystemBaseV2Character=patched;
-}
-function updateAllFormulas(){[1,2,3,4].forEach(updateAutomaticFormula);}
-function addStyle(){
-    if(document.getElementById("systemV2QuickAttackStyle"))return;
-    const style=document.createElement("style");
-    style.id="systemV2QuickAttackStyle";
-    style.textContent=`
-        .system-v2-automatic-roll{opacity:.86;cursor:not-allowed}
-        .quick-attack-card[data-entry-type="healing"]{border-color:rgba(85,200,140,.35)}
-        .quick-attack-card[data-entry-type="healing"] .quick-attack-slot{background:rgba(55,160,110,.18);color:#9ff0c4}
-        .system-v2-attack-field select,.system-v2-damage-type-field select{width:100%}
-    `;
-    document.head.appendChild(style);
-}
-function loadAbilitiesModule(){
-    if(document.querySelector('script[data-system-v2-abilities="true"]'))return;
-    const script=document.createElement("script");
-    script.src="sistema-base-habilidades.js";
-    script.async=false;
-    script.dataset.systemV2Abilities="true";
-    script.addEventListener("load",updateAllFormulas);
-    document.body.appendChild(script);
-}
-function init(){
-    if(!document.querySelector(".character-editor-page"))return;
-    const character=getEditingCharacter();
-    addStyle();
-    [1,2,3,4].forEach(index=>configureAttackCard(index,character));
-    patchCharacterMigration();
-    ["attributeFOR","attributeAGI","attributeINT"].forEach(id=>{
-        document.getElementById(id)?.addEventListener("input",updateAllFormulas,true);
-    });
-    document.getElementById("skillsEditorList")?.addEventListener("change",event=>{
-        if(event.target.matches(".system-v2-skill-training,.system-v2-skill-bonus,.system-v2-skill-penalty")){
-            updateAllFormulas();
-        }
-    });
-    const description=document.querySelector(".quick-attacks-grid")?.previousElementSibling?.querySelector(".section-description");
-    if(description)description.textContent="Configure três ataques automáticos e uma ação de cura para acesso rápido durante a campanha.";
-    loadAbilitiesModule();
-}
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(init,0));
-else setTimeout(init,0);
-window.collectSystemBaseV2QuickEntries=collectQuickEntries;
-window.updateSystemBaseV2AttackFormulas=updateAllFormulas;
+const linkedWeapons={};
+function normalizeText(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase()}
+function getEditingCharacter(){try{const p=new URLSearchParams(location.search),id=p.get("id")||p.get("character"),list=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");return Array.isArray(list)?list.find(x=>x.id===id)||null:null}catch{return null}}
+function readAttribute(a){const ids={corpo:"attributeFOR",foco:"attributeAGI",nexo:"attributeINT"},v=Number(document.getElementById(ids[a])?.value);return Number.isFinite(v)?v:0}
+function getSkill(id){const row=document.querySelector(`.system-v2-skill-row[data-skill-id="${id}"]`);if(row)return{training:row.querySelector('.system-v2-skill-training')?.value||"0",bonus:Number(row.querySelector('.system-v2-skill-bonus')?.value)||0,penalty:Math.max(0,Number(row.querySelector('.system-v2-skill-penalty')?.value)||0)};const c=getEditingCharacter(),list=c?.skills||c?.pericias||[],s=list.find(x=>normalizeText(x?.id||x?.name)===id)||{};return{training:s.training||s.treino||"0",bonus:Number(s.bonus)||0,penalty:Math.max(0,Number(s.penalty??s.penalidade)||0)}}
+function weaponAttackBonus(w){return w&&(w.mods||[]).some(m=>m==='Certeira'||m==='Alongada')?2:0}
+function weaponCriticalBonus(w){return w&&(w.mods||[]).some(m=>m==='Perigosa'||m==='Mira Laser')?1:0}
+function formulaFor(skillId,weapon=null){const configs={luta:{attribute:"corpo",label:"Luta"},pontaria:{attribute:"foco",label:"Pontaria"},medicina:{attribute:"nexo",label:"Medicina"}},cfg=configs[skillId]||configs.luta,s=getSkill(skillId),attr=readAttribute(cfg.attribute),parts=["1d12"];if(s.training!=="0")parts.push(s.training);parts.push(String(attr));if(s.bonus)parts.push(String(s.bonus));if(s.penalty)parts.push(`-${s.penalty}`);const wb=weaponAttackBonus(weapon);if(wb)parts.push(String(wb));let criticalOn=typeof window.getSystemBaseCriticalThreshold==="function"?window.getSystemBaseCriticalThreshold({attackType:skillId}):12;criticalOn=Math.max(2,criticalOn-weaponCriticalBonus(weapon));return{text:parts.join(" + ").replace(/\+ -/g,"- "),skill:skillId,skillName:cfg.label,attribute:cfg.attribute,attributeValue:attr,training:s.training,bonus:s.bonus+wb,penalty:s.penalty,weaponBonus:wb,baseDie:"1d12",criticalOn,criticalEffect:"roll-training-again"}}
+function damageTypeLabel(v){return{balistico:"Balístico",impacto:"Impacto",perfuracao:"Perfuração",corte:"Corte",fogo:"Fogo"}[v]||"Impacto"}
+function damageTypeValue(v){const n=normalizeText(v).replaceAll('ç','c').replaceAll('ã','a');if(n.includes('bal'))return'balistico';if(n.includes('perf'))return'perfuracao';if(n.includes('corte'))return'corte';if(n.includes('fogo'))return'fogo';return'impacto'}
+function addDice(formula,count){return String(formula||'').replace(/(\d+)d(\d+)/i,(m,n,s)=>`${Number(n)+count}d${s}`)}
+function weaponDamage(w){let d=String(w?.damage||'');const mods=w?.mods||[];if(mods.includes('Calibre Grosso'))d=addDice(d,1);if(mods.includes('Pesada'))d=addDice(d,2);if(mods.includes('Cruel'))d+=` + 2`;if(mods.includes('Eletrificada'))d+=` + 1d6`;if(mods.includes('Espinhosa'))d+=` + 1d4`;return d.trim()}
+function createSelect(id,options,value){const s=document.createElement('select');s.id=id;options.forEach(o=>{const e=document.createElement('option');e.value=o.value;e.textContent=o.label;e.selected=o.value===value;s.appendChild(e)});return s}
+function insertFieldBefore(ref,labelText,control){const f=document.createElement('div');f.className='field system-v2-attack-field';const l=document.createElement('label');l.htmlFor=control.id;l.textContent=labelText;f.append(l,control);ref.parentElement.insertBefore(f,ref)}
+function findSavedEntry(c,i){const list=[c?.quickAttacks,c?.attacks,c?.ataquesRapidos].find(Array.isArray)||[];return list[i-1]||{}}
+function getWeapon(index){const id=linkedWeapons[index]||document.getElementById(`attack${index}Name`)?.dataset.linkedWeaponId;if(!id)return null;return(getEditingCharacter()?.inventory||[]).find(x=>x.id===id)||null}
+function updateAutomaticFormula(index,force=false){const input=document.getElementById(`attack${index}Roll`);if(!input)return;if(input.dataset.manual==='true'&&!force)return;const skill=index===4?'medicina':document.getElementById(`attack${index}Skill`)?.value||'luta',w=index<=3?getWeapon(index):null,f=formulaFor(skill,w);input.value=f.text;input.dataset.skill=skill;input.dataset.attribute=f.attribute;input.dataset.criticalOn=String(f.criticalOn);input.dataset.criticalEffect='roll-training-again'}
+function unlink(index){delete linkedWeapons[index];const n=document.getElementById(`attack${index}Name`);if(n)delete n.dataset.linkedWeaponId;const b=document.querySelector(`.quick-link-button[data-index="${index}"]`);if(b){b.textContent='Linkar';b.classList.remove('linked')}}
+function applyWeapon(index,w){linkedWeapons[index]=w.id;const name=document.getElementById(`attack${index}Name`),damage=document.getElementById(`attack${index}Damage`),skill=document.getElementById(`attack${index}Skill`),type=document.getElementById(`attack${index}DamageType`),roll=document.getElementById(`attack${index}Roll`);name.value=w.name||'';name.dataset.linkedWeaponId=w.id;damage.value=weaponDamage(w);skill.value=w.kind==='ranged'?'pontaria':'luta';type.value=damageTypeValue(w.type);roll.dataset.manual='false';updateAutomaticFormula(index,true);const b=document.querySelector(`.quick-link-button[data-index="${index}"]`);if(b){b.textContent=`Linkado: ${w.name}`;b.classList.add('linked')}}
+function chooseWeapon(index){const weapons=(getEditingCharacter()?.inventory||[]).filter(x=>x.kind==='melee'||x.kind==='ranged');if(!weapons.length){alert('Nenhuma arma disponível no inventário.');return}let modal=document.getElementById('quickWeaponLinkModal');modal?.remove();modal=document.createElement('div');modal.id='quickWeaponLinkModal';modal.className='quick-link-modal';modal.innerHTML=`<div class="quick-link-box"><header><div><small>ATAQUE ${index}</small><h2>Linkar arma</h2></div><button type="button" data-close>×</button></header><div class="quick-link-list">${weapons.map(w=>`<button type="button" data-weapon="${w.id}"><strong>${w.name}</strong><span>${weaponDamage(w)} • ${w.kind==='ranged'?'Pontaria':'Luta'}${weaponAttackBonus(w)?` • +${weaponAttackBonus(w)} ataque`:''}</span></button>`).join('')}</div><button type="button" class="secondary-button" data-unlink>Remover link</button></div>`;document.body.appendChild(modal);modal.querySelector('[data-close]').onclick=()=>modal.remove();modal.querySelector('[data-unlink]').onclick=()=>{unlink(index);modal.remove()};modal.querySelectorAll('[data-weapon]').forEach(b=>b.onclick=()=>{const w=weapons.find(x=>x.id===b.dataset.weapon);if(w)applyWeapon(index,w);modal.remove()})}
+function addLinkButton(index,card,saved){if(index>3||card.querySelector('.quick-link-button'))return;const h=card.querySelector('.quick-attack-header');const b=document.createElement('button');b.type='button';b.className='secondary-button quick-link-button';b.dataset.index=String(index);b.textContent='Linkar';b.onclick=()=>chooseWeapon(index);h?.appendChild(b);const wid=saved.linkedWeaponId||saved.weaponId;if(wid){const w=(getEditingCharacter()?.inventory||[]).find(x=>x.id===wid);if(w)applyWeapon(index,w)}}
+function configureAttackCard(index,c){const name=document.getElementById(`attack${index}Name`),roll=document.getElementById(`attack${index}Roll`),damage=document.getElementById(`attack${index}Damage`),card=name?.closest('.quick-attack-card');if(!name||!roll||!damage||!card)return;const saved=findSavedEntry(c,index),header=card.querySelector('h3'),rollField=roll.closest('.field'),damageField=damage.closest('.field');roll.readOnly=false;roll.classList.remove('system-v2-automatic-roll');roll.addEventListener('input',()=>roll.dataset.manual='true');if(index<=3){if(header)header.textContent=`Ataque ${index}`;card.dataset.entryType='attack';const skillValue=saved.skill||saved.testSkill||saved.pericia||'luta';let skill=document.getElementById(`attack${index}Skill`);if(!skill){skill=createSelect(`attack${index}Skill`,[{value:'luta',label:'Luta — Corpo a corpo'},{value:'pontaria',label:'Pontaria — À distância'}],skillValue);insertFieldBefore(rollField,'Perícia do ataque',skill)}let dt=document.getElementById(`attack${index}DamageType`);if(!dt){const sv=damageTypeValue(saved.damageType||saved.tipoDano||'impacto');dt=createSelect(`attack${index}DamageType`,DAMAGE_TYPES.map(v=>({value:v,label:damageTypeLabel(v)})),sv);const f=document.createElement('div'),l=document.createElement('label');f.className='field system-v2-damage-type-field';l.htmlFor=dt.id;l.textContent='Tipo de dano';f.append(l,dt);damageField.parentElement.insertBefore(f,damageField.nextElementSibling)}rollField.querySelector('label').textContent='Teste do ataque';damageField.querySelector('label').textContent='Dano';skill.addEventListener('change',()=>{roll.dataset.manual='false';updateAutomaticFormula(index,true)});addLinkButton(index,card,saved)}else{if(header)header.textContent='Cura';card.dataset.entryType='healing';rollField.querySelector('label').textContent='Teste de Medicina';damageField.querySelector('label').textContent='Cura';roll.dataset.skill='medicina';document.getElementById('attack4DamageType')?.closest('.field')?.remove()}if(saved.roll)roll.value=saved.roll;else updateAutomaticFormula(index,true)}
+function collectQuickEntries(){return[1,2,3,4].map(index=>{const type=index===4?'healing':'attack',skill=index===4?'medicina':document.getElementById(`attack${index}Skill`)?.value||'luta',w=index<=3?getWeapon(index):null,f=formulaFor(skill,w),value=document.getElementById(`attack${index}Damage`)?.value?.trim()||'',rollInput=document.getElementById(`attack${index}Roll`),entry={slot:index,type,name:document.getElementById(`attack${index}Name`)?.value?.trim()||'',icon:document.getElementById(`attack${index}Icon`)?.dataset?.base64||'',skill,skillName:f.skillName,attribute:f.attribute,roll:rollInput?.value?.trim()||f.text,rollBase:'1d12',training:f.training,bonus:f.bonus,penalty:f.penalty,criticalOn:Number(rollInput?.dataset?.criticalOn)||f.criticalOn,criticalDie:'main',criticalEffect:'roll-training-again'};if(w){entry.linkedWeaponId=w.id;entry.weaponId=w.id;entry.weaponMods=[...(w.mods||[])];entry.criticalMultiplier=Number(String(w.critical||'x2').replace(/\D/g,''))+(w.mods?.includes('Letal')?1:0);entry.ignoreRD=w.mods?.includes('Perfurante')?5:0;entry.extraPA=w.mods?.includes('Pesada')?1:0;entry.range=w.range||'';if(w.mods?.includes('Mira Telescópica'))entry.rangeBonus=1;if(w.mods?.includes('Pente Rápido'))entry.ignoreFardo=true;if(w.mods?.includes('Silenciador'))entry.silenced=true}if(type==='attack'){entry.damage=value;entry.damageType=document.getElementById(`attack${index}DamageType`)?.value||'impacto'}else{entry.healing=value;entry.cure=value;entry.damage='';entry.damageType=null}return entry})}
+function patchCharacterMigration(){const original=window.migrateSystemBaseV2Character;if(typeof original!=="function"||original.__systemV2AttacksPatched)return;const patched=function(c){const m=original(c),entries=collectQuickEntries();m.quickAttacks=entries;m.attacks=entries;m.ataquesRapidos=entries;m.quickHealing=entries[3];return m};patched.__systemV2AttacksPatched=true;window.migrateSystemBaseV2Character=patched}
+function updateAllFormulas(){[1,2,3,4].forEach(i=>updateAutomaticFormula(i,false))}
+function addStyle(){if(document.getElementById('systemV2QuickAttackStyle'))return;const s=document.createElement('style');s.id='systemV2QuickAttackStyle';s.textContent=`.quick-attack-header{display:flex;align-items:center;gap:9px}.quick-attack-header h3{flex:1}.quick-link-button{padding:7px 10px!important;font-size:.75rem!important}.quick-link-button.linked{border-color:#7655a8!important;color:#cbb4ef!important}.quick-link-modal{position:fixed;inset:0;z-index:10000;background:#000b;display:grid;place-items:center;padding:20px}.quick-link-box{width:min(560px,95vw);max-height:80vh;overflow:auto;padding:16px;border:1px solid #45384f;border-radius:14px;background:#100d14}.quick-link-box header{display:flex;justify-content:space-between;align-items:center}.quick-link-box header h2{margin:2px 0 10px}.quick-link-box header small{color:#9d70e5;font-weight:800}.quick-link-box header button{font-size:1.4rem}.quick-link-list{display:grid;gap:7px;margin:8px 0 12px}.quick-link-list>button{text-align:left;padding:10px;border:1px solid #342d3b;border-radius:9px;background:#16121b;color:#eee}.quick-link-list strong,.quick-link-list span{display:block}.quick-link-list span{font-size:.75rem;color:#aaa;margin-top:3px}.system-v2-attack-field select,.system-v2-damage-type-field select{width:100%}`;document.head.appendChild(s)}
+function loadAbilitiesModule(){if(document.querySelector('script[data-system-v2-abilities="true"]'))return;const s=document.createElement('script');s.src='sistema-base-habilidades.js';s.async=false;s.dataset.systemV2Abilities='true';s.addEventListener('load',updateAllFormulas);document.body.appendChild(s)}
+function init(){if(!document.querySelector('.character-editor-page'))return;const c=getEditingCharacter();addStyle();[1,2,3,4].forEach(i=>configureAttackCard(i,c));patchCharacterMigration();['attributeFOR','attributeAGI','attributeINT'].forEach(id=>document.getElementById(id)?.addEventListener('input',updateAllFormulas,true));document.getElementById('skillsEditorList')?.addEventListener('change',e=>{if(e.target.matches('.system-v2-skill-training,.system-v2-skill-bonus,.system-v2-skill-penalty'))updateAllFormulas()});loadAbilitiesModule()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,0));else setTimeout(init,0);window.collectSystemBaseV2QuickEntries=collectQuickEntries;window.updateSystemBaseV2AttackFormulas=updateAllFormulas;
 })();
