@@ -38,4 +38,5 @@ window.addEventListener("DOMContentLoaded",()=>{
     loadPageExtension("grimorio-editor-final.js","grimoire-editor-final",()=>Boolean(document.querySelector(".character-editor-page")));
     loadPageExtension("grimorio-dt-visual-v26.js","grimoire-dt-visual-v26",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
     loadPageExtension("grimorio-v26-fix.js","grimoire-v26-fix",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
+    loadPageExtension("grimorio-card-restore-v27.js","grimoire-card-restore-v27",()=>Boolean(document.querySelector(".table-app")));
 });
