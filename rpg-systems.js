@@ -36,4 +36,5 @@ window.addEventListener("DOMContentLoaded",()=>{
     loadPageExtension("grimorio-editor-wizard.js","grimoire-editor-wizard",()=>Boolean(document.querySelector(".character-editor-page")));
     loadPageExtension("grimorio-v25.js","grimoire-v25",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
     loadPageExtension("grimorio-editor-final.js","grimoire-editor-final",()=>Boolean(document.querySelector(".character-editor-page")));
+    loadPageExtension("grimorio-dt-visual-v26.js","grimoire-dt-visual-v26",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
 });
