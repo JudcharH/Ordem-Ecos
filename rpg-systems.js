@@ -21,22 +21,61 @@ function isValidRPGSystem(systemId){return Boolean(RPG_SYSTEMS[String(systemId||
 function isRPGSystemEnabled(systemId){return Boolean(RPG_SYSTEMS[String(systemId||"").trim().toLowerCase()]?.enabled===true);}
 function normalizeRPGSystemId(systemId){return isValidRPGSystem(systemId)?String(systemId).trim().toLowerCase():DEFAULT_RPG_SYSTEM_ID;}
 function areRPGSystemsCompatible(firstSystemId,secondSystemId){return normalizeRPGSystemId(firstSystemId)===normalizeRPGSystemId(secondSystemId);}
-function loadPageExtension(src,dataKey,guard){if(!guard()||document.querySelector(`script[data-extension="${dataKey}"]`))return;const script=document.createElement("script");script.src=src;script.async=false;script.dataset.extension=dataKey;document.body.appendChild(script);}
+
+/* Carrega extensões em sequência. Isso evita vários overlays disputando o DOM
+   durante a inicialização e elimina o estado de carregamento infinito do editor. */
+function loadExtensionsSequentially(items,index=0){
+    if(index>=items.length)return;
+    const item=items[index];
+    if(!item.guard()||document.querySelector(`script[data-extension="${item.key}"]`)){
+        loadExtensionsSequentially(items,index+1);return;
+    }
+    const script=document.createElement("script");
+    script.src=item.src;
+    script.async=false;
+    script.dataset.extension=item.key;
+    script.onload=()=>loadExtensionsSequentially(items,index+1);
+    script.onerror=()=>{console.error(`[RPG] Falha ao carregar ${item.src}`);loadExtensionsSequentially(items,index+1);};
+    document.body.appendChild(script);
+}
 
 window.addEventListener("DOMContentLoaded",()=>{
-    loadPageExtension("mesa-reacoes.js","table-reactions",()=>Boolean(document.querySelector(".table-app")));
-    loadPageExtension("mesa-sistema-v2.js","table-system-v2",()=>Boolean(document.querySelector(".table-app")));
-    loadPageExtension("mesa-habilidades-v2.js","table-abilities-v2",()=>Boolean(document.querySelector(".table-app")));
-    loadPageExtension("mesa-efeitos-habilidades-v2.js","table-ability-effects-v2",()=>Boolean(document.querySelector(".table-app")));
-    loadPageExtension("mesa-acoes-rapidas-v2.js","table-quick-actions-v2",()=>Boolean(document.querySelector(".table-app")));
-    loadPageExtension("mesa-dano-v2-fix.js","table-damage-v2-fix",()=>Boolean(document.querySelector(".table-app")));
-    loadPageExtension("sistema-base-v2.js","system-base-v2",()=>Boolean(document.querySelector(".character-editor-page")));
-    loadPageExtension("sistema-base-habilidades-nomes.js","system-base-ability-names",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
-    loadPageExtension("grimorio-v2.js","grimoire-v2",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
-    loadPageExtension("grimorio-editor-wizard.js","grimoire-editor-wizard",()=>Boolean(document.querySelector(".character-editor-page")));
-    loadPageExtension("grimorio-v25.js","grimoire-v25",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
-    loadPageExtension("grimorio-editor-final.js","grimoire-editor-final",()=>Boolean(document.querySelector(".character-editor-page")));
-    loadPageExtension("grimorio-dt-visual-v26.js","grimoire-dt-visual-v26",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
-    loadPageExtension("grimorio-v26-fix.js","grimoire-v26-fix",()=>Boolean(document.querySelector(".character-editor-page")||document.querySelector(".table-app")));
-    loadPageExtension("grimorio-card-restore-v27.js","grimoire-card-restore-v27",()=>Boolean(document.querySelector(".table-app")));
+    const table=()=>Boolean(document.querySelector(".table-app"));
+    const editor=()=>Boolean(document.querySelector(".character-editor-page"));
+    const both=()=>editor()||table();
+    const extensions=[];
+
+    if(table()) extensions.push(
+        {src:"mesa-reacoes.js",key:"table-reactions",guard:table},
+        {src:"mesa-sistema-v2.js",key:"table-system-v2",guard:table},
+        {src:"mesa-habilidades-v2.js",key:"table-abilities-v2",guard:table},
+        {src:"mesa-efeitos-habilidades-v2.js",key:"table-ability-effects-v2",guard:table},
+        {src:"mesa-acoes-rapidas-v2.js",key:"table-quick-actions-v2",guard:table},
+        {src:"mesa-dano-v2-fix.js",key:"table-damage-v2-fix",guard:table}
+    );
+
+    /* Editor: uma única camada para o sistema base. A stability-v3 duplicava
+       restauração, fórmulas e listeners já existentes em sistema-base-v2. */
+    if(editor()) extensions.push(
+        {src:"sistema-base-v2.js",key:"system-base-v2",guard:editor},
+        {src:"sistema-base-habilidades-nomes.js",key:"system-base-ability-names",guard:editor}
+    );
+    else if(table()) extensions.push(
+        {src:"sistema-base-habilidades-nomes.js",key:"system-base-ability-names",guard:table}
+    );
+
+    /* Grimório: no editor o wizard é a implementação principal. grimorio-v2
+       fica somente na mesa, evitando dois construtores completos no mesmo DOM. */
+    if(table()) extensions.push({src:"grimorio-v2.js",key:"grimoire-v2",guard:table});
+    if(editor()) extensions.push({src:"grimorio-editor-wizard.js",key:"grimoire-editor-wizard",guard:editor});
+
+    extensions.push({src:"grimorio-v25.js",key:"grimoire-v25",guard:both});
+    if(editor()) extensions.push({src:"grimorio-editor-final.js",key:"grimoire-editor-final",guard:editor});
+    extensions.push(
+        {src:"grimorio-dt-visual-v26.js",key:"grimoire-dt-visual-v26",guard:both},
+        {src:"grimorio-v26-fix.js",key:"grimoire-v26-fix",guard:both}
+    );
+    if(table()) extensions.push({src:"grimorio-card-restore-v27.js",key:"grimoire-card-restore-v27",guard:table});
+
+    loadExtensionsSequentially(extensions);
 });
