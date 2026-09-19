@@ -4971,7 +4971,11 @@ const openEntityFromToken = event => {
     }
 
 
-    openOccupiedPosition(type,entity,position);
+    if(type==="enemy" && currentTableRole==="master"){
+        openEnemyControlSheet(entity,position);
+    }else{
+        openOccupiedPosition(type,entity,position);
+    }
 };
 token.onclick=openEntityFromToken;
 tokenSlot.onclick=openEntityFromToken;
@@ -7300,170 +7304,40 @@ function rollPlayerInitiative(
 ==========================================================*/
 
 function rollEnemyInitiatives(){
-
-    const request =
-        currentTableCampaign
-            .combat
-            ?.initiativeRequest;
-
-
-    if(!request){
-
-        return;
-
-    }
-
-
-    let enemyLibrary = [];
-
-    try{
-
-        enemyLibrary =
-            JSON.parse(
-                localStorage.getItem(
-                    "ordem_threats"
-                ) || "[]"
-            );
-
-    }
-    catch{
-
-        enemyLibrary = [];
-
-    }
-
-
-    request.participants
-        .filter(
-            participant =>
-                participant.type === "enemy" &&
-                participant.rolled !== true
-        )
-        .forEach(participant => {
-
-            const enemy =
-                enemyLibrary.find(
-                    item =>
-                        item.id ===
-                        participant.enemyId
-                ) || {};
-
-
-            const attributes=enemy.attributes||{};
-            const agility=Math.max(0,Number(enemy.foco ?? attributes.foco ?? attributes.agi ?? enemy.agi ?? enemy.agility)||0);
-
-
-            const d20Rolls = [];
-
-
-            for(
-                let index = 0;
-                index < agility;
-                index++
-            ){
-
-                d20Rolls.push(
-                    Math.floor(
-                        Math.random() * 20
-                    ) + 1
-                );
-
+    const request=currentTableCampaign.combat?.initiativeRequest;
+    if(!request)return;
+    const placed=Array.isArray(currentTableCampaign.enemies)?currentTableCampaign.enemies:[];
+    let library=[];
+    try{library=JSON.parse(localStorage.getItem("ordem_threats")||"[]")}catch{library=[]}
+    request.participants.filter(p=>p.type==="enemy"&&p.rolled!==true).forEach(participant=>{
+        // Prioriza a instância que está na mesa: ela já contém Foco e Presteza da ficha pronta.
+        const enemy=placed.find(item=>(item.enemyId||item.id)===participant.enemyId)
+            || library.find(item=>item.id===participant.enemyId||item.id===participant.templateId)
+            || {};
+        const foco=Math.max(0,Number(enemy.foco ?? enemy.attributes?.foco ?? 0)||0);
+        const rawSkills=enemy.skills||{};
+        let rank=0,bonus=0,penalty=0;
+        if(Array.isArray(rawSkills)){
+            const presteza=rawSkills.find(skill=>String(skill.id||skill.name||"").toLowerCase()==="presteza");
+            rank=Number(presteza?.level ?? presteza?.rank ?? 0)||0;
+            bonus=Number(presteza?.bonus)||0; penalty=Number(presteza?.penalty)||0;
+            if(!rank){
+                const t=String(presteza?.training||"");
+                rank=t==="1d12"?3:t==="1d8"?2:t==="1d4"?1:0;
             }
-
-
-            const bestD20 =
-                Math.max(
-                    ...d20Rolls
-                );
-
-
-            const rawSkills=enemy.skills||{};
-            const skills=Array.isArray(rawSkills)?rawSkills:[];
-            const readiness=skills.find(skill=>String(skill.id||skill.name||"").toLowerCase()==="presteza");
-            const rank=Array.isArray(rawSkills)?null:Number(rawSkills.Presteza??rawSkills.presteza??0);
-            const trainingFormula=readiness?.training&&readiness.training!=="0"
-                ? readiness.training
-                : ({1:"1d4",2:"1d8",3:"1d12"}[rank]||"0");
-
-
-            const trainingResult =
-                rollDiceExpression(
-                    trainingFormula
-                );
-
-
-            const trainingValue =
-                trainingResult?.total || 0;
-
-
-            const modifier =
-                (
-                    Number(
-                        readiness?.bonus
-                    ) || 0
-                )
-                +
-                (
-                    Number(
-                        readiness?.penalty
-                    ) || 0
-                );
-
-
-            participant.rolled =
-                true;
-
-
-            participant.result =
-                bestD20 +
-                trainingValue +
-                modifier;
-
-
-            participant.attribute =
-                "agi";
-
-
-            participant.attributeValue =
-                agility;
-
-
-            participant.d20Rolls =
-                d20Rolls;
-
-
-            participant.bestD20 =
-                bestD20;
-
-
-            participant.readinessTraining =
-                trainingFormula;
-
-
-            participant.readinessRoll =
-                trainingValue;
-
-
-            participant.modifier =
-                modifier;
-
-
-            participant.rolledAt =
-                Date.now();
-
-        });
-
-
-    currentTableCampaign
-        .combat
-        .updatedAt =
-        Date.now();
-
-
+        }else rank=Number(rawSkills.Presteza??rawSkills.presteza??0)||0;
+        const trainingFormula=({1:"1d4",2:"1d8",3:"1d12"})[rank]||"0";
+        const base=rollDiceExpression("1d12")?.total||0;
+        const training=trainingFormula==="0"?0:(rollDiceExpression(trainingFormula)?.total||0);
+        const total=base+training+foco+bonus+penalty;
+        participant.rolled=true;participant.result=total;participant.attribute="foco";participant.attributeValue=foco;
+        participant.d20Rolls=[base];participant.bestD20=base;participant.readinessTraining=trainingFormula;
+        participant.readinessRoll=training;participant.modifier=foco+bonus+penalty;participant.rolledAt=Date.now();
+        addDiceChatMessage({characterName:enemy.name||participant.name||"Ameaça",title:"Iniciativa",type:"Presteza",formula:"1d12"+(trainingFormula!=="0"?"+"+trainingFormula:"")+"+"+foco,result:{total,details:[]}});
+    });
+    currentTableCampaign.combat.updatedAt=Date.now();
     saveTableCampaign();
-
 }
-
 
 /*==========================================================
 =              SINCRONIZAÇÃO AO VIVO
