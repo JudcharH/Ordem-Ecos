@@ -1286,6 +1286,21 @@ function clearActiveMenuButtons(){
 
 function bindTableEvents(){
 
+    // Delegação robusta: o token de ameaça sempre abre sua ficha para o Mestre,
+    // mesmo quando o token grande ultrapassa visualmente o slot âncora.
+    document.addEventListener("click",event=>{
+        const token=event.target.closest?.(".combat-token[data-enemy-instance-id]");
+        if(!token || currentTableRole!=="master") return;
+        if(pendingAttackApplication || pendingDamageApplication) return;
+        const id=token.dataset.enemyInstanceId;
+        const enemies=Array.isArray(currentTableCampaign?.enemies)?currentTableCampaign.enemies:[];
+        const enemy=enemies.find(item=>String(item.enemyId||item.id)===String(id));
+        if(!enemy) return;
+        event.preventDefault();
+        event.stopPropagation();
+        openEnemyControlSheet(enemy,Number(enemy.position)||Number(token.dataset.enemyPosition)||1);
+    },true);
+
     leaveTableButton?.addEventListener(
         "click",
         leaveTable
@@ -4787,6 +4802,10 @@ container.classList.toggle(
 
         token.className =
             "combat-token";
+        if(type==="enemy"){
+            token.dataset.enemyInstanceId=entity.enemyId||entity.id||"";
+            token.dataset.enemyPosition=String(position);
+        }
 
         let photo = "";
 
@@ -7305,38 +7324,54 @@ function rollPlayerInitiative(
 
 function rollEnemyInitiatives(){
     const request=currentTableCampaign.combat?.initiativeRequest;
-    if(!request)return;
+    if(!request || request.active!==true)return;
+
     const placed=Array.isArray(currentTableCampaign.enemies)?currentTableCampaign.enemies:[];
-    let library=[];
-    try{library=JSON.parse(localStorage.getItem("ordem_threats")||"[]")}catch{library=[]}
-    request.participants.filter(p=>p.type==="enemy"&&p.rolled!==true).forEach(participant=>{
-        // Prioriza a instância que está na mesa: ela já contém Foco e Presteza da ficha pronta.
-        const enemy=placed.find(item=>(item.enemyId||item.id)===participant.enemyId)
-            || library.find(item=>item.id===participant.enemyId||item.id===participant.templateId)
-            || {};
-        const foco=Math.max(0,Number(enemy.foco ?? enemy.attributes?.foco ?? 0)||0);
-        const rawSkills=enemy.skills||{};
-        let rank=0,bonus=0,penalty=0;
-        if(Array.isArray(rawSkills)){
-            const presteza=rawSkills.find(skill=>String(skill.id||skill.name||"").toLowerCase()==="presteza");
-            rank=Number(presteza?.level ?? presteza?.rank ?? 0)||0;
-            bonus=Number(presteza?.bonus)||0; penalty=Number(presteza?.penalty)||0;
-            if(!rank){
-                const t=String(presteza?.training||"");
-                rank=t==="1d12"?3:t==="1d8"?2:t==="1d4"?1:0;
+    request.participants
+        .filter(participant=>participant.type==="enemy"&&participant.rolled!==true)
+        .forEach(participant=>{
+            const enemy=placed.find(item=>String(item.enemyId||item.id)===String(participant.enemyId));
+            if(!enemy)return;
+
+            const skills=enemy.skills||{};
+            let rank=0;
+            if(Array.isArray(skills)){
+                const skill=skills.find(item=>String(item.id||item.name||"").toLowerCase()==="presteza");
+                rank=Number(skill?.level??skill?.rank??0)||0;
+                if(!rank){
+                    const training=String(skill?.training||"");
+                    rank=training==="1d12"?3:training==="1d8"?2:training==="1d4"?1:0;
+                }
+            }else{
+                rank=Number(skills.Presteza??skills.presteza??0)||0;
             }
-        }else rank=Number(rawSkills.Presteza??rawSkills.presteza??0)||0;
-        const trainingFormula=({1:"1d4",2:"1d8",3:"1d12"})[rank]||"0";
-        const base=rollDiceExpression("1d12")?.total||0;
-        const training=trainingFormula==="0"?0:(rollDiceExpression(trainingFormula)?.total||0);
-        const total=base+training+foco+bonus+penalty;
-        participant.rolled=true;participant.result=total;participant.attribute="foco";participant.attributeValue=foco;
-        participant.d20Rolls=[base];participant.bestD20=base;participant.readinessTraining=trainingFormula;
-        participant.readinessRoll=training;participant.modifier=foco+bonus+penalty;participant.rolledAt=Date.now();
-        addDiceChatMessage({characterName:enemy.name||participant.name||"Ameaça",title:"Iniciativa",type:"Presteza",formula:"1d12"+(trainingFormula!=="0"?"+"+trainingFormula:"")+"+"+foco,result:{total,details:[]}});
-    });
+
+            const corpo=Math.max(0,Number(enemy.corpo??enemy.attributes?.corpo??0)||0);
+            const trainingFormula=({1:"1d4",2:"1d8",3:"1d12"})[rank]||"0";
+            const formula="1d12"+(trainingFormula!=="0"?"+"+trainingFormula:"")+"+"+corpo;
+            const result=rollDiceExpression(formula);
+            if(!result)return;
+
+            participant.rolled=true;
+            participant.result=result.total;
+            participant.attribute="corpo";
+            participant.attributeValue=corpo;
+            participant.readinessTraining=trainingFormula;
+            participant.modifier=corpo;
+            participant.rolledAt=Date.now();
+
+            addDiceChatMessage({
+                characterName:enemy.name||participant.name||"Ameaça",
+                title:"Iniciativa",
+                type:"Presteza",
+                formula,
+                result
+            });
+        });
+
     currentTableCampaign.combat.updatedAt=Date.now();
     saveTableCampaign();
+    finalizeInitiativeIfReady();
 }
 
 /*==========================================================
