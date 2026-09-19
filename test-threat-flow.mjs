@@ -202,6 +202,39 @@ if (!vm.runInContext("addEnemyDamageDice('2d12 + 1d8 + 6', 2) === '4d12 + 1d8 + 
     throw new Error("Os dois dados adicionais do crítico não foram aplicados ao dano principal.");
 }
 
+const enemyActionPoints = vm.runInContext(`(() => {
+    const enemy = { pa: 3, paAtual: 3, status: { paAtual: 3, paMax: 3 } };
+    saveTableCampaign = () => {};
+    const firstAttack = spendEnemyActionPoints(enemy, 1);
+    const afterFirst = enemy.paAtual;
+    enemy.status.paAtual = 0;
+    enemy.paAtual = 0;
+    const attackWithoutPA = spendEnemyActionPoints(enemy, 1);
+    return { firstAttack, afterFirst, savedPA: enemy.paAtual, attackWithoutPA };
+})()`, context);
+if (!enemyActionPoints.firstAttack || enemyActionPoints.afterFirst !== 2 || enemyActionPoints.attackWithoutPA || enemyActionPoints.savedPA !== 0) {
+    throw new Error(`Consumo de PA da criatura incorreto: ${JSON.stringify(enemyActionPoints)}`);
+}
+
+const enemyDamage = vm.runInContext(`(() => {
+    const enemy = { id: "damaged-enemy", enemyId: "damaged-enemy", name: "Alvo", pv: 40, rd: 3, status: { pvAtual: 40, pvMax: 40 } };
+    const message = { id: "damage-message", rollKind: "damage", total: 10 };
+    currentTableCampaign.enemies = [enemy];
+    currentTableCampaign.chatMessages = [message];
+    currentTableCampaign.combat = {};
+    pendingDamageApplication = { messageId: message.id, damage: 10 };
+    saveTableCampaign = () => {};
+    cancelDamageTargetSelection = () => { pendingDamageApplication = null; };
+    renderCombatPositions = () => {};
+    renderPublicChat = () => {};
+    addSystemChatMessage = () => {};
+    applyDamageToEnemy(enemy);
+    return { pv: enemy.status.pvAtual, application: message.damageApplication, applied: message.applied };
+})()`, context);
+if (enemyDamage.pv !== 33 || !enemyDamage.applied || enemyDamage.application.pvBefore !== 40 || enemyDamage.application.pvAfter !== 33) {
+    throw new Error(`Dano nos PV atuais da criatura incorreto: ${JSON.stringify(enemyDamage)}`);
+}
+
 const greaterDodge = vm.runInContext(`(() => {
     const enemy = {
         id: "wolf-instance",
@@ -262,5 +295,7 @@ console.log(JSON.stringify({
     skillFormula: skillRolls[0],
     conditionCatalog: true,
     chargeDamageDie: true,
+    enemyAttackConsumesPA: true,
+    enemyCurrentPVReduced: true,
     greaterDodge: true
 }, null, 2));
