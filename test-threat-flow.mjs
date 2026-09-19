@@ -235,6 +235,32 @@ if (enemyDamage.pv !== 33 || !enemyDamage.applied || enemyDamage.application.pvB
     throw new Error(`Dano nos PV atuais da criatura incorreto: ${JSON.stringify(enemyDamage)}`);
 }
 
+const enemyCondition = vm.runInContext(`(() => {
+    const enemy = { id: "condition-enemy", enemyId: "condition-enemy", conditions: [] };
+    currentTableCampaign.enemies = [enemy];
+    addConditionToEnemy(enemy, ENEMY_CONDITION_CATALOG.find(item => item.id === "sangramento"));
+    addConditionToEnemy(enemy, ENEMY_CONDITION_CATALOG.find(item => item.id === "sangramento"));
+    return enemy.conditions[0];
+})()`, context);
+if (enemyCondition.id !== "sangramento" || enemyCondition.stacks !== 2) {
+    throw new Error(`Condição da ameaça não foi aplicada ou acumulada: ${JSON.stringify(enemyCondition)}`);
+}
+
+const fierceBiteAttack = vm.runInContext(`(() => {
+    const enemy = { id: "bite-enemy", enemyId: "bite-enemy", name: "Predador" };
+    currentTableCampaign.enemies = [enemy];
+    currentTableCampaign.chatMessages = [{
+        id: "strong-hit",
+        rollKind: "attack",
+        attackVariant: "strong",
+        attackApplication: { attackerEnemyId: "bite-enemy", targetCharacterId: "target-player", hit: true }
+    }];
+    return latestSuccessfulStrongAttack(enemy);
+})()`, context);
+if (fierceBiteAttack?.id !== "strong-hit") {
+    throw new Error(`Mordida Feroz não reconheceu o ataque forte acertado: ${JSON.stringify(fierceBiteAttack)}`);
+}
+
 const greaterDodge = vm.runInContext(`(() => {
     const enemy = {
         id: "wolf-instance",
@@ -285,6 +311,12 @@ if (greaterDodge.rd !== 8 || greaterDodge.armed !== false || greaterDodge.uses !
     throw new Error(`Esquiva Maior incorreta: ${JSON.stringify(greaterDodge)}`);
 }
 
+vm.runInContext(fs.readFileSync("ameacas.js", "utf8"), context, { filename: "ameacas.js" });
+const abilityCatalog = vm.runInContext("window.OrdemThreatRules.abilityCatalog.map(ability => ability.id)", context);
+if (!["investida", "mordida-feroz", "esquiva-maior"].every(id => abilityCatalog.includes(id))) {
+    throw new Error(`Biblioteca de habilidades incompleta: ${JSON.stringify(abilityCatalog)}`);
+}
+
 console.log(JSON.stringify({
     ok: true,
     clickOpenedSheet: true,
@@ -297,5 +329,8 @@ console.log(JSON.stringify({
     chargeDamageDie: true,
     enemyAttackConsumesPA: true,
     enemyCurrentPVReduced: true,
+    enemyConditions: true,
+    fierceBiteTarget: true,
+    reusableAbilityCatalog: true,
     greaterDodge: true
 }, null, 2));
