@@ -144,8 +144,10 @@ vm.runInContext(`
         }
     };
     let rolledFormula = "";
+    let initiativeSavedBeforeChat = false;
     rollDiceExpression = formula => { rolledFormula = formula; return { total: 17, details: [] }; };
-    addDiceChatMessage = () => {};
+    saveTableCampaign = () => { initiativeSavedBeforeChat = currentTableCampaign.combat.initiativeRequest.participants[0].rolled === true; };
+    addRollChatMessage = () => { if(!initiativeSavedBeforeChat) throw new Error("A iniciativa foi publicada antes de ser salva."); };
     finalizeInitiativeIfReady = () => {};
     rollEnemyInitiatives();
 `, context);
@@ -178,6 +180,9 @@ if (skillRolls[0] !== "1d12+1d8+1" || skillRolls[2] !== "1d12+1d8+1") {
 if (!vm.runInContext("ENEMY_CONDITION_CATALOG.length >= 20", context)) {
     throw new Error("A lista de condições da criatura está incompleta.");
 }
+if (!vm.runInContext("addEnemyDamageDie('2d12 + 6') === '3d12 + 6'", context)) {
+    throw new Error("O dado adicional da Investida não foi aplicado corretamente.");
+}
 
 console.log(JSON.stringify({
     ok: true,
@@ -185,6 +190,8 @@ console.log(JSON.stringify({
     numericTemplateId: true,
     moveAndRemove: true,
     initiativeFormula: initiative.formula,
+    initiativeSavedBeforeChat: true,
     skillFormula: skillRolls[0],
-    conditionCatalog: true
+    conditionCatalog: true,
+    chargeDamageDie: true
 }, null, 2));
