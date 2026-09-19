@@ -131,7 +131,7 @@ vm.runInContext(`
         position: 3,
         foco: 5,
         corpo: 1,
-        skills: { Presteza: 2 }
+        skills: { Luta: 2, Presteza: 2 }
     }];
     currentTableCampaign.combat = {
         initiativeRequest: {
@@ -162,10 +162,29 @@ if (!initiative.participant.rolled || initiative.participant.attribute !== "foco
     throw new Error(`Registro de iniciativa incorreto: ${JSON.stringify(initiative.participant)}`);
 }
 
+const skillRolls = vm.runInContext(`(() => {
+    const formulas = [];
+    rollDiceExpression = formula => ({ total: 12, details: [], expression: (formulas.push(formula), formula) });
+    addRollChatMessage = (label, formula, total, detail, metadata) => formulas.push({ label, formula, total, metadata });
+    const enemy = currentTableCampaign.enemies[0];
+    rollEnemySkill(enemy, "Luta", { rollKind: "attack" });
+    rollEnemySkill(enemy, "Presteza");
+    return formulas;
+})()`, context);
+
+if (skillRolls[0] !== "1d12+1d8+1" || skillRolls[2] !== "1d12+1d8+1") {
+    throw new Error(`Fórmulas de perícia incorretas: ${JSON.stringify(skillRolls)}`);
+}
+if (!vm.runInContext("ENEMY_CONDITION_CATALOG.length >= 20", context)) {
+    throw new Error("A lista de condições da criatura está incompleta.");
+}
+
 console.log(JSON.stringify({
     ok: true,
     clickOpenedSheet: true,
     numericTemplateId: true,
     moveAndRemove: true,
-    initiativeFormula: initiative.formula
+    initiativeFormula: initiative.formula,
+    skillFormula: skillRolls[0],
+    conditionCatalog: true
 }, null, 2));
