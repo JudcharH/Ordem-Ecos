@@ -207,6 +207,8 @@ function initTable(){
 
     checkPendingAttackReaction();
 
+    checkPendingEnemyAttackReaction();
+
 }
 
 
@@ -5810,12 +5812,15 @@ function openEnemyConditionSelector(enemy,position){
         saveTableCampaign();renderCombatPositions();close();openEnemyControlSheet(enemy,position);
     }));
 }
-function latestSuccessfulStrongAttack(enemy){const id=String(enemy.enemyId||enemy.id);return[...(currentTableCampaign?.chatMessages||[])].reverse().find(message=>String(message.enemyInstanceId||"")===id&&message.attackVariant==="strong"&&message.attackApplication?.hit===true&&message.mordidaFerozUsed!==true)||null;}
+function latestSuccessfulStrongAttack(enemy){const id=String(enemy.enemyId||enemy.id),name=String(enemy.name||"").toLowerCase();return[...(currentTableCampaign?.chatMessages||[])].reverse().find(message=>{const sameEnemy=String(message.enemyInstanceId||"")===id||String(message.label||"").toLowerCase().includes(name),strong=message.attackVariant==="strong"||normalizeEnemyAbilityId(message.attackName)==="ataque-forte";return sameEnemy&&strong&&message.attackApplication?.hit===true&&message.mordidaFerozUsed!==true;})||null;}
 function enemyAbilityAvailability(enemy,id){const state=enemyAbilityState(enemy),round=enemyCombatRound();if(id==="investida")return{enabled:state.investidaMovedRound===round&&state.investidaUsedRound!==round&&!state.investidaArmed,label:state.investidaArmed?"Preparada":"Usar"};if(id==="mordida-feroz"){const last=Number(state.mordidaLastUsedRound);return{enabled:Boolean(latestSuccessfulStrongAttack(enemy))&&(!Number.isFinite(last)||round-last>=2),label:"Usar"};}if(id==="esquiva-maior"){const limit=Math.max(0,Number(enemy.corpo)||0),used=Math.max(0,Number(state.esquivaMaiorSceneUses)||0);return{enabled:state.esquivaMaiorUsedRound!==round&&used<limit&&!state.esquivaMaiorArmed,label:state.esquivaMaiorArmed?"Preparada":"Preparar"};}return{enabled:false,label:"Passiva"};}
 function renderEnemyAbilityCards(enemy){const abilities=hydrateEnemyAbilities(enemy);if(!abilities.length)return"<p>Nenhuma habilidade.</p>";return abilities.map(ability=>{const id=normalizeEnemyAbilityId(ability.id||ability.name),availability=enemyAbilityAvailability(enemy,id),state=enemyAbilityState(enemy);let status="";if(id==="investida"&&state.investidaArmed)status="Próximo dano recebe +1 dado.";if(id==="mordida-feroz")status="Recarga: 2 rodadas.";if(id==="esquiva-maior")status=`Usos na cena: ${Number(state.esquivaMaiorSceneUses)||0}/${Math.max(0,Number(enemy.corpo)||0)}.`;return`<div class="table-panel-card"><h3>${escapeTableHTML(ability.name||"Habilidade")}</h3><p>${escapeTableHTML(ability.description||"")}</p>${status?`<p><strong>${escapeTableHTML(status)}</strong></p>`:""}${["investida","mordida-feroz","esquiva-maior"].includes(id)?`<button type="button" class="primary-button enemy-use-ability" data-ability="${id}" ${availability.enabled?"":"disabled"}>${escapeTableHTML(availability.label)}</button>`:""}</div>`;}).join("");}
 function rollCharacterManobra(character){const skills=Array.isArray(character?.skills)?character.skills:[],skill=skills.find(item=>normalizeEnemyAbilityId(item.id||item.name)==="manobra")||{},training=String(skill.training||skill.treino||"0"),attributeValue=Number(character?.attributes?.corpo??character?.attributes?.for??0)||0,bonus=Number(skill.bonus)||0,penalty=Math.abs(Number(skill.penalty??skill.penalidade)||0),formula=`1d12${training&&training!=="0"?`+${training}`:""}${attributeValue+bonus-penalty>=0?"+":""}${attributeValue+bonus-penalty}`;const result=rollDiceExpression(formula);return{formula,result};}
-function useEnemyAbility(enemy,id,position){const state=enemyAbilityState(enemy),round=enemyCombatRound(),availability=enemyAbilityAvailability(enemy,id);if(!availability.enabled)return;if(id==="investida"){state.investidaArmed=true;state.investidaUsedRound=round;saveTableCampaign();addSystemChatMessage(`${enemy.name} preparou Investida. O próximo dano recebe +1 dado.`);openEnemyControlSheet(enemy,position);return;}if(id==="esquiva-maior"){state.esquivaMaiorArmed=true;saveTableCampaign();addSystemChatMessage(`${enemy.name} preparou Esquiva Maior para a próxima esquiva.`);openEnemyControlSheet(enemy,position);return;}if(id==="mordida-feroz"){const message=latestSuccessfulStrongAttack(enemy),target=message?.attackApplication?.targetCharacterId?getLiveCharacter(message.attackApplication.targetCharacterId):null;if(!message||!target)return;const enemyRank=enemySkillData(enemy,"Manobra"),enemyTraining=enemyTrainingDie(enemyRank.rank),enemyModifier=(Number(enemy.corpo)||0)+enemyRank.bonus-enemyRank.penalty,enemyFormula=`1d12${enemyTraining!=="0"?`+${enemyTraining}`:""}${enemyModifier>=0?"+":""}${enemyModifier}`,enemyResult=rollDiceExpression(enemyFormula),playerRoll=rollCharacterManobra(target);if(!enemyResult||!playerRoll.result)return;state.mordidaLastUsedRound=round;message.mordidaFerozUsed=true;addRollChatMessage(`Mordida Feroz • ${enemy.name}`,enemyFormula,enemyResult.total,enemyRollDetail(enemyResult));addRollChatMessage(`Resistência de Manobra • ${target.name}`,playerRoll.formula,playerRoll.result.total,enemyRollDetail(playerRoll.result));if(enemyResult.total>=playerRoll.result.total){target.conditions=Array.isArray(target.conditions)?target.conditions:[];target.conditions=target.conditions.filter(condition=>normalizeEnemyAbilityId(typeof condition==="string"?condition:condition.id||condition.name)!=="caido");target.conditions.push({id:"caido",name:"Caído",description:`Derrubado por ${enemy.name}. Use Testar Manobra para se levantar.`,source:"mordida-feroz",escapeEnemyId:enemy.enemyId||enemy.id});saveDamagedCharacter(target);addSystemChatMessage(`${enemy.name} venceu a disputa de Manobra. ${target.name} recebeu Caído.`);}else addSystemChatMessage(`${target.name} venceu a disputa de Manobra e resistiu à Mordida Feroz.`);saveTableCampaign();openEnemyControlSheet(enemy,position);}}
+function useEnemyAbility(enemy,id,position){refreshCurrentTableCampaign();const liveEnemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemy.enemyId||enemy.id))||enemy,state=enemyAbilityState(liveEnemy),round=enemyCombatRound(),availability=enemyAbilityAvailability(liveEnemy,id);if(!availability.enabled)return;if(id==="investida"){state.investidaArmed=true;state.investidaUsedRound=round;saveTableCampaign();addSystemChatMessage(`${liveEnemy.name} preparou Investida. O próximo dano recebe +1 dado.`);openEnemyControlSheet((currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(liveEnemy.enemyId||liveEnemy.id))||liveEnemy,position);return;}if(id==="esquiva-maior"){state.esquivaMaiorArmed=true;saveTableCampaign();addSystemChatMessage(`${liveEnemy.name} preparou Esquiva Maior. Ela será ativada somente se a criatura escolher Esquivar como reação.`);openEnemyControlSheet((currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(liveEnemy.enemyId||liveEnemy.id))||liveEnemy,position);return;}if(id==="mordida-feroz"){const message=latestSuccessfulStrongAttack(liveEnemy),target=message?.attackApplication?.targetCharacterId?getLiveCharacter(message.attackApplication.targetCharacterId):null;if(!message||!target)return;const enemyRank=enemySkillData(liveEnemy,"Manobra"),enemyTraining=enemyTrainingDie(enemyRank.rank),enemyModifier=(Number(liveEnemy.corpo)||0)+enemyRank.bonus-enemyRank.penalty,enemyFormula=`1d12${enemyTraining!=="0"?`+${enemyTraining}`:""}${enemyModifier>=0?"+":""}${enemyModifier}`,enemyResult=rollDiceExpression(enemyFormula),playerRoll=rollCharacterManobra(target);if(!enemyResult||!playerRoll.result)return;state.mordidaLastUsedRound=round;message.mordidaFerozUsed=true;saveTableCampaign();addRollChatMessage(`Mordida Feroz • ${liveEnemy.name}`,enemyFormula,enemyResult.total,enemyRollDetail(enemyResult));addRollChatMessage(`Resistência de Manobra • ${target.name}`,playerRoll.formula,playerRoll.result.total,enemyRollDetail(playerRoll.result));if(enemyResult.total>=playerRoll.result.total){target.conditions=Array.isArray(target.conditions)?target.conditions:[];target.conditions=target.conditions.filter(condition=>normalizeEnemyAbilityId(typeof condition==="string"?condition:condition.id||condition.name)!=="caido");target.conditions.push({id:"caido",name:"Caído",description:`Derrubado por ${liveEnemy.name}. Use Testar Manobra para se levantar.`,source:"mordida-feroz",escapeEnemyId:liveEnemy.enemyId||liveEnemy.id});saveDamagedCharacter(target);addSystemChatMessage(`${liveEnemy.name} venceu a disputa de Manobra. ${target.name} recebeu Caído.`);}else addSystemChatMessage(`${target.name} venceu a disputa de Manobra e resistiu à Mordida Feroz.`);openEnemyControlSheet((currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(liveEnemy.enemyId||liveEnemy.id))||liveEnemy,position);}}
 function openEnemyControlSheet(enemy,position){
+    const requestedEnemyId=enemy?.enemyId||enemy?.id;
+    refreshCurrentTableCampaign();
+    enemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(requestedEnemyId))||enemy;
     const skills=enemy.skills&&typeof enemy.skills==="object"?enemy.skills:{};
     const hp=Number(enemy.status?.pvAtual ?? enemy.pv ?? 0),max=Number(enemy.status?.pvMax ?? enemy.pv ?? 0),conditions=Array.isArray(enemy.conditions)?enemy.conditions:[];
     const skillEntries=Array.isArray(skills)?skills.map(item=>[item.name||item.id,enemySkillData(enemy,item.name||item.id).rank]):Object.entries(skills).map(([name])=>[name,enemySkillData(enemy,name).rank]);
@@ -5833,7 +5838,7 @@ function openEnemyControlSheet(enemy,position){
       <div class="table-panel-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>Condições</h3><button id="enemyAddCondition" type="button" class="primary-button" aria-label="Adicionar condição" style="width:42px;padding:0">＋</button></div><div style="display:grid;gap:8px;margin-top:10px">${conditionList}</div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button id="enemyMoveFromSheet" class="secondary-button">Mover</button><button id="enemyRemoveFromSheet" class="secondary-button">Remover da mesa</button></div>`);
     document.getElementById("enemySaveHp")?.addEventListener("click",()=>{enemy.status=enemy.status||{};enemy.status.pvAtual=Math.max(0,Number(document.getElementById("enemyHpCurrent").value)||0);enemy.status.pvMax=Math.max(0,Number(document.getElementById("enemyHpMax").value)||0);saveTableCampaign();openEnemyControlSheet(enemy,position)});
-    document.querySelectorAll(".enemy-quick-attack").forEach(button=>button.addEventListener("click",()=>{const attackName=button.dataset.attack==="strong"?"Ataque forte":"Ataque básico",enemyInstanceId=enemy.enemyId||enemy.id,attackVariant=button.dataset.attack;if(button.dataset.roll==="attack"){rollEnemySkill(enemy,"Luta",{label:`Ataque • ${attackName} • ${enemy.name||"Criatura"}`,rollKind:"attack",attackName,enemyInstanceId,attackVariant,applied:false});return}const state=enemyAbilityState(enemy),raw=button.dataset.attack==="strong"?enemy.strongAttack:enemy.basicAttack,boosted=state.investidaArmed?addEnemyDamageDie(raw):raw,resolved=String(boosted||"").replace(/Corpo/gi,Number(enemy.corpo)||0),result=rollDiceExpression(resolved);if(!result)return;if(state.investidaArmed){state.investidaArmed=false;saveTableCampaign();}addRollChatMessage(`Dano • ${attackName} • ${enemy.name||"Criatura"}`,resolved,result.total,enemyRollDetail(result),{rollKind:"damage",attackName,enemyInstanceId,attackVariant,applied:false})}));
+    document.querySelectorAll(".enemy-quick-attack").forEach(button=>button.addEventListener("click",()=>{refreshCurrentTableCampaign();const liveEnemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemy.enemyId||enemy.id))||enemy,attackName=button.dataset.attack==="strong"?"Ataque forte":"Ataque básico",enemyInstanceId=liveEnemy.enemyId||liveEnemy.id,attackVariant=button.dataset.attack;if(button.dataset.roll==="attack"){rollEnemySkill(liveEnemy,"Luta",{label:`Ataque • ${attackName} • ${liveEnemy.name||"Criatura"}`,rollKind:"attack",attackName,enemyInstanceId,attackVariant,applied:false});return}const state=enemyAbilityState(liveEnemy),raw=button.dataset.attack==="strong"?liveEnemy.strongAttack:liveEnemy.basicAttack,boosted=state.investidaArmed?addEnemyDamageDie(raw):raw,resolved=String(boosted||"").replace(/Corpo/gi,Number(liveEnemy.corpo)||0),result=rollDiceExpression(resolved);if(!result)return;if(state.investidaArmed){state.investidaArmed=false;saveTableCampaign();}addRollChatMessage(`Dano • ${attackName} • ${liveEnemy.name||"Criatura"}`,resolved,result.total,enemyRollDetail(result),{rollKind:"damage",attackName,enemyInstanceId,attackVariant,applied:false})}));
     document.querySelectorAll(".enemy-skill-roll").forEach(button=>button.addEventListener("click",()=>rollEnemySkill(enemy,button.dataset.skill)));
     document.querySelectorAll(".enemy-use-ability").forEach(button=>button.addEventListener("click",()=>useEnemyAbility(enemy,button.dataset.ability,position)));
     document.getElementById("enemyAddCondition")?.addEventListener("click",()=>openEnemyConditionSelector(enemy,position));
@@ -7529,8 +7534,8 @@ window.addEventListener(
     event => {
 
         if(
-            event.key !==
-            TABLE_CHARACTER_STORAGE
+            event.key !== TABLE_CHARACTER_STORAGE &&
+            event.key !== TABLE_CAMPAIGN_STORAGE
         ){
 
             return;
@@ -7545,6 +7550,10 @@ window.addEventListener(
         renderCombatPositions();
 
         refreshOpenCharacterPanel();
+
+        checkPendingAttackReaction();
+
+        checkPendingEnemyAttackReaction();
 
     }
 );
@@ -9656,21 +9665,43 @@ function applyPendingAttackToTarget(
 
 function resolveAttackAgainstEnemy(enemy){
     if(!enemy||!pendingAttackApplication)return;
-    const attackerName=pendingAttackApplication.attackerName||"O atacante";
-    const attackResult=Math.max(0,Number(pendingAttackApplication.attackResult)||0),defense=Math.max(0,Number(enemy.defense)||0),state=enemyAbilityState(enemy),round=enemyCombatRound();
-    let reaction="Guardar",damageReduction=Math.max(0,Number(enemy.rd)||0);
-    if(state.esquivaMaiorArmed&&enemyHasAbility(enemy,"esquiva-maior")){
-        reaction="Esquiva Maior";
-        damageReduction*=2;
-        state.esquivaMaiorArmed=false;
-        state.esquivaMaiorUsedRound=round;
-        state.esquivaMaiorSceneUses=Math.max(0,Number(state.esquivaMaiorSceneUses)||0)+1;
-    }
-    const hit=attackResult>=defense,messages=currentTableCampaign.chatMessages||[],message=messages.find(item=>item.id===pendingAttackApplication.messageId);
-    if(message){message.applied=true;message.appliedAt=Date.now();message.attackApplication={targetEnemyId:enemy.enemyId||enemy.id,targetName:enemy.name||"Ameaça",attackResult,finalDefense:defense,reaction,hit};}
     currentTableCampaign.combat=currentTableCampaign.combat||{};
-    currentTableCampaign.combat.damageContext=hit?{id:`damage_${Date.now()}`,active:true,targetEnemyId:enemy.enemyId||enemy.id,targetName:enemy.name||"Ameaça",reaction,damageReduction,consumed:false,createdAt:Date.now()}:null;
-    saveTableCampaign();cancelAttackTargetSelection();renderPublicChat();addSystemChatMessage(`${attackerName} ${hit?"acertou":"errou"} ${enemy.name||"a ameaça"}. ${reaction!=="Guardar"?`${reaction} deixou a RD deste ataque em ${damageReduction}.`:""}`.trim());
+    currentTableCampaign.combat.pendingEnemyAttack={id:`enemy_attack_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,active:true,resolved:false,messageId:pendingAttackApplication.messageId,attackName:pendingAttackApplication.attackName,attackResult:Math.max(0,Number(pendingAttackApplication.attackResult)||0),attackerCharacterId:pendingAttackApplication.attackerCharacterId||null,attackerName:pendingAttackApplication.attackerName||"Atacante",targetEnemyId:enemy.enemyId||enemy.id,targetName:enemy.name||"Ameaça",createdAt:Date.now()};
+    saveTableCampaign();cancelAttackTargetSelection();addSystemChatMessage(`${pendingAttackApplication?.attackerName||"O atacante"} atacou ${enemy.name||"a ameaça"}. Aguardando reação da criatura.`);checkPendingEnemyAttackReaction();
+}
+
+function checkPendingEnemyAttackReaction(){
+    if(currentTableRole!=="master"||!currentTableCampaign)return;
+    const request=currentTableCampaign.combat?.pendingEnemyAttack;
+    if(!request||request.active!==true||request.resolved===true)return;
+    const enemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(request.targetEnemyId));
+    if(!enemy)return;
+    const pa=Math.max(0,Number(enemy.status?.paAtual??enemy.paAtual??enemy.pa)||0),state=enemyAbilityState(enemy),majorReady=state.esquivaMaiorArmed&&enemyHasAbility(enemy,"esquiva-maior");
+    openTablePanel("REAÇÃO",enemy.name||"Ameaça",`<div class="table-panel-card"><h3>${escapeTableHTML(request.attackerName||"Atacante")} atacou</h3><p>Ataque: <strong>${Number(request.attackResult)||0}</strong></p><p>Defesa: <strong>${Number(enemy.defense)||0}</strong> • RD: <strong>${Number(enemy.rd)||0}</strong> • PA: <strong>${pa}</strong></p>${majorReady?'<p><strong>Esquiva Maior preparada:</strong> ao escolher Esquivar, a RD do próximo dano será dobrada.</p>':""}</div><div class="attack-reaction-grid"><button type="button" class="attack-reaction-button enemy-reaction-choice" data-reaction="dodge" ${pa<1?"disabled":""}><strong>Esquivar</strong><span>1 PA • Presteza na Defesa</span></button><button type="button" class="attack-reaction-button enemy-reaction-choice" data-reaction="block" ${pa<1?"disabled":""}><strong>Bloquear</strong><span>1 PA • RD + Corpo</span></button><button type="button" class="attack-reaction-button enemy-reaction-choice" data-reaction="counter" ${pa<1?"disabled":""}><strong>Contra-atacar</strong><span>1 PA • ataca se o golpe errar</span></button><button type="button" class="attack-reaction-button enemy-reaction-choice" data-reaction="guard"><strong>Guardar</strong><span>Sem custo</span></button></div>`);
+    document.querySelectorAll(".enemy-reaction-choice").forEach(button=>button.addEventListener("click",()=>answerEnemyAttackReaction(button.dataset.reaction)));
+}
+
+function answerEnemyAttackReaction(reactionType){
+    refreshCurrentTableCampaign();
+    const request=currentTableCampaign.combat?.pendingEnemyAttack,enemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(request?.targetEnemyId));
+    if(!request||!enemy||request.active!==true)return;
+    enemy.status=enemy.status&&typeof enemy.status==="object"?enemy.status:{};
+    const baseDefense=Math.max(0,Number(enemy.defense)||0),baseRD=Math.max(0,Number(enemy.rd)||0),currentPA=Math.max(0,Number(enemy.status.paAtual??enemy.paAtual??enemy.pa)||0),state=enemyAbilityState(enemy),round=enemyCombatRound();
+    let cost=0,finalDefense=baseDefense,reactionRD=baseRD,reactionName="Guardar",dodgeResult=null,majorTriggered=false;
+    if(["dodge","block","counter"].includes(reactionType)){cost=1;if(currentPA<1)return;}
+    if(reactionType==="dodge"){
+        reactionName="Esquivar";
+        const skill=enemySkillData(enemy,"Presteza"),training=enemyTrainingDie(skill.rank),modifier=(Number(enemy.corpo)||0)+skill.bonus-skill.penalty,formula=`1d12${training!=="0"?`+${training}`:""}${modifier>=0?"+":""}${modifier}`;
+        dodgeResult=rollDiceExpression(formula);finalDefense+=Math.max(0,Number(dodgeResult?.total)||0);
+        if(state.esquivaMaiorArmed&&enemyHasAbility(enemy,"esquiva-maior")){majorTriggered=true;reactionRD=baseRD*2;state.esquivaMaiorArmed=false;state.esquivaMaiorUsedRound=round;state.esquivaMaiorSceneUses=Math.max(0,Number(state.esquivaMaiorSceneUses)||0)+1;}
+    }else if(reactionType==="block"){reactionName="Bloquear";reactionRD=baseRD+Math.max(0,Number(enemy.corpo)||0);}else if(reactionType==="counter")reactionName="Contra-atacar";else reactionType="guard";
+    enemy.status.paAtual=Math.max(0,currentPA-cost);enemy.paAtual=enemy.status.paAtual;
+    const hit=Number(request.attackResult)>=finalDefense;
+    request.active=false;request.resolved=true;request.hit=hit;request.reaction={type:reactionType,name:majorTriggered?"Esquiva Maior":reactionName,paCost:cost,baseDefense,finalDefense,baseRD,reactionRD,majorTriggered,answeredAt:Date.now()};
+    const message=(currentTableCampaign.chatMessages||[]).find(item=>item.id===request.messageId);if(message){message.applied=true;message.appliedAt=Date.now();message.attackApplication={targetEnemyId:enemy.enemyId||enemy.id,targetName:enemy.name||"Ameaça",attackResult:Number(request.attackResult)||0,finalDefense,reaction:majorTriggered?"Esquiva Maior":reactionName,hit};}
+    currentTableCampaign.combat.damageContext=hit?{id:`damage_${Date.now()}`,active:true,targetEnemyId:enemy.enemyId||enemy.id,targetName:enemy.name||"Ameaça",reaction:majorTriggered?"esquiva-maior":reactionType,damageReduction:reactionRD,consumed:false,createdAt:Date.now()}:null;
+    saveTableCampaign();closeCurrentPanel();renderPublicChat();if(dodgeResult)addRollChatMessage(`Esquiva • ${enemy.name}`,dodgeResult.expression||"Presteza",dodgeResult.total,enemyRollDetail(dodgeResult));addSystemChatMessage(`${enemy.name} escolheu ${majorTriggered?"Esquiva Maior":reactionName}. Ataque ${Number(request.attackResult)||0} contra Defesa ${finalDefense}: ${hit?"acertou":"errou"}.${hit?` RD para o próximo dano: ${reactionRD}.`:""}`);
+    if(reactionType==="counter"&&!hit)rollEnemySkill(enemy,"Luta",{label:`Contra-ataque • ${enemy.name}`,rollKind:"attack",attackName:"Contra-ataque",enemyInstanceId:enemy.enemyId||enemy.id,attackVariant:"counter",applied:false});
 }
 
 /*==========================================================
