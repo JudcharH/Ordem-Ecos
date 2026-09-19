@@ -4217,47 +4217,34 @@ function openPositionSelector(
 
 function placeEntityAtPosition(type,entity,position){
     if(type==="enemy"){
-        if(!Array.isArray(currentTableCampaign.enemies)) currentTableCampaign.enemies=[];
-        const size=Math.max(1,Number(entity.size)||1);
-        const occupied=[];
-        for(let i=0;i<size;i++) occupied.push(position-i);
-        if(occupied.some(p=>p<1||p>6)){
-            alert("Esta criatura precisa de "+size+" posições consecutivas.");
-            return;
-        }
+        if(!Array.isArray(currentTableCampaign.enemies))currentTableCampaign.enemies=[];
+        const size=Math.max(1,Number(entity.size)||1),occupied=[];
+        for(let i=0;i<size;i++)occupied.push(position-i);
+        if(occupied.some(p=>p<1||p>6)){alert("Esta criatura precisa de "+size+" posições consecutivas.");return;}
+        const entityId=entity.enemyId||entity.id;
+        const existing=currentTableCampaign.enemies.find(item=>(item.enemyId||item.id)===entityId);
         const collision=currentTableCampaign.enemies.some(item=>{
-            const anchor=Number(item.position);
-            const itemSize=Math.max(1,Number(item.size)||1);
-            const slots=[];
-            for(let i=0;i<itemSize;i++) slots.push(anchor-i);
+            if(existing&&(item.enemyId||item.id)===entityId)return false;
+            const anchor=Number(item.position),itemSize=Math.max(1,Number(item.size)||1),slots=[];
+            for(let i=0;i<itemSize;i++)slots.push(anchor-i);
             return slots.some(p=>occupied.includes(p));
         });
-        if(collision){
-            alert("Não há espaço livre suficiente nessas posições.");
-            return;
+        if(collision){alert("Não há espaço livre suficiente nessas posições.");return;}
+        if(existing){
+            existing.position=position;
+            existing.occupiedPositions=occupied;
+        }else{
+            const instanceId="enemy-instance-"+Date.now()+"-"+Math.random().toString(36).slice(2,7);
+            const paMax=Math.max(0,Number(entity.pa)||0);
+            currentTableCampaign.enemies.push({...JSON.parse(JSON.stringify(entity)),id:instanceId,enemyId:instanceId,templateId:entity.id,position,occupiedPositions:occupied,paMax,paAtual:paMax,status:{pvAtual:Number(entity.pv)||0,pvMax:Number(entity.pv)||0,paAtual:paMax,paMax}});
         }
-        const instanceId="enemy-instance-"+Date.now()+"-"+Math.random().toString(36).slice(2,7);
-        const paMax=Math.max(0,Number(entity.pa)||0);
-        currentTableCampaign.enemies.push({
-            ...JSON.parse(JSON.stringify(entity)),
-            id:instanceId,
-            enemyId:instanceId,
-            templateId:entity.id,
-            position,
-            occupiedPositions:occupied,
-            paMax,
-            paAtual:paMax,
-            status:{pvAtual:Number(entity.pv)||0,pvMax:Number(entity.pv)||0,paAtual:paMax,paMax}
-        });
     }else{
-        if(!Array.isArray(currentTableCampaign.npcs)) currentTableCampaign.npcs=[];
+        if(!Array.isArray(currentTableCampaign.npcs))currentTableCampaign.npcs=[];
         const existing=currentTableCampaign.npcs.find(npc=>npc.id===entity.id);
         currentTableCampaign.npcs=currentTableCampaign.npcs.filter(npc=>npc.position!==position&&npc.id!==entity.id);
         currentTableCampaign.npcs.push({...existing,...entity,position});
     }
-    saveTableCampaign();
-    closeCurrentPositionModal();
-    renderCombatPositions();
+    saveTableCampaign();closeCurrentPositionModal();renderCombatPositions();
     addSystemChatMessage(`${entity.name||"Entidade"} foi colocado na posição ${position}.`);
 }
 
@@ -4662,7 +4649,13 @@ function renderEnemyPositions(){
         slot.classList.remove("enemy-anchor","enemy-covered");
         slot.style.zIndex="";
         const tokenSlot=slot.querySelector(".position-token-slot");
-        if(tokenSlot){tokenSlot.style.width="";tokenSlot.style.height="";tokenSlot.style.transform="";tokenSlot.style.transformOrigin="";}
+        if(tokenSlot){
+            tokenSlot.style.width="";
+            tokenSlot.style.height="";
+            tokenSlot.style.borderRadius="";
+            tokenSlot.style.overflow="";
+            tokenSlot.style.zIndex="";
+        }
     });
     const enemies=Array.isArray(currentTableCampaign.enemies)?currentTableCampaign.enemies:[];
     enemySlots.forEach(slot=>{
@@ -4675,17 +4668,14 @@ function renderEnemyPositions(){
             const size=Math.max(1,Number(enemy.size)||1);
             if(size>1){
                 slot.classList.add("enemy-anchor");
-                slot.style.zIndex="20";
-                const nextSlot=enemySlots.find(s=>Number(s.dataset.position)===position-1);
-                if(nextSlot){
-                    const r1=tokenSlot.getBoundingClientRect(),r2=nextSlot.querySelector(".position-token-slot")?.getBoundingClientRect();
-                    if(r2){
-                        const width=Math.abs((r1.left+r1.width/2)-(r2.left+r2.width/2))+r1.width;
-                        tokenSlot.style.width=width+"px";
-                        tokenSlot.style.borderRadius=Math.max(36,r1.height/2)+"px";
-                        tokenSlot.style.transformOrigin="left center";
-                    }
-                }
+                slot.style.zIndex="30";
+                const base=72;
+                const diameter=base*Math.sqrt(size);
+                tokenSlot.style.width=diameter+"px";
+                tokenSlot.style.height=diameter+"px";
+                tokenSlot.style.borderRadius="50%";
+                tokenSlot.style.overflow="visible";
+                tokenSlot.style.zIndex="30";
                 for(let i=1;i<size;i++){
                     const covered=enemySlots.find(s=>Number(s.dataset.position)===position-i);
                     if(covered)covered.classList.add("enemy-covered");
@@ -4696,11 +4686,10 @@ function renderEnemyPositions(){
                 const anchor=Number(item.position),size=Math.max(1,Number(item.size)||1);
                 return position<anchor&&position>anchor-size;
             });
-            if(!covered) renderPositionSlot(slot,tokenSlot,null,"enemy",position);
+            if(!covered)renderPositionSlot(slot,tokenSlot,null,"enemy",position);
         }
     });
 }
-
 /*==========================================================
 =              NPCs
 ==========================================================*/
@@ -4954,10 +4943,9 @@ else{
 
 }
 
-tokenSlot.onclick = event => {
-
+const openEntityFromToken = event => {
+    event.preventDefault();
     event.stopPropagation();
-
 
     if(pendingAttackApplication){
 
@@ -4983,13 +4971,10 @@ tokenSlot.onclick = event => {
     }
 
 
-    openOccupiedPosition(
-        type,
-        entity,
-        position
-    );
-
+    openOccupiedPosition(type,entity,position);
 };
+token.onclick=openEntityFromToken;
+tokenSlot.onclick=openEntityFromToken;
 
         return;
 
