@@ -5746,7 +5746,8 @@ function hydrateEnemyAbilities(enemy){if(Array.isArray(enemy.abilities)&&enemy.a
 function enemyHasAbility(enemy,id){return hydrateEnemyAbilities(enemy).some(ability=>normalizeEnemyAbilityId(ability.id||ability.name)===id);}
 function enemyAbilityState(enemy){enemy.abilityState=enemy.abilityState&&typeof enemy.abilityState==="object"?enemy.abilityState:{};return enemy.abilityState;}
 function enemyCombatRound(){return Math.max(0,Number(currentTableCampaign?.combat?.round)||0);}
-function addEnemyDamageDie(formula){let changed=false;return String(formula||"").replace(/(\d*)d(\d+)/i,(match,amount,sides)=>{if(changed)return match;changed=true;return `${(Number(amount)||1)+1}d${sides}`;});}
+function addEnemyDamageDice(formula,extraDice=1){let changed=false;return String(formula||"").replace(/(\d*)d(\d+)/i,(match,amount,sides)=>{if(changed)return match;changed=true;return `${(Number(amount)||1)+Math.max(0,Number(extraDice)||0)}d${sides}`;});}
+function addEnemyDamageDie(formula){return addEnemyDamageDice(formula,1);}
 function enemySkillData(enemy,name){
     const skills=enemy.skills&&typeof enemy.skills==="object"?enemy.skills:{};
     if(Array.isArray(skills)){
@@ -5761,13 +5762,23 @@ function enemySkillData(enemy,name){
         :{rank:Number(value)||0,bonus:0,penalty:0};
 }
 function enemyRollDetail(result){return (result.details||[]).map(part=>part.type==="dice"?`${part.formula} [${(part.rolls||[]).join(", ")}]`:String(part.value??"")).filter(Boolean).join(" + ");}
+function rollEnemyTrainedTest(enemy,name,attributeOverride=null){
+    const skill=enemySkillData(enemy,name),attribute=attributeOverride||enemySkillAttribute(name),attributeValue=Number(enemy[attribute]??enemy.attributes?.[attribute])||0,training=enemyTrainingDie(skill.rank),modifier=attributeValue+skill.bonus-skill.penalty;
+    const principal=rollDiceExpression("1d12");if(!principal)return null;
+    const principalRoll=Number(principal.details?.find(part=>part.type==="dice")?.rolls?.[0])||Number(principal.total)||0,critical=principalRoll===12;
+    const trainingCount=training==="0"?0:(critical?2:1),trainingSides=Number(training.replace("1d",""))||0,trainingFormula=trainingCount?`${trainingCount}d${trainingSides}`:"0",trainingResult=trainingCount?rollDiceExpression(trainingFormula):null,trainingTotal=Number(trainingResult?.total)||0,total=principalRoll+trainingTotal+modifier;
+    const formula=`1d12${trainingCount?`+${trainingFormula}`:""}${modifier>=0?"+":""}${modifier}`;
+    const details=[{type:"dice",formula:"1d12",rolls:[principalRoll]}];if(trainingCount)details.push({type:"dice",formula:trainingFormula,rolls:trainingResult?.details?.find(part=>part.type==="dice")?.rolls||[]});if(modifier)details.push({type:"number",value:modifier});
+    return{total,formula,details,critical,principalRoll,trainingFormula,trainingTotal,attribute,attributeValue,modifier};
+}
 function rollEnemySkill(enemy,name,metadata={}){
-    const skill=enemySkillData(enemy,name),attribute=enemySkillAttribute(name),attributeValue=Number(enemy[attribute]??enemy.attributes?.[attribute])||0,training=enemyTrainingDie(skill.rank);
-    const modifier=attributeValue+skill.bonus-skill.penalty;
-    const formula=`1d12${training!=="0"?`+${training}`:""}${modifier>=0?"+":""}${modifier}`;
-    const result=rollDiceExpression(formula);
-    if(!result)return;
-    addRollChatMessage(metadata.label||`${name} • ${enemy.name||"Criatura"}`,formula,result.total,enemyRollDetail(result),metadata);
+    const result=rollEnemyTrainedTest(enemy,name);if(!result)return null;
+    if(result.critical&&metadata.rollKind==="attack"){
+        const state=enemyAbilityState(enemy);state.criticalDamageDice=2;state.criticalAttackVariant=metadata.attackVariant||null;state.criticalAttackRound=enemyCombatRound();saveTableCampaign();
+    }
+    const label=`${metadata.label||`${name} • ${enemy.name||"Criatura"}`}${result.critical?" • CRÍTICO":""}`;
+    addRollChatMessage(label,result.formula,result.total,`${enemyRollDetail(result)}${result.critical?" • d12 principal = 12 • dado de treino adicional":""}`,{...metadata,enemyCritical:result.critical});
+    return result;
 }
 const ENEMY_CONDITION_CATALOG=[
     {id:"sangramento",name:"Sangramento",icon:"🩸",stackable:true,description:"Sofre dano de sangramento por rodada."},
@@ -5838,7 +5849,7 @@ function openEnemyControlSheet(enemy,position){
       <div class="table-panel-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>Condições</h3><button id="enemyAddCondition" type="button" class="primary-button" aria-label="Adicionar condição" style="width:42px;padding:0">＋</button></div><div style="display:grid;gap:8px;margin-top:10px">${conditionList}</div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button id="enemyMoveFromSheet" class="secondary-button">Mover</button><button id="enemyRemoveFromSheet" class="secondary-button">Remover da mesa</button></div>`);
     document.getElementById("enemySaveHp")?.addEventListener("click",()=>{enemy.status=enemy.status||{};enemy.status.pvAtual=Math.max(0,Number(document.getElementById("enemyHpCurrent").value)||0);enemy.status.pvMax=Math.max(0,Number(document.getElementById("enemyHpMax").value)||0);saveTableCampaign();openEnemyControlSheet(enemy,position)});
-    document.querySelectorAll(".enemy-quick-attack").forEach(button=>button.addEventListener("click",()=>{refreshCurrentTableCampaign();const liveEnemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemy.enemyId||enemy.id))||enemy,attackName=button.dataset.attack==="strong"?"Ataque forte":"Ataque básico",enemyInstanceId=liveEnemy.enemyId||liveEnemy.id,attackVariant=button.dataset.attack;if(button.dataset.roll==="attack"){rollEnemySkill(liveEnemy,"Luta",{label:`Ataque • ${attackName} • ${liveEnemy.name||"Criatura"}`,rollKind:"attack",attackName,enemyInstanceId,attackVariant,applied:false});return}const state=enemyAbilityState(liveEnemy),raw=button.dataset.attack==="strong"?liveEnemy.strongAttack:liveEnemy.basicAttack,boosted=state.investidaArmed?addEnemyDamageDie(raw):raw,resolved=String(boosted||"").replace(/Corpo/gi,Number(liveEnemy.corpo)||0),result=rollDiceExpression(resolved);if(!result)return;if(state.investidaArmed){state.investidaArmed=false;saveTableCampaign();}addRollChatMessage(`Dano • ${attackName} • ${liveEnemy.name||"Criatura"}`,resolved,result.total,enemyRollDetail(result),{rollKind:"damage",attackName,enemyInstanceId,attackVariant,applied:false})}));
+    document.querySelectorAll(".enemy-quick-attack").forEach(button=>button.addEventListener("click",()=>{refreshCurrentTableCampaign();const liveEnemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemy.enemyId||enemy.id))||enemy,attackName=button.dataset.attack==="strong"?"Ataque forte":"Ataque básico",enemyInstanceId=liveEnemy.enemyId||liveEnemy.id,attackVariant=button.dataset.attack;if(button.dataset.roll==="attack"){rollEnemySkill(liveEnemy,"Luta",{label:`Ataque • ${attackName} • ${liveEnemy.name||"Criatura"}`,rollKind:"attack",attackName,enemyInstanceId,attackVariant,applied:false});return}const state=enemyAbilityState(liveEnemy),raw=button.dataset.attack==="strong"?liveEnemy.strongAttack:liveEnemy.basicAttack,investidaDice=state.investidaArmed?1:0,criticalDice=state.criticalDamageDice&&(!state.criticalAttackVariant||state.criticalAttackVariant===attackVariant)?Number(state.criticalDamageDice)||0:0,extraDice=investidaDice+criticalDice,boosted=extraDice?addEnemyDamageDice(raw,extraDice):raw,resolved=String(boosted||"").replace(/Corpo/gi,Number(liveEnemy.corpo)||0),result=rollDiceExpression(resolved);if(!result)return;if(state.investidaArmed)state.investidaArmed=false;if(criticalDice){state.criticalDamageDice=0;state.criticalAttackVariant=null;}if(extraDice)saveTableCampaign();const bonuses=[investidaDice?"Investida +1 dado":"",criticalDice?"Crítico +2 dados":""].filter(Boolean).join(" • ");addRollChatMessage(`Dano • ${attackName} • ${liveEnemy.name||"Criatura"}${bonuses?` • ${bonuses}`:""}`,resolved,result.total,enemyRollDetail(result),{rollKind:"damage",attackName,enemyInstanceId,attackVariant,applied:false})}));
     document.querySelectorAll(".enemy-skill-roll").forEach(button=>button.addEventListener("click",()=>rollEnemySkill(enemy,button.dataset.skill)));
     document.querySelectorAll(".enemy-use-ability").forEach(button=>button.addEventListener("click",()=>useEnemyAbility(enemy,button.dataset.ability,position)));
     document.getElementById("enemyAddCondition")?.addEventListener("click",()=>openEnemyConditionSelector(enemy,position));
@@ -6522,6 +6533,9 @@ enemyInstanceId:
 attackVariant:
     metadata.attackVariant ||
     null,
+
+enemyCritical:
+    metadata.enemyCritical === true,
 
         createdAt:
             Date.now()
@@ -7480,38 +7494,23 @@ function rollEnemyInitiatives(){
             const enemy=placed.find(item=>String(item.enemyId||item.id)===String(participant.enemyId));
             if(!enemy)return;
 
-            const skills=enemy.skills||{};
-            let rank=0;
-            if(Array.isArray(skills)){
-                const skill=skills.find(item=>String(item.id||item.name||"").toLowerCase()==="presteza");
-                rank=Number(skill?.level??skill?.rank??0)||0;
-                if(!rank){
-                    const training=String(skill?.training||"");
-                    rank=training==="1d12"?3:training==="1d8"?2:training==="1d4"?1:0;
-                }
-            }else{
-                rank=Number(skills.Presteza??skills.presteza??0)||0;
-            }
-
-            const foco=Math.max(0,Number(enemy.foco??enemy.attributes?.foco??0)||0);
-            const trainingFormula=({1:"1d4",2:"1d8",3:"1d12"})[rank]||"0";
-            const formula="1d12"+(trainingFormula!=="0"?"+"+trainingFormula:"")+"+"+foco;
-            const result=rollDiceExpression(formula);
+            const result=rollEnemyTrainedTest(enemy,"Presteza","foco");
             if(!result)return;
 
             participant.rolled=true;
             participant.result=result.total;
             participant.attribute="foco";
-            participant.attributeValue=foco;
-            participant.readinessTraining=trainingFormula;
-            participant.modifier=foco;
+            participant.attributeValue=result.attributeValue;
+            participant.readinessTraining=result.trainingFormula;
+            participant.modifier=result.modifier;
+            participant.critical=result.critical;
             participant.rolledAt=Date.now();
 
             rollMessages.push({
-                label:`Iniciativa • ${enemy.name||participant.name||"Ameaça"}`,
-                formula,
+                label:`Iniciativa • ${enemy.name||participant.name||"Ameaça"}${result.critical?" • CRÍTICO":""}`,
+                formula:result.formula,
                 total:result.total,
-                detail:enemyRollDetail(result)
+                detail:`${enemyRollDetail(result)}${result.critical?" • d12 principal = 12 • dado de treino adicional":""}`
             });
         });
 
