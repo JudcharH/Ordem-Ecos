@@ -145,9 +145,11 @@ vm.runInContext(`
     };
     let rolledFormula = "";
     let initiativeSavedBeforeChat = false;
-    rollDiceExpression = formula => { rolledFormula = formula; return { total: 17, details: [] }; };
+    rollDiceExpression = formula => formula === "1d12"
+        ? { total: 7, details: [{ type: "dice", formula, rolls: [7] }] }
+        : { total: 5, details: [{ type: "dice", formula, rolls: [5] }] };
     saveTableCampaign = () => { initiativeSavedBeforeChat = currentTableCampaign.combat.initiativeRequest.participants[0].rolled === true; };
-    addRollChatMessage = () => { if(!initiativeSavedBeforeChat) throw new Error("A iniciativa foi publicada antes de ser salva."); };
+    addRollChatMessage = (label, formula) => { rolledFormula = formula; if(!initiativeSavedBeforeChat) throw new Error("A iniciativa foi publicada antes de ser salva."); };
     finalizeInitiativeIfReady = () => {};
     rollEnemyInitiatives();
 `, context);
@@ -166,7 +168,11 @@ if (!initiative.participant.rolled || initiative.participant.attribute !== "foco
 
 const skillRolls = vm.runInContext(`(() => {
     const formulas = [];
-    rollDiceExpression = formula => ({ total: 12, details: [], expression: (formulas.push(formula), formula) });
+    rollDiceExpression = formula => ({
+        total: formula === "1d12" ? 7 : 5,
+        details: [{ type: "dice", formula, rolls: [formula === "1d12" ? 7 : 5] }],
+        expression: (formulas.push(formula), formula)
+    });
     addRollChatMessage = (label, formula, total, detail, metadata) => formulas.push({ label, formula, total, metadata });
     const enemy = currentTableCampaign.enemies[0];
     rollEnemySkill(enemy, "Luta", { rollKind: "attack" });
@@ -174,14 +180,26 @@ const skillRolls = vm.runInContext(`(() => {
     return formulas;
 })()`, context);
 
-if (skillRolls[0] !== "1d12+1d8+1" || skillRolls[2] !== "1d12+1d8+1") {
+if (skillRolls[2]?.formula !== "1d12+1d8+1" || skillRolls[5]?.formula !== "1d12+1d8+1") {
     throw new Error(`Fórmulas de perícia incorretas: ${JSON.stringify(skillRolls)}`);
+}
+const criticalRoll = vm.runInContext(`(() => {
+    rollDiceExpression = formula => formula === "1d12"
+        ? { total: 12, details: [{ type: "dice", formula, rolls: [12] }] }
+        : { total: 9, details: [{ type: "dice", formula, rolls: [4, 5] }] };
+    return rollEnemyTrainedTest(currentTableCampaign.enemies[0], "Luta");
+})()`, context);
+if (!criticalRoll.critical || criticalRoll.formula !== "1d12+2d8+1" || criticalRoll.total !== 22) {
+    throw new Error(`Crítico de criatura incorreto: ${JSON.stringify(criticalRoll)}`);
 }
 if (!vm.runInContext("ENEMY_CONDITION_CATALOG.length >= 20", context)) {
     throw new Error("A lista de condições da criatura está incompleta.");
 }
 if (!vm.runInContext("addEnemyDamageDie('2d12 + 6') === '3d12 + 6'", context)) {
     throw new Error("O dado adicional da Investida não foi aplicado corretamente.");
+}
+if (!vm.runInContext("addEnemyDamageDice('2d12 + 1d8 + 6', 2) === '4d12 + 1d8 + 6'", context)) {
+    throw new Error("Os dois dados adicionais do crítico não foram aplicados ao dano principal.");
 }
 
 const greaterDodge = vm.runInContext(`(() => {
