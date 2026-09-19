@@ -5814,6 +5814,15 @@ const ENEMY_CONDITION_CATALOG=[
     {id:"desprevenido",name:"Desprevenido",icon:"😶",description:"Não pode reagir e perde Defesa."},
     {id:"confuso",name:"Confuso",icon:"🌀",description:"Move-se e age de forma imprevisível."}
 ];
+function addConditionToEnemy(enemy,definition){
+    if(!enemy||!definition)return null;
+    const enemyId=enemy.enemyId||enemy.id,liveEnemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemyId))||enemy;
+    liveEnemy.conditions=Array.isArray(liveEnemy.conditions)?liveEnemy.conditions:[];
+    const existing=liveEnemy.conditions.find(item=>String(typeof item==="string"?item:item.id)===definition.id);
+    if(existing&&definition.stackable&&typeof existing==="object")existing.stacks=Math.max(1,Number(existing.stacks)||1)+1;
+    else if(!existing)liveEnemy.conditions.push({...definition,stacks:1});
+    return liveEnemy;
+}
 function openEnemyConditionSelector(enemy,position){
     document.getElementById("enemyConditionSelector")?.remove();
     const modal=document.createElement("div");
@@ -5826,14 +5835,11 @@ function openEnemyConditionSelector(enemy,position){
     modal.addEventListener("click",event=>{if(event.target===modal)close();});
     modal.querySelectorAll(".enemy-condition-choice").forEach(button=>button.addEventListener("click",()=>{
         const definition=ENEMY_CONDITION_CATALOG.find(item=>item.id===button.dataset.condition);if(!definition)return;
-        enemy.conditions=Array.isArray(enemy.conditions)?enemy.conditions:[];
-        const existing=enemy.conditions.find(item=>String(typeof item==="string"?item:item.id)===definition.id);
-        if(existing&&definition.stackable&&typeof existing==="object")existing.stacks=Math.max(1,Number(existing.stacks)||1)+1;
-        else if(!existing)enemy.conditions.push({...definition,stacks:1});
-        saveTableCampaign();renderCombatPositions();close();openEnemyControlSheet(enemy,position);
+        const liveEnemy=addConditionToEnemy(enemy,definition);if(!liveEnemy)return;
+        saveTableCampaign();renderCombatPositions();close();openEnemyControlSheet(liveEnemy,position);
     }));
 }
-function latestSuccessfulStrongAttack(enemy){const id=String(enemy.enemyId||enemy.id),name=String(enemy.name||"").toLowerCase();return[...(currentTableCampaign?.chatMessages||[])].reverse().find(message=>{const sameEnemy=String(message.enemyInstanceId||"")===id||String(message.label||"").toLowerCase().includes(name),strong=message.attackVariant==="strong"||normalizeEnemyAbilityId(message.attackName)==="ataque-forte";return sameEnemy&&strong&&message.attackApplication?.hit===true&&message.mordidaFerozUsed!==true;})||null;}
+function latestSuccessfulStrongAttack(enemy){const id=String(enemy.enemyId||enemy.id),name=String(enemy.name||"").toLowerCase();return[...(currentTableCampaign?.chatMessages||[])].reverse().find(message=>{const sameEnemy=String(message.enemyInstanceId||message.attackApplication?.attackerEnemyId||"")===id||String(message.label||"").toLowerCase().includes(name),strong=message.attackVariant==="strong"||normalizeEnemyAbilityId(message.attackName)==="ataque-forte";return sameEnemy&&strong&&message.attackApplication?.hit===true&&message.attackApplication?.targetCharacterId&&message.mordidaFerozUsed!==true;})||null;}
 function enemyAbilityAvailability(enemy,id){const state=enemyAbilityState(enemy),round=enemyCombatRound();if(id==="investida")return{enabled:state.investidaMovedRound===round&&state.investidaUsedRound!==round&&!state.investidaArmed,label:state.investidaArmed?"Preparada":"Usar"};if(id==="mordida-feroz"){const last=Number(state.mordidaLastUsedRound);return{enabled:Boolean(latestSuccessfulStrongAttack(enemy))&&(!Number.isFinite(last)||round-last>=2),label:"Usar"};}if(id==="esquiva-maior"){const limit=Math.max(0,Number(enemy.corpo)||0),used=Math.max(0,Number(state.esquivaMaiorSceneUses)||0);return{enabled:state.esquivaMaiorUsedRound!==round&&used<limit&&!state.esquivaMaiorArmed,label:state.esquivaMaiorArmed?"Preparada":"Preparar"};}return{enabled:false,label:"Passiva"};}
 function renderEnemyAbilityCards(enemy){const abilities=hydrateEnemyAbilities(enemy);if(!abilities.length)return"<p>Nenhuma habilidade.</p>";return abilities.map(ability=>{const id=normalizeEnemyAbilityId(ability.id||ability.name),availability=enemyAbilityAvailability(enemy,id),state=enemyAbilityState(enemy);let status="";if(id==="investida"&&state.investidaArmed)status="Próximo dano recebe +1 dado.";if(id==="mordida-feroz")status="Recarga: 2 rodadas.";if(id==="esquiva-maior")status=`Usos na cena: ${Number(state.esquivaMaiorSceneUses)||0}/${Math.max(0,Number(enemy.corpo)||0)}.`;return`<div class="table-panel-card"><h3>${escapeTableHTML(ability.name||"Habilidade")}</h3><p>${escapeTableHTML(ability.description||"")}</p>${status?`<p><strong>${escapeTableHTML(status)}</strong></p>`:""}${["investida","mordida-feroz","esquiva-maior"].includes(id)?`<button type="button" class="primary-button enemy-use-ability" data-ability="${id}" ${availability.enabled?"":"disabled"}>${escapeTableHTML(availability.label)}</button>`:""}</div>`;}).join("");}
 function rollCharacterManobra(character){const skills=Array.isArray(character?.skills)?character.skills:[],skill=skills.find(item=>normalizeEnemyAbilityId(item.id||item.name)==="manobra")||{},training=String(skill.training||skill.treino||"0"),attributeValue=Number(character?.attributes?.corpo??character?.attributes?.for??0)||0,bonus=Number(skill.bonus)||0,penalty=Math.abs(Number(skill.penalty??skill.penalidade)||0),formula=`1d12${training&&training!=="0"?`+${training}`:""}${attributeValue+bonus-penalty>=0?"+":""}${attributeValue+bonus-penalty}`;const result=rollDiceExpression(formula);return{formula,result};}
@@ -9439,6 +9445,10 @@ function startAttackTargetSelection(
             message.characterId ||
             null,
 
+        attackerEnemyId:
+            message.enemyInstanceId ||
+            null,
+
         attackerName:
             message.author ||
             "Atacante"
@@ -9779,6 +9789,10 @@ function createAttackReactionRequest(
             attackerCharacterId:
                 pendingAttackApplication
                     .attackerCharacterId,
+
+            attackerEnemyId:
+                pendingAttackApplication
+                    .attackerEnemyId,
 
             attackerName:
                 pendingAttackApplication
@@ -11409,6 +11423,10 @@ function markAttackMessageAsApplied(
 
         targetCharacterId:
             request.targetCharacterId,
+
+        attackerEnemyId:
+            request.attackerEnemyId ||
+            null,
 
         targetName:
             request.targetName,
