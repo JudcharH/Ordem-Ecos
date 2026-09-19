@@ -45,6 +45,8 @@ let lastInitiativeRequestShown = null;
 
 let pendingDamageApplication = null;
 
+let pendingAttackApplication = null;
+
 let lastAttackReactionShown = null;
 
 /*==========================================================
@@ -3450,7 +3452,9 @@ function startEnemyPlacement(enemyId){
 
     const enemy =
         enemies.find(
-            item => item.id === enemyId
+            item =>
+                String(item.id) ===
+                String(enemyId)
         );
 
     if(!enemy){
@@ -4237,9 +4241,11 @@ function placeEntityAtPosition(type,entity,position){
         for(let i=0;i<size;i++)occupied.push(position-i);
         if(occupied.some(p=>p<1||p>6)){alert("Esta criatura precisa de "+size+" posições consecutivas.");return;}
         const entityId=entity.enemyId||entity.id;
-        const existing=currentTableCampaign.enemies.find(item=>(item.enemyId||item.id)===entityId);
+        const existing=currentTableCampaign.enemies.find(
+            item=>String(item.enemyId||item.id)===String(entityId)
+        );
         const collision=currentTableCampaign.enemies.some(item=>{
-            if(existing&&(item.enemyId||item.id)===entityId)return false;
+            if(existing&&String(item.enemyId||item.id)===String(entityId))return false;
             const anchor=Number(item.position),itemSize=Math.max(1,Number(item.size)||1),slots=[];
             for(let i=0;i<itemSize;i++)slots.push(anchor-i);
             return slots.some(p=>occupied.includes(p));
@@ -4421,10 +4427,10 @@ function isEntityCurrentTurn(
         return (
             participant.type === "enemy" &&
             (
-                participant.enemyId ===
-                enemyId ||
-                participant.id ===
-                enemyId
+                String(participant.enemyId) ===
+                String(enemyId) ||
+                String(participant.id) ===
+                String(enemyId)
             )
         );
 
@@ -5417,8 +5423,8 @@ function openEnemiesForPosition(position){
                     const enemy =
                         enemies.find(
                             item =>
-                                item.id ===
-                                button.dataset.enemyId
+                                String(item.id) ===
+                                String(button.dataset.enemyId)
                         );
 
                     if(!enemy){
@@ -5993,14 +5999,21 @@ function removeEntityFromScene(
 
     if(type === "enemy"){
 
+        const entityId =
+            entity.enemyId ||
+            entity.id;
+
         currentTableCampaign.enemies =
             (
                 currentTableCampaign.enemies ||
                 []
             ).filter(
                 item =>
-                    item.enemyId !==
-                    entity.enemyId
+                    String(
+                        item.enemyId ||
+                        item.id
+                    ) !==
+                    String(entityId)
             );
 
     }
@@ -7346,18 +7359,18 @@ function rollEnemyInitiatives(){
                 rank=Number(skills.Presteza??skills.presteza??0)||0;
             }
 
-            const corpo=Math.max(0,Number(enemy.corpo??enemy.attributes?.corpo??0)||0);
+            const foco=Math.max(0,Number(enemy.foco??enemy.attributes?.foco??0)||0);
             const trainingFormula=({1:"1d4",2:"1d8",3:"1d12"})[rank]||"0";
-            const formula="1d12"+(trainingFormula!=="0"?"+"+trainingFormula:"")+"+"+corpo;
+            const formula="1d12"+(trainingFormula!=="0"?"+"+trainingFormula:"")+"+"+foco;
             const result=rollDiceExpression(formula);
             if(!result)return;
 
             participant.rolled=true;
             participant.result=result.total;
-            participant.attribute="corpo";
-            participant.attributeValue=corpo;
+            participant.attribute="foco";
+            participant.attributeValue=foco;
             participant.readinessTraining=trainingFormula;
-            participant.modifier=corpo;
+            participant.modifier=foco;
             participant.rolledAt=Date.now();
 
             addDiceChatMessage({
