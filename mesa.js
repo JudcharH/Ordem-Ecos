@@ -2775,7 +2775,7 @@ function openConditionsPanel(){
 
     const html =
         conditions
-            .map(condition => {
+            .map((condition,index) => {
 
                 const name =
                     typeof condition === "string"
@@ -2805,6 +2805,13 @@ function openConditionsPanel(){
                                 : ""
                         }
 
+                        ${
+                            typeof condition === "object" &&
+                            condition.source === "mordida-feroz"
+                                ? `<button type="button" class="primary-button enemy-condition-escape" data-condition-index="${index}" style="margin-top:10px">Testar Manobra</button>`
+                                : ""
+                        }
+
                     </div>
 
                 `;
@@ -2824,6 +2831,23 @@ function openConditionsPanel(){
         `
     );
 
+    document.querySelectorAll(".enemy-condition-escape").forEach(button=>button.addEventListener("click",()=>attemptEnemyConditionEscape(Number(button.dataset.conditionIndex))));
+
+}
+
+function attemptEnemyConditionEscape(index){
+    refreshCurrentTableCampaign();
+    refreshCurrentTableCharacter();
+    const character=currentTableCharacter,condition=character?.conditions?.[index];
+    if(!character||!condition||condition.source!=="mordida-feroz")return;
+    const enemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(condition.escapeEnemyId));
+    if(!enemy){character.conditions.splice(index,1);saveDamagedCharacter(character);openConditionsPanel();return;}
+    const playerRoll=rollCharacterManobra(character),skill=enemySkillData(enemy,"Manobra"),training=enemyTrainingDie(skill.rank),modifier=(Number(enemy.corpo)||0)+skill.bonus-skill.penalty,formula=`1d12${training!=="0"?`+${training}`:""}${modifier>=0?"+":""}${modifier}`,enemyResult=rollDiceExpression(formula);
+    if(!playerRoll.result||!enemyResult)return;
+    addRollChatMessage(`Manobra para levantar • ${character.name}`,playerRoll.formula,playerRoll.result.total,enemyRollDetail(playerRoll.result));
+    addRollChatMessage(`Manobra de oposição • ${enemy.name}`,formula,enemyResult.total,enemyRollDetail(enemyResult));
+    if(playerRoll.result.total>enemyResult.total){character.conditions.splice(index,1);saveDamagedCharacter(character);addSystemChatMessage(`${character.name} venceu a disputa de Manobra e removeu Caído.`);}else addSystemChatMessage(`${enemy.name} venceu a disputa. ${character.name} continua Caído.`);
+    openConditionsPanel();
 }
 
 
@@ -4252,8 +4276,14 @@ function placeEntityAtPosition(type,entity,position){
         });
         if(collision){alert("Não há espaço livre suficiente nessas posições.");return;}
         if(existing){
+            const moved=Number(existing.position)!==Number(position);
             existing.position=position;
             existing.occupiedPositions=occupied;
+            if(moved&&enemyHasAbility(existing,"investida")){
+                const state=enemyAbilityState(existing);
+                state.investidaMovedRound=enemyCombatRound();
+                state.investidaArmed=false;
+            }
         }else{
             const instanceId="enemy-instance-"+Date.now()+"-"+Math.random().toString(36).slice(2,7);
             const paMax=Math.max(0,Number(entity.pa)||0);
@@ -5709,6 +5739,12 @@ function openOccupiedPosition(
 
 function enemyTrainingDie(rank){return ({1:"1d4",2:"1d8",3:"1d12"})[Number(rank)||0]||"0";}
 function enemySkillAttribute(name){return ["Manobra","Fortitude","Luta","Presteza"].includes(name)?"corpo":["Disciplina","Discreto","Interação","Intimidação","Percepção","Pilotagem","Pontaria","Vontade","Sorte"].includes(name)?"foco":"nexo";}
+function normalizeEnemyAbilityId(value){return String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
+function hydrateEnemyAbilities(enemy){if(Array.isArray(enemy.abilities)&&enemy.abilities.length)return enemy.abilities;let library=[];try{library=JSON.parse(localStorage.getItem("ordem_threats")||"[]")}catch{library=[]}const template=library.find(item=>String(item.id)===String(enemy.templateId||enemy.id)||item.systemId&&item.systemId===enemy.systemId);enemy.abilities=Array.isArray(template?.abilities)?template.abilities.map(ability=>({...ability})):[];return enemy.abilities;}
+function enemyHasAbility(enemy,id){return hydrateEnemyAbilities(enemy).some(ability=>normalizeEnemyAbilityId(ability.id||ability.name)===id);}
+function enemyAbilityState(enemy){enemy.abilityState=enemy.abilityState&&typeof enemy.abilityState==="object"?enemy.abilityState:{};return enemy.abilityState;}
+function enemyCombatRound(){return Math.max(0,Number(currentTableCampaign?.combat?.round)||0);}
+function addEnemyDamageDie(formula){let changed=false;return String(formula||"").replace(/(\d*)d(\d+)/i,(match,amount,sides)=>{if(changed)return match;changed=true;return `${(Number(amount)||1)+1}d${sides}`;});}
 function enemySkillData(enemy,name){
     const skills=enemy.skills&&typeof enemy.skills==="object"?enemy.skills:{};
     if(Array.isArray(skills)){
@@ -5774,6 +5810,11 @@ function openEnemyConditionSelector(enemy,position){
         saveTableCampaign();renderCombatPositions();close();openEnemyControlSheet(enemy,position);
     }));
 }
+function latestSuccessfulStrongAttack(enemy){const id=String(enemy.enemyId||enemy.id);return[...(currentTableCampaign?.chatMessages||[])].reverse().find(message=>String(message.enemyInstanceId||"")===id&&message.attackVariant==="strong"&&message.attackApplication?.hit===true&&message.mordidaFerozUsed!==true)||null;}
+function enemyAbilityAvailability(enemy,id){const state=enemyAbilityState(enemy),round=enemyCombatRound();if(id==="investida")return{enabled:state.investidaMovedRound===round&&state.investidaUsedRound!==round&&!state.investidaArmed,label:state.investidaArmed?"Preparada":"Usar"};if(id==="mordida-feroz"){const last=Number(state.mordidaLastUsedRound);return{enabled:Boolean(latestSuccessfulStrongAttack(enemy))&&(!Number.isFinite(last)||round-last>=2),label:"Usar"};}if(id==="esquiva-maior"){const limit=Math.max(0,Number(enemy.corpo)||0),used=Math.max(0,Number(state.esquivaMaiorSceneUses)||0);return{enabled:state.esquivaMaiorUsedRound!==round&&used<limit&&!state.esquivaMaiorArmed,label:state.esquivaMaiorArmed?"Preparada":"Preparar"};}return{enabled:false,label:"Passiva"};}
+function renderEnemyAbilityCards(enemy){const abilities=hydrateEnemyAbilities(enemy);if(!abilities.length)return"<p>Nenhuma habilidade.</p>";return abilities.map(ability=>{const id=normalizeEnemyAbilityId(ability.id||ability.name),availability=enemyAbilityAvailability(enemy,id),state=enemyAbilityState(enemy);let status="";if(id==="investida"&&state.investidaArmed)status="Próximo dano recebe +1 dado.";if(id==="mordida-feroz")status="Recarga: 2 rodadas.";if(id==="esquiva-maior")status=`Usos na cena: ${Number(state.esquivaMaiorSceneUses)||0}/${Math.max(0,Number(enemy.corpo)||0)}.`;return`<div class="table-panel-card"><h3>${escapeTableHTML(ability.name||"Habilidade")}</h3><p>${escapeTableHTML(ability.description||"")}</p>${status?`<p><strong>${escapeTableHTML(status)}</strong></p>`:""}${["investida","mordida-feroz","esquiva-maior"].includes(id)?`<button type="button" class="primary-button enemy-use-ability" data-ability="${id}" ${availability.enabled?"":"disabled"}>${escapeTableHTML(availability.label)}</button>`:""}</div>`;}).join("");}
+function rollCharacterManobra(character){const skills=Array.isArray(character?.skills)?character.skills:[],skill=skills.find(item=>normalizeEnemyAbilityId(item.id||item.name)==="manobra")||{},training=String(skill.training||skill.treino||"0"),attributeValue=Number(character?.attributes?.corpo??character?.attributes?.for??0)||0,bonus=Number(skill.bonus)||0,penalty=Math.abs(Number(skill.penalty??skill.penalidade)||0),formula=`1d12${training&&training!=="0"?`+${training}`:""}${attributeValue+bonus-penalty>=0?"+":""}${attributeValue+bonus-penalty}`;const result=rollDiceExpression(formula);return{formula,result};}
+function useEnemyAbility(enemy,id,position){const state=enemyAbilityState(enemy),round=enemyCombatRound(),availability=enemyAbilityAvailability(enemy,id);if(!availability.enabled)return;if(id==="investida"){state.investidaArmed=true;state.investidaUsedRound=round;saveTableCampaign();addSystemChatMessage(`${enemy.name} preparou Investida. O próximo dano recebe +1 dado.`);openEnemyControlSheet(enemy,position);return;}if(id==="esquiva-maior"){state.esquivaMaiorArmed=true;saveTableCampaign();addSystemChatMessage(`${enemy.name} preparou Esquiva Maior para a próxima esquiva.`);openEnemyControlSheet(enemy,position);return;}if(id==="mordida-feroz"){const message=latestSuccessfulStrongAttack(enemy),target=message?.attackApplication?.targetCharacterId?getLiveCharacter(message.attackApplication.targetCharacterId):null;if(!message||!target)return;const enemyRank=enemySkillData(enemy,"Manobra"),enemyTraining=enemyTrainingDie(enemyRank.rank),enemyModifier=(Number(enemy.corpo)||0)+enemyRank.bonus-enemyRank.penalty,enemyFormula=`1d12${enemyTraining!=="0"?`+${enemyTraining}`:""}${enemyModifier>=0?"+":""}${enemyModifier}`,enemyResult=rollDiceExpression(enemyFormula),playerRoll=rollCharacterManobra(target);if(!enemyResult||!playerRoll.result)return;state.mordidaLastUsedRound=round;message.mordidaFerozUsed=true;addRollChatMessage(`Mordida Feroz • ${enemy.name}`,enemyFormula,enemyResult.total,enemyRollDetail(enemyResult));addRollChatMessage(`Resistência de Manobra • ${target.name}`,playerRoll.formula,playerRoll.result.total,enemyRollDetail(playerRoll.result));if(enemyResult.total>=playerRoll.result.total){target.conditions=Array.isArray(target.conditions)?target.conditions:[];target.conditions=target.conditions.filter(condition=>normalizeEnemyAbilityId(typeof condition==="string"?condition:condition.id||condition.name)!=="caido");target.conditions.push({id:"caido",name:"Caído",description:`Derrubado por ${enemy.name}. Use Testar Manobra para se levantar.`,source:"mordida-feroz",escapeEnemyId:enemy.enemyId||enemy.id});saveDamagedCharacter(target);addSystemChatMessage(`${enemy.name} venceu a disputa de Manobra. ${target.name} recebeu Caído.`);}else addSystemChatMessage(`${target.name} venceu a disputa de Manobra e resistiu à Mordida Feroz.`);saveTableCampaign();openEnemyControlSheet(enemy,position);}}
 function openEnemyControlSheet(enemy,position){
     const skills=enemy.skills&&typeof enemy.skills==="object"?enemy.skills:{};
     const hp=Number(enemy.status?.pvAtual ?? enemy.pv ?? 0),max=Number(enemy.status?.pvMax ?? enemy.pv ?? 0),conditions=Array.isArray(enemy.conditions)?enemy.conditions:[];
@@ -5788,11 +5829,13 @@ function openEnemyControlSheet(enemy,position){
       <div class="table-panel-card"><h3>PV</h3><div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end"><label>Atual<input id="enemyHpCurrent" type="number" value="${hp}"></label><label>Máximo<input id="enemyHpMax" type="number" value="${max}"></label><button id="enemySaveHp" class="primary-button">Aplicar</button></div></div>
       <div><h3 style="margin-bottom:8px">Ataques rápidos</h3>${attackCard("basic","Ataque básico",enemy.basicAttack)}${attackCard("strong","Ataque forte",enemy.strongAttack)}</div>
       <div class="table-panel-card"><h3>Perícias</h3><div style="display:grid;gap:8px">${skillButtons||"<p>Nenhuma perícia treinada.</p>"}</div></div>
+      <div><h3 style="margin-bottom:8px">Habilidades</h3>${renderEnemyAbilityCards(enemy)}</div>
       <div class="table-panel-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>Condições</h3><button id="enemyAddCondition" type="button" class="primary-button" aria-label="Adicionar condição" style="width:42px;padding:0">＋</button></div><div style="display:grid;gap:8px;margin-top:10px">${conditionList}</div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button id="enemyMoveFromSheet" class="secondary-button">Mover</button><button id="enemyRemoveFromSheet" class="secondary-button">Remover da mesa</button></div>`);
     document.getElementById("enemySaveHp")?.addEventListener("click",()=>{enemy.status=enemy.status||{};enemy.status.pvAtual=Math.max(0,Number(document.getElementById("enemyHpCurrent").value)||0);enemy.status.pvMax=Math.max(0,Number(document.getElementById("enemyHpMax").value)||0);saveTableCampaign();openEnemyControlSheet(enemy,position)});
-    document.querySelectorAll(".enemy-quick-attack").forEach(button=>button.addEventListener("click",()=>{const attackName=button.dataset.attack==="strong"?"Ataque forte":"Ataque básico";if(button.dataset.roll==="attack"){rollEnemySkill(enemy,"Luta",{label:`Ataque • ${attackName} • ${enemy.name||"Criatura"}`,rollKind:"attack",attackName,applied:false});return}const raw=button.dataset.attack==="strong"?enemy.strongAttack:enemy.basicAttack,resolved=String(raw||"").replace(/Corpo/gi,Number(enemy.corpo)||0),result=rollDiceExpression(resolved);if(result)addRollChatMessage(`Dano • ${attackName} • ${enemy.name||"Criatura"}`,resolved,result.total,enemyRollDetail(result),{rollKind:"damage",attackName,applied:false})}));
+    document.querySelectorAll(".enemy-quick-attack").forEach(button=>button.addEventListener("click",()=>{const attackName=button.dataset.attack==="strong"?"Ataque forte":"Ataque básico",enemyInstanceId=enemy.enemyId||enemy.id,attackVariant=button.dataset.attack;if(button.dataset.roll==="attack"){rollEnemySkill(enemy,"Luta",{label:`Ataque • ${attackName} • ${enemy.name||"Criatura"}`,rollKind:"attack",attackName,enemyInstanceId,attackVariant,applied:false});return}const state=enemyAbilityState(enemy),raw=button.dataset.attack==="strong"?enemy.strongAttack:enemy.basicAttack,boosted=state.investidaArmed?addEnemyDamageDie(raw):raw,resolved=String(boosted||"").replace(/Corpo/gi,Number(enemy.corpo)||0),result=rollDiceExpression(resolved);if(!result)return;if(state.investidaArmed){state.investidaArmed=false;saveTableCampaign();}addRollChatMessage(`Dano • ${attackName} • ${enemy.name||"Criatura"}`,resolved,result.total,enemyRollDetail(result),{rollKind:"damage",attackName,enemyInstanceId,attackVariant,applied:false})}));
     document.querySelectorAll(".enemy-skill-roll").forEach(button=>button.addEventListener("click",()=>rollEnemySkill(enemy,button.dataset.skill)));
+    document.querySelectorAll(".enemy-use-ability").forEach(button=>button.addEventListener("click",()=>useEnemyAbility(enemy,button.dataset.ability,position)));
     document.getElementById("enemyAddCondition")?.addEventListener("click",()=>openEnemyConditionSelector(enemy,position));
     document.querySelectorAll(".enemy-condition-remove").forEach(button=>button.addEventListener("click",()=>{enemy.conditions=conditions.filter((_,index)=>index!==Number(button.dataset.index));saveTableCampaign();renderCombatPositions();openEnemyControlSheet(enemy,position)}));
     document.getElementById("enemyMoveFromSheet")?.addEventListener("click",()=>{closeCurrentPanel();startMoveEntity("enemy",enemy)});
@@ -6465,6 +6508,14 @@ applied:
 
 forcedTargetCharacterId:
     metadata.forcedTargetCharacterId ||
+    null,
+
+enemyInstanceId:
+    metadata.enemyInstanceId ||
+    null,
+
+attackVariant:
+    metadata.attackVariant ||
     null,
 
         createdAt:
@@ -7417,6 +7468,7 @@ function rollEnemyInitiatives(){
     if(!request || request.active!==true)return;
 
     const placed=Array.isArray(currentTableCampaign.enemies)?currentTableCampaign.enemies:[];
+    const rollMessages=[];
     request.participants
         .filter(participant=>participant.type==="enemy"&&participant.rolled!==true)
         .forEach(participant=>{
@@ -7450,16 +7502,17 @@ function rollEnemyInitiatives(){
             participant.modifier=foco;
             participant.rolledAt=Date.now();
 
-            addRollChatMessage(
-                `Iniciativa • ${enemy.name||participant.name||"Ameaça"}`,
+            rollMessages.push({
+                label:`Iniciativa • ${enemy.name||participant.name||"Ameaça"}`,
                 formula,
-                result.total,
-                enemyRollDetail(result)
-            );
+                total:result.total,
+                detail:enemyRollDetail(result)
+            });
         });
 
     currentTableCampaign.combat.updatedAt=Date.now();
     saveTableCampaign();
+    rollMessages.forEach(message=>addRollChatMessage(message.label,message.formula,message.total,message.detail));
     finalizeInitiativeIfReady();
 }
 
@@ -8435,6 +8488,8 @@ function endTableCombat(){
     }
 
 
+    (currentTableCampaign.enemies||[]).forEach(enemy=>{enemy.abilityState={};});
+
     currentTableCampaign.combat =
         createDefaultCombatState();
 
@@ -9211,20 +9266,7 @@ ${
 
                 </span>
 
-                <span>
-
-                    PV:
-                    ${Number(
-                        message.damageApplication.pvBefore
-                    ) || 0}
-
-                    →
-
-                    ${Number(
-                        message.damageApplication.pvAfter
-                    ) || 0}
-
-                </span>
+                ${message.appliedTarget?.type!=="enemy"?`<span>PV: ${Number(message.damageApplication.pvBefore)||0} → ${Number(message.damageApplication.pvAfter)||0}</span>`:""}
 
             </div>
 
@@ -9412,7 +9454,7 @@ function markAttackTargets(){
 
     document
         .querySelectorAll(
-            ".player-position.occupied"
+            ".player-position.occupied, .enemy-position.occupied"
         )
         .forEach(position => {
 
@@ -9546,6 +9588,11 @@ function applyPendingAttackToTarget(
 
     }
 
+    if(type==="enemy"){
+        resolveAttackAgainstEnemy(entity);
+        return;
+    }
+
 
     if(
         type !== "player" ||
@@ -9605,6 +9652,25 @@ function applyPendingAttackToTarget(
         targetCharacter
     );
 
+}
+
+function resolveAttackAgainstEnemy(enemy){
+    if(!enemy||!pendingAttackApplication)return;
+    const attackerName=pendingAttackApplication.attackerName||"O atacante";
+    const attackResult=Math.max(0,Number(pendingAttackApplication.attackResult)||0),defense=Math.max(0,Number(enemy.defense)||0),state=enemyAbilityState(enemy),round=enemyCombatRound();
+    let reaction="Guardar",damageReduction=Math.max(0,Number(enemy.rd)||0);
+    if(state.esquivaMaiorArmed&&enemyHasAbility(enemy,"esquiva-maior")){
+        reaction="Esquiva Maior";
+        damageReduction*=2;
+        state.esquivaMaiorArmed=false;
+        state.esquivaMaiorUsedRound=round;
+        state.esquivaMaiorSceneUses=Math.max(0,Number(state.esquivaMaiorSceneUses)||0)+1;
+    }
+    const hit=attackResult>=defense,messages=currentTableCampaign.chatMessages||[],message=messages.find(item=>item.id===pendingAttackApplication.messageId);
+    if(message){message.applied=true;message.appliedAt=Date.now();message.attackApplication={targetEnemyId:enemy.enemyId||enemy.id,targetName:enemy.name||"Ameaça",attackResult,finalDefense:defense,reaction,hit};}
+    currentTableCampaign.combat=currentTableCampaign.combat||{};
+    currentTableCampaign.combat.damageContext=hit?{id:`damage_${Date.now()}`,active:true,targetEnemyId:enemy.enemyId||enemy.id,targetName:enemy.name||"Ameaça",reaction,damageReduction,consumed:false,createdAt:Date.now()}:null;
+    saveTableCampaign();cancelAttackTargetSelection();renderPublicChat();addSystemChatMessage(`${attackerName} ${hit?"acertou":"errou"} ${enemy.name||"a ameaça"}. ${reaction!=="Guardar"?`${reaction} deixou a RD deste ataque em ${damageReduction}.`:""}`.trim());
 }
 
 /*==========================================================
@@ -11595,7 +11661,7 @@ function markDamageTargets(){
 
     document
         .querySelectorAll(
-            ".player-position.occupied"
+            ".player-position.occupied, .enemy-position.occupied"
         )
         .forEach(position => {
 
@@ -11620,6 +11686,11 @@ function applyPendingDamageToTarget(
 
         return;
 
+    }
+
+    if(type==="enemy"){
+        applyDamageToEnemy(entity);
+        return;
     }
 
 
@@ -11686,6 +11757,19 @@ function applyPendingDamageToTarget(
         character
     );
 
+}
+
+function applyDamageToEnemy(enemy){
+    if(!enemy||!pendingDamageApplication)return;
+    const originalDamage=Math.max(0,Number(pendingDamageApplication.damage)||0),context=currentTableCampaign.combat?.damageContext,contextMatches=context?.active===true&&String(context.targetEnemyId)===String(enemy.enemyId||enemy.id),damageReduction=contextMatches?Math.max(0,Number(context.damageReduction)||0):Math.max(0,Number(enemy.rd)||0),finalDamage=Math.max(0,originalDamage-damageReduction);
+    enemy.status=enemy.status&&typeof enemy.status==="object"?enemy.status:{};
+    const before=Math.max(0,Number(enemy.status.pvAtual??enemy.pv)||0);
+    enemy.status.pvAtual=Math.max(0,before-finalDamage);
+    enemy.status.pvMax=Math.max(0,Number(enemy.status.pvMax??enemy.pv)||0);
+    if(contextMatches){context.active=false;context.consumed=true;context.consumedAt=Date.now();}
+    const message=(currentTableCampaign.chatMessages||[]).find(item=>item.id===pendingDamageApplication.messageId);
+    if(message){message.applied=true;message.appliedAt=Date.now();message.appliedTarget={type:"enemy",enemyId:enemy.enemyId||enemy.id,name:enemy.name||"Ameaça"};message.damageApplication={originalDamage,damageReduction,finalDamage};}
+    saveTableCampaign();cancelDamageTargetSelection();renderCombatPositions();renderPublicChat();addSystemChatMessage(`${enemy.name||"A ameaça"} recebeu ${finalDamage} de dano após RD ${damageReduction}.`);
 }
 
 /*==========================================================
