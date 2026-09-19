@@ -1,114 +1,55 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta
-name="viewport"
-content="width=device-width, initial-scale=1.0">
-
-<title>
-
-Ameaças • ORDEM
-
-</title>
-
-<link
-rel="stylesheet"
-href="/global.css">
-
-<link
-rel="stylesheet"
-href="/ameacas.css">
-
-<link
-rel="preconnect"
-href="https://fonts.googleapis.com">
-
-<link
-rel="preconnect"
-href="https://fonts.gstatic.com"
-crossorigin>
-
-<link
-href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
-rel="stylesheet">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ameaças • ORDEM</title>
+<link rel="stylesheet" href="global.css">
+<link rel="stylesheet" href="ameaças.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-
 <body>
-
-<div class="background">
-
-<div class="background-overlay"></div>
-
-<div class="particles"></div>
-
-</div>
-
+<div class="background"><div class="background-overlay"></div><div class="particles"></div></div>
 <main class="enemy-page">
-
-<header class="page-header">
-
-<a
-href="index.html"
-class="back-button">
-
-← Voltar
-
-</a>
-
-<h1>
-
-AMEAÇAS
-
-</h1>
-
-<p>
-
-Crie criaturas, NPCs e chefes para suas campanhas.
-
-</p>
-
-</header>
-
-<section class="enemy-actions">
-
-<button
-id="newEnemy"
-class="primary-button">
-
-＋ Nova Ameaça
-
-</button>
-
-<input
-
-type="text"
-
-id="searchEnemy"
-
-placeholder="Pesquisar ameaça...">
-
-</section>
-
-<section
-id="enemyList"
-class="enemy-list">
-
-
-
-<!--==================================
-        MODAL NOVA AMEAÇA
-===================================-->
-
-
-
-<script src="js/ameacas.js"></script>
-
+<header class="page-header"><a href="index.html" class="back-button">← Voltar</a><h1>AMEAÇAS</h1><p>Crie criaturas, humanos e chefes para suas campanhas.</p></header>
+<section class="enemy-actions"><button id="newEnemy" class="primary-button">＋ Nova Ameaça</button><input type="text" id="searchEnemy" placeholder="Pesquisar ameaça..."></section>
+<section id="enemyList" class="enemy-list"></section>
+</main>
+<div id="enemyModal" class="enemy-modal hidden">
+ <div class="enemy-editor">
+  <div class="enemy-editor-head"><div><span>AMEAÇA</span><h2 id="enemyModalTitle">Nova Ameaça</h2></div><button id="closeEnemyModal" class="enemy-close">✕</button></div>
+  <div class="enemy-type-choice">
+   <button class="enemy-type active" data-type="creature"><strong>Criatura</strong><small>Ficha paranormal automática por NA</small></button>
+   <button class="enemy-type" data-type="human"><strong>Humano</strong><small>Usa a ficha normal de jogador</small></button>
+  </div>
+  <div id="creatureEditor">
+   <div class="enemy-editor-grid">
+    <div class="enemy-photos">
+     <div class="enemy-photo-preview" id="enemyPhotoPreview"><span>👹</span><small>Foto normal</small></div>
+     <label class="secondary-button">Foto normal<input id="enemyPhoto" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
+     <label class="secondary-button">Foto machucada<input id="enemyWoundedPhoto" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
+    </div>
+    <div class="enemy-fields">
+     <label>Nome<input id="enemyName" value="Lobisomem"></label>
+     <div class="field-row"><label>NA<input id="enemyNA" type="number" min="0" value="6"></label><label>Elemento<select id="enemyElement"><option>Sangue</option><option selected>Morte</option><option>Energia</option><option>Conhecimento</option><option>Medo</option></select></label><label>Tamanho<input id="enemySize" type="number" min="1" max="6" value="2"></label></div>
+     <label>Campanha<select id="enemyCampaign"><option value="">Sem campanha</option></select></label>
+     <div id="enemyAutoStats" class="enemy-auto-stats"></div>
+    </div>
+   </div>
+   <h3>Atributos <small id="attributeBudget"></small></h3>
+   <div class="three-grid"><label>Corpo<input id="enemyCorpo" type="number" min="0" value="6"></label><label>Foco<input id="enemyFoco" type="number" min="0" value="5"></label><label>Nexo<input id="enemyNexo" type="number" min="0" value="3"></label></div>
+   <h3>Perícias <small id="skillBudget"></small></h3>
+   <div id="enemySkills" class="skill-grid"></div>
+   <h3>Ataques Rápidos</h3>
+   <div class="attack-grid"><div class="attack-card"><strong>Ataque Básico</strong><span id="basicAttack"></span><small>Dano paranormal do elemento da criatura.</small></div><div class="attack-card"><strong>Ataque Forte</strong><span id="strongAttack"></span><small>1 vez por rodada.</small></div></div>
+   <div class="enemy-note">Criaturas têm Movimento 2. Gastam 1 PA para mover até 2 posições. O mestre escolhe entre PV clássico ou sistema de membros ao jogar.</div>
+   <div class="enemy-save-row"><button id="deleteEnemy" class="danger-button hidden">Excluir</button><button id="saveEnemy" class="primary-button">Salvar criatura</button></div>
+  </div>
+  <div id="humanEditor" class="human-editor hidden"><p>Humanos usam exatamente a ficha de personagem dos jogadores.</p><button id="openHumanEditor" class="primary-button">Criar ficha humana</button></div>
+ </div>
+</div>
+<script src="ameacas.js"></script>
 </body>
-
 </html>
