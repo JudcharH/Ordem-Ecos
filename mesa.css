@@ -4276,3 +4276,19 @@ color:var(--text2);
 .enemy-position.enemy-covered .position-token-slot{visibility:hidden;pointer-events:none}
 .enemy-position.enemy-anchor .combat-token-name{max-width:180px}
 .enemy-control-sheet button{width:100%}
+
+/* Token de ameaça escala como círculo completo, não como cápsula horizontal. */
+.enemy-position.enemy-anchor .position-token-slot{
+    aspect-ratio:1/1;
+    border-radius:50% !important;
+    overflow:visible !important;
+    cursor:pointer;
+    pointer-events:auto;
+}
+.enemy-position.enemy-anchor .combat-token,
+.enemy-position.enemy-anchor .combat-token img,
+.enemy-position.enemy-anchor .combat-token-fallback{
+    width:100%;height:100%;border-radius:50%;
+}
+.enemy-position.enemy-anchor .combat-token{cursor:pointer;pointer-events:auto;z-index:31}
+.enemy-position.enemy-covered{pointer-events:none}
