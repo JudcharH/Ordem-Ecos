@@ -5690,7 +5690,7 @@ function openEnemyControlSheet(enemy,position){
       <div class="table-panel-card enemy-control-sheet">
         <div style="display:flex;gap:14px;align-items:center">
           ${enemy.photo?`<img src="${enemy.photo}" alt="" style="width:82px;height:82px;object-fit:cover;border-radius:18px">`:"<div style='font-size:42px'>👹</div>"}
-          <div><h3>${escapeTableHTML(enemy.name||"Criatura")}</h3><p>${escapeTableHTML(enemy.element||"")} • NA ${Number(enemy.na)||0} • Tamanho ${Math.max(1,Number(enemy.size)||1}</p><p>DEF ${enemy.defense||0} • RD ${enemy.rd||0} • PA ${enemy.status?.paAtual ?? enemy.paAtual ?? enemy.pa ?? 0}/${enemy.status?.paMax ?? enemy.paMax ?? enemy.pa ?? 0}</p></div>
+          <div><h3>${escapeTableHTML(enemy.name||"Criatura")}</h3><p>${escapeTableHTML(enemy.element||"")} • NA ${Number(enemy.na)||0} • Tamanho ${Math.max(1,Number(enemy.size)||1)}</p><p>DEF ${enemy.defense||0} • RD ${enemy.rd||0} • PA ${enemy.status?.paAtual ?? enemy.paAtual ?? enemy.pa ?? 0}/${enemy.status?.paMax ?? enemy.paMax ?? enemy.pa ?? 0}</p></div>
         </div>
       </div>
       <div class="table-panel-card"><h3>PV</h3><div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end"><label>Atual<input id="enemyHpCurrent" type="number" value="${hp}"></label><label>Máximo<input id="enemyHpMax" type="number" value="${max}"></label><button id="enemySaveHp" class="primary-button">Aplicar</button></div></div>
