@@ -184,6 +184,56 @@ if (!vm.runInContext("addEnemyDamageDie('2d12 + 6') === '3d12 + 6'", context)) {
     throw new Error("O dado adicional da Investida não foi aplicado corretamente.");
 }
 
+const greaterDodge = vm.runInContext(`(() => {
+    const enemy = {
+        id: "wolf-instance",
+        enemyId: "wolf-instance",
+        name: "Lobisomem",
+        corpo: 2,
+        defense: 12,
+        rd: 4,
+        pa: 3,
+        paAtual: 3,
+        status: { paAtual: 3 },
+        skills: { Presteza: 2 },
+        abilities: [{ id: "esquiva-maior", name: "Esquiva Maior" }],
+        abilityState: { esquivaMaiorArmed: true }
+    };
+    currentTableCampaign.enemies = [enemy];
+    currentTableCampaign.chatMessages = [{ id: "attack-message", type: "roll" }];
+    currentTableCampaign.combat = {
+        round: 1,
+        pendingEnemyAttack: {
+            id: "enemy-reaction",
+            active: true,
+            resolved: false,
+            messageId: "attack-message",
+            attackResult: 30,
+            targetEnemyId: "wolf-instance",
+            attackerName: "Jogador"
+        }
+    };
+    refreshCurrentTableCampaign = () => true;
+    rollDiceExpression = formula => ({ expression: formula, total: 8, details: [] });
+    closeCurrentPanel = () => {};
+    renderPublicChat = () => {};
+    addSystemChatMessage = () => {};
+    addRollChatMessage = () => {};
+    saveTableCampaign = () => {};
+    answerEnemyAttackReaction("dodge");
+    return {
+        rd: currentTableCampaign.combat.damageContext.damageReduction,
+        armed: enemy.abilityState.esquivaMaiorArmed,
+        uses: enemy.abilityState.esquivaMaiorSceneUses,
+        usedRound: enemy.abilityState.esquivaMaiorUsedRound,
+        reaction: currentTableCampaign.chatMessages[0].attackApplication.reaction
+    };
+})()`, context);
+
+if (greaterDodge.rd !== 8 || greaterDodge.armed !== false || greaterDodge.uses !== 1 || greaterDodge.usedRound !== 1 || greaterDodge.reaction !== "Esquiva Maior") {
+    throw new Error(`Esquiva Maior incorreta: ${JSON.stringify(greaterDodge)}`);
+}
+
 console.log(JSON.stringify({
     ok: true,
     clickOpenedSheet: true,
@@ -193,5 +243,6 @@ console.log(JSON.stringify({
     initiativeSavedBeforeChat: true,
     skillFormula: skillRolls[0],
     conditionCatalog: true,
-    chargeDamageDie: true
+    chargeDamageDie: true,
+    greaterDodge: true
 }, null, 2));
