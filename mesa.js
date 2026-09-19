@@ -5748,6 +5748,16 @@ function enemyAbilityState(enemy){enemy.abilityState=enemy.abilityState&&typeof 
 function enemyCombatRound(){return Math.max(0,Number(currentTableCampaign?.combat?.round)||0);}
 function addEnemyDamageDice(formula,extraDice=1){let changed=false;return String(formula||"").replace(/(\d*)d(\d+)/i,(match,amount,sides)=>{if(changed)return match;changed=true;return `${(Number(amount)||1)+Math.max(0,Number(extraDice)||0)}d${sides}`;});}
 function addEnemyDamageDie(formula){return addEnemyDamageDice(formula,1);}
+function enemyCurrentActionPoints(enemy){return Math.max(0,Number(enemy?.status?.paAtual??enemy?.paAtual??enemy?.pa)||0);}
+function spendEnemyActionPoints(enemy,cost=1){
+    const amount=Math.max(0,Number(cost)||0),current=enemyCurrentActionPoints(enemy);
+    if(!enemy||current<amount)return false;
+    enemy.status=enemy.status&&typeof enemy.status==="object"?enemy.status:{};
+    enemy.status.paAtual=Math.max(0,current-amount);
+    enemy.paAtual=enemy.status.paAtual;
+    saveTableCampaign();
+    return true;
+}
 function enemySkillData(enemy,name){
     const skills=enemy.skills&&typeof enemy.skills==="object"?enemy.skills:{};
     if(Array.isArray(skills)){
@@ -5837,7 +5847,8 @@ function openEnemyControlSheet(enemy,position){
     const skillEntries=Array.isArray(skills)?skills.map(item=>[item.name||item.id,enemySkillData(enemy,item.name||item.id).rank]):Object.entries(skills).map(([name])=>[name,enemySkillData(enemy,name).rank]);
     const skillButtons=skillEntries.filter(([,rank])=>rank>0).map(([name,rank])=>`<button type="button" class="secondary-button enemy-skill-roll" data-skill="${escapeTableHTML(name)}">${escapeTableHTML(name)} • ${enemyTrainingDie(rank)}</button>`).join("");
     const conditionList=conditions.length?conditions.map((condition,index)=>{const value=typeof condition==="string"?{name:condition}:condition;return`<div class="table-panel-card" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center"><span>${escapeTableHTML(value.icon||"○")} ${escapeTableHTML(value.name||"Condição")}${Number(value.stacks)>1?` ×${Number(value.stacks)}`:""}</span><button type="button" class="secondary-button enemy-condition-remove" data-index="${index}">Remover</button></div>`}).join(""):"<p>Nenhuma condição ativa.</p>";
-    const attackCard=(kind,title,damage)=>`<div class="table-panel-card"><h3>${title}</h3><p>Dano: ${escapeTableHTML(damage||"—")}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><button type="button" class="primary-button enemy-quick-attack" data-attack="${kind}" data-roll="attack">Acertar</button><button type="button" class="secondary-button enemy-quick-attack" data-attack="${kind}" data-roll="damage">Dano</button></div></div>`;
+    const hasActionPoint=enemyCurrentActionPoints(enemy)>=1;
+    const attackCard=(kind,title,damage)=>`<div class="table-panel-card"><h3>${title}</h3><p>Dano: ${escapeTableHTML(damage||"—")}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><button type="button" class="primary-button enemy-quick-attack" data-attack="${kind}" data-roll="attack" ${hasActionPoint?"":"disabled"}>Acertar • 1 PA</button><button type="button" class="secondary-button enemy-quick-attack" data-attack="${kind}" data-roll="damage">Dano</button></div></div>`;
     const isWounded=conditions.some(condition=>String(typeof condition==="string"?condition:condition.id||condition.name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()==="machucado"),currentPhoto=(isWounded?enemy.woundedPhoto:"")||enemy.photo||"";
     openTablePanel("AMEAÇA",enemy.name||"Criatura",`
       <div class="table-panel-card enemy-control-sheet"><div style="display:flex;gap:14px;align-items:center">${currentPhoto?`<img src="${currentPhoto}" alt="" style="width:82px;height:82px;object-fit:cover;border-radius:18px">`:"<div style='font-size:42px'>👹</div>"}<div><h3>${escapeTableHTML(enemy.name||"Criatura")}</h3><p>${escapeTableHTML(enemy.element||"")} • NA ${Number(enemy.na)||0} • Tamanho ${Math.max(1,Number(enemy.size)||1)}</p></div></div></div>
@@ -5849,7 +5860,7 @@ function openEnemyControlSheet(enemy,position){
       <div class="table-panel-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>Condições</h3><button id="enemyAddCondition" type="button" class="primary-button" aria-label="Adicionar condição" style="width:42px;padding:0">＋</button></div><div style="display:grid;gap:8px;margin-top:10px">${conditionList}</div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button id="enemyMoveFromSheet" class="secondary-button">Mover</button><button id="enemyRemoveFromSheet" class="secondary-button">Remover da mesa</button></div>`);
     document.getElementById("enemySaveHp")?.addEventListener("click",()=>{enemy.status=enemy.status||{};enemy.status.pvAtual=Math.max(0,Number(document.getElementById("enemyHpCurrent").value)||0);enemy.status.pvMax=Math.max(0,Number(document.getElementById("enemyHpMax").value)||0);saveTableCampaign();openEnemyControlSheet(enemy,position)});
-    document.querySelectorAll(".enemy-quick-attack").forEach(button=>button.addEventListener("click",()=>{refreshCurrentTableCampaign();const liveEnemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemy.enemyId||enemy.id))||enemy,attackName=button.dataset.attack==="strong"?"Ataque forte":"Ataque básico",enemyInstanceId=liveEnemy.enemyId||liveEnemy.id,attackVariant=button.dataset.attack;if(button.dataset.roll==="attack"){rollEnemySkill(liveEnemy,"Luta",{label:`Ataque • ${attackName} • ${liveEnemy.name||"Criatura"}`,rollKind:"attack",attackName,enemyInstanceId,attackVariant,applied:false});return}const state=enemyAbilityState(liveEnemy),raw=button.dataset.attack==="strong"?liveEnemy.strongAttack:liveEnemy.basicAttack,investidaDice=state.investidaArmed?1:0,criticalDice=state.criticalDamageDice&&(!state.criticalAttackVariant||state.criticalAttackVariant===attackVariant)?Number(state.criticalDamageDice)||0:0,extraDice=investidaDice+criticalDice,boosted=extraDice?addEnemyDamageDice(raw,extraDice):raw,resolved=String(boosted||"").replace(/Corpo/gi,Number(liveEnemy.corpo)||0),result=rollDiceExpression(resolved);if(!result)return;if(state.investidaArmed)state.investidaArmed=false;if(criticalDice){state.criticalDamageDice=0;state.criticalAttackVariant=null;}if(extraDice)saveTableCampaign();const bonuses=[investidaDice?"Investida +1 dado":"",criticalDice?"Crítico +2 dados":""].filter(Boolean).join(" • ");addRollChatMessage(`Dano • ${attackName} • ${liveEnemy.name||"Criatura"}${bonuses?` • ${bonuses}`:""}`,resolved,result.total,enemyRollDetail(result),{rollKind:"damage",attackName,enemyInstanceId,attackVariant,applied:false})}));
+    document.querySelectorAll(".enemy-quick-attack").forEach(button=>button.addEventListener("click",()=>{refreshCurrentTableCampaign();const liveEnemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemy.enemyId||enemy.id))||enemy,attackName=button.dataset.attack==="strong"?"Ataque forte":"Ataque básico",enemyInstanceId=liveEnemy.enemyId||liveEnemy.id,attackVariant=button.dataset.attack;if(button.dataset.roll==="attack"){if(!spendEnemyActionPoints(liveEnemy,1)){addSystemChatMessage(`${liveEnemy.name||"A criatura"} não possui PA suficiente para atacar.`);openEnemyControlSheet(liveEnemy,position);return;}rollEnemySkill(liveEnemy,"Luta",{label:`Ataque • ${attackName} • ${liveEnemy.name||"Criatura"}`,rollKind:"attack",attackName,enemyInstanceId,attackVariant,applied:false});openEnemyControlSheet(liveEnemy,position);return}const state=enemyAbilityState(liveEnemy),raw=button.dataset.attack==="strong"?liveEnemy.strongAttack:liveEnemy.basicAttack,investidaDice=state.investidaArmed?1:0,criticalDice=state.criticalDamageDice&&(!state.criticalAttackVariant||state.criticalAttackVariant===attackVariant)?Number(state.criticalDamageDice)||0:0,extraDice=investidaDice+criticalDice,boosted=extraDice?addEnemyDamageDice(raw,extraDice):raw,resolved=String(boosted||"").replace(/Corpo/gi,Number(liveEnemy.corpo)||0),result=rollDiceExpression(resolved);if(!result)return;if(state.investidaArmed)state.investidaArmed=false;if(criticalDice){state.criticalDamageDice=0;state.criticalAttackVariant=null;}if(extraDice)saveTableCampaign();const bonuses=[investidaDice?"Investida +1 dado":"",criticalDice?"Crítico +2 dados":""].filter(Boolean).join(" • ");addRollChatMessage(`Dano • ${attackName} • ${liveEnemy.name||"Criatura"}${bonuses?` • ${bonuses}`:""}`,resolved,result.total,enemyRollDetail(result),{rollKind:"damage",attackName,enemyInstanceId,attackVariant,applied:false})}));
     document.querySelectorAll(".enemy-skill-roll").forEach(button=>button.addEventListener("click",()=>rollEnemySkill(enemy,button.dataset.skill)));
     document.querySelectorAll(".enemy-use-ability").forEach(button=>button.addEventListener("click",()=>useEnemyAbility(enemy,button.dataset.ability,position)));
     document.getElementById("enemyAddCondition")?.addEventListener("click",()=>openEnemyConditionSelector(enemy,position));
@@ -9274,7 +9285,7 @@ ${
 
                 </span>
 
-                ${message.appliedTarget?.type!=="enemy"?`<span>PV: ${Number(message.damageApplication.pvBefore)||0} → ${Number(message.damageApplication.pvAfter)||0}</span>`:""}
+                <span>PV: ${Number(message.damageApplication.pvBefore)||0} → ${Number(message.damageApplication.pvAfter)||0}</span>
 
             </div>
 
@@ -11791,15 +11802,17 @@ function applyPendingDamageToTarget(
 
 function applyDamageToEnemy(enemy){
     if(!enemy||!pendingDamageApplication)return;
+    const enemyId=enemy.enemyId||enemy.id;
+    enemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemyId))||enemy;
     const originalDamage=Math.max(0,Number(pendingDamageApplication.damage)||0),context=currentTableCampaign.combat?.damageContext,contextMatches=context?.active===true&&String(context.targetEnemyId)===String(enemy.enemyId||enemy.id),damageReduction=contextMatches?Math.max(0,Number(context.damageReduction)||0):Math.max(0,Number(enemy.rd)||0),finalDamage=Math.max(0,originalDamage-damageReduction);
     enemy.status=enemy.status&&typeof enemy.status==="object"?enemy.status:{};
     const before=Math.max(0,Number(enemy.status.pvAtual??enemy.pv)||0);
     enemy.status.pvAtual=Math.max(0,before-finalDamage);
     enemy.status.pvMax=Math.max(0,Number(enemy.status.pvMax??enemy.pv)||0);
     if(contextMatches){context.active=false;context.consumed=true;context.consumedAt=Date.now();}
-    const message=(currentTableCampaign.chatMessages||[]).find(item=>item.id===pendingDamageApplication.messageId);
-    if(message){message.applied=true;message.appliedAt=Date.now();message.appliedTarget={type:"enemy",enemyId:enemy.enemyId||enemy.id,name:enemy.name||"Ameaça"};message.damageApplication={originalDamage,damageReduction,finalDamage};}
-    saveTableCampaign();cancelDamageTargetSelection();renderCombatPositions();renderPublicChat();addSystemChatMessage(`${enemy.name||"A ameaça"} recebeu ${finalDamage} de dano após RD ${damageReduction}.`);
+    const after=enemy.status.pvAtual,message=(currentTableCampaign.chatMessages||[]).find(item=>item.id===pendingDamageApplication.messageId);
+    if(message){message.applied=true;message.appliedAt=Date.now();message.appliedTarget={type:"enemy",enemyId:enemy.enemyId||enemy.id,name:enemy.name||"Ameaça"};message.damageApplication={originalDamage,damageReduction,finalDamage,pvBefore:before,pvAfter:after};}
+    saveTableCampaign();cancelDamageTargetSelection();renderCombatPositions();renderPublicChat();addSystemChatMessage(`${enemy.name||"A ameaça"} recebeu ${finalDamage} de dano após RD ${damageReduction}. PV atual: ${before} → ${after}.`);
 }
 
 /*==========================================================
