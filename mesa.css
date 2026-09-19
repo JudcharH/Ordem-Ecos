@@ -4229,3 +4229,44 @@ line-height:1.4;
 color:var(--text2);
 
 }
+
+/*==========================================================
+=        POSIÇÕES EM FILEIRAS — JOGADORES / AMEAÇAS
+==========================================================*/
+/* As seis posições de cada lado ficam em uma única fileira.
+   Mantém os números existentes e deixa o mapa pronto para
+   ameaças grandes ocuparem slots consecutivos no futuro. */
+.combat-side{
+    top:12%;
+    bottom:17%;
+    width:42%;
+}
+.players-side{left:3%;}
+.enemies-side{right:3%;}
+
+.players-side .combat-position,
+.enemies-side .combat-position{
+    top:48% !important;
+    transform:translateY(-50%);
+    width:72px;
+}
+
+.players-side .position-1{right:0 !important;left:auto !important;}
+.players-side .position-2{right:18% !important;left:auto !important;}
+.players-side .position-3{right:36% !important;left:auto !important;}
+.players-side .position-4{right:54% !important;left:auto !important;}
+.players-side .position-5{right:72% !important;left:auto !important;}
+.players-side .position-6{right:90% !important;left:auto !important;}
+
+.enemies-side .position-1{left:0 !important;right:auto !important;}
+.enemies-side .position-2{left:18% !important;right:auto !important;}
+.enemies-side .position-3{left:36% !important;right:auto !important;}
+.enemies-side .position-4{left:54% !important;right:auto !important;}
+.enemies-side .position-5{left:72% !important;right:auto !important;}
+.enemies-side .position-6{left:90% !important;right:auto !important;}
+
+@media(max-width:1100px){
+    .players-side .combat-position,.enemies-side .combat-position{width:58px}
+    .players-side .position-2{right:18% !important}.players-side .position-3{right:36% !important}.players-side .position-4{right:54% !important}.players-side .position-5{right:72% !important}.players-side .position-6{right:90% !important}
+    .enemies-side .position-2{left:18% !important}.enemies-side .position-3{left:36% !important}.enemies-side .position-4{left:54% !important}.enemies-side .position-5{left:72% !important}.enemies-side .position-6{left:90% !important}
+}
