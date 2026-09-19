@@ -4847,7 +4847,22 @@ if(
 }
 else{
 
+    const enemyIsWounded =
+        type === "enemy" &&
+        Array.isArray(entity.conditions) &&
+        entity.conditions.some(condition =>
+            String(
+                typeof condition === "string"
+                    ? condition
+                    : condition.id || condition.name || ""
+            ).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase() ===
+            "machucado"
+        );
+
     photo =
+        (enemyIsWounded
+            ? entity.woundedPhoto
+            : "") ||
         entity.photo ||
         entity.image ||
         "";
@@ -5693,31 +5708,93 @@ function openOccupiedPosition(
 
 
 function enemyTrainingDie(rank){return ({1:"1d4",2:"1d8",3:"1d12"})[Number(rank)||0]||"0";}
-function enemySkillAttribute(name){return ["Manobra","Fortitude","Luta","Presteza"].includes(name)?"corpo":["Discreto","Interação","Intimidação","Percepção","Pilotagem","Pontaria","Vontade","Sorte"].includes(name)?"foco":"nexo";}
+function enemySkillAttribute(name){return ["Manobra","Fortitude","Luta","Presteza"].includes(name)?"corpo":["Disciplina","Discreto","Interação","Intimidação","Percepção","Pilotagem","Pontaria","Vontade","Sorte"].includes(name)?"foco":"nexo";}
+function enemySkillData(enemy,name){
+    const skills=enemy.skills&&typeof enemy.skills==="object"?enemy.skills:{};
+    if(Array.isArray(skills)){
+        const skill=skills.find(item=>String(item.id||item.name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()===String(name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase())||{};
+        let rank=Number(skill.level??skill.rank??0)||0;
+        if(!rank){const training=String(skill.training||skill.treino||"");rank=training==="1d12"?3:training==="1d8"?2:training==="1d4"?1:0;}
+        return{rank,bonus:Number(skill.bonus)||0,penalty:Math.abs(Number(skill.penalty??skill.penalidade)||0)};
+    }
+    const value=skills[name]??skills[String(name).toLowerCase()]??0;
+    return typeof value==="object"
+        ?{rank:Number(value.level??value.rank??0)||0,bonus:Number(value.bonus)||0,penalty:Math.abs(Number(value.penalty??value.penalidade)||0)}
+        :{rank:Number(value)||0,bonus:0,penalty:0};
+}
+function enemyRollDetail(result){return (result.details||[]).map(part=>part.type==="dice"?`${part.formula} [${(part.rolls||[]).join(", ")}]`:String(part.value??"")).filter(Boolean).join(" + ");}
+function rollEnemySkill(enemy,name,metadata={}){
+    const skill=enemySkillData(enemy,name),attribute=enemySkillAttribute(name),attributeValue=Number(enemy[attribute]??enemy.attributes?.[attribute])||0,training=enemyTrainingDie(skill.rank);
+    const modifier=attributeValue+skill.bonus-skill.penalty;
+    const formula=`1d12${training!=="0"?`+${training}`:""}${modifier>=0?"+":""}${modifier}`;
+    const result=rollDiceExpression(formula);
+    if(!result)return;
+    addRollChatMessage(metadata.label||`${name} • ${enemy.name||"Criatura"}`,formula,result.total,enemyRollDetail(result),metadata);
+}
+const ENEMY_CONDITION_CATALOG=[
+    {id:"sangramento",name:"Sangramento",icon:"🩸",stackable:true,description:"Sofre dano de sangramento por rodada."},
+    {id:"envenenamento",name:"Envenenamento",icon:"☠️",stackable:true,description:"Sofre dano por rodada e penalidade física."},
+    {id:"chamas",name:"Chamas",icon:"🔥",description:"Sofre dano por rodada até apagar as chamas."},
+    {id:"paralisia",name:"Paralisia",icon:"⚡",description:"Fracassa automaticamente em testes."},
+    {id:"paralisia-total",name:"Paralisia Total",icon:"⚡",description:"Fica completamente incapaz de agir."},
+    {id:"imobilizado",name:"Imobilizado",icon:"⛓️",description:"Recebe penalidade em testes físicos e Defesa."},
+    {id:"caido",name:"Caído",icon:"⬇️",description:"Recebe penalidade física e na Defesa."},
+    {id:"enjoado",name:"Enjoado",icon:"🤢",description:"Recebe penalidade em testes físicos."},
+    {id:"morrendo",name:"Morrendo",icon:"🩸",description:"Fica inconsciente e sem PA."},
+    {id:"machucado",name:"Machucado",icon:"🩹",description:"Ativa a aparência machucada."},
+    {id:"debilitado",name:"Debilitado",icon:"🦴",description:"Recebe menos PA por rodada."},
+    {id:"enfraquecido",name:"Enfraquecido",icon:"💢",description:"Recebe penalidade em testes de Corpo."},
+    {id:"lento",name:"Lento",icon:"🐌",description:"Recebe penalidade de velocidade."},
+    {id:"cansado",name:"Cansado",icon:"😵",description:"Habilidades custam o dobro."},
+    {id:"controlado",name:"Controlado",icon:"🧠",description:"Entrega suas ações ao controlador."},
+    {id:"cego",name:"Cego",icon:"👁️",description:"Recebe penalidades ligadas à visão."},
+    {id:"surdo",name:"Surdo",icon:"🔇",description:"Recebe penalidades ligadas à audição."},
+    {id:"traumatizado",name:"Traumatizado",icon:"🧠",description:"Recebe penalidade em Vontade."},
+    {id:"penumbra",name:"Penumbra",icon:"🌑",description:"Recebe penalidade em Percepção e Reflexos."},
+    {id:"vulneravel",name:"Vulnerável",icon:"🎯",description:"Sofre efeitos ampliados de dano bônus."},
+    {id:"desprevenido",name:"Desprevenido",icon:"😶",description:"Não pode reagir e perde Defesa."},
+    {id:"confuso",name:"Confuso",icon:"🌀",description:"Move-se e age de forma imprevisível."}
+];
+function openEnemyConditionSelector(enemy,position){
+    document.getElementById("enemyConditionSelector")?.remove();
+    const modal=document.createElement("div");
+    modal.id="enemyConditionSelector";
+    modal.className="table-modal";
+    modal.innerHTML=`<div class="table-modal-content"><div class="table-modal-header"><div><span class="table-panel-label">CONDIÇÕES</span><h2>Adicionar condição</h2></div><button type="button" class="table-panel-close enemy-condition-close">✕</button></div><div class="table-panel-list">${ENEMY_CONDITION_CATALOG.map(condition=>`<button type="button" class="table-panel-card enemy-condition-choice" data-condition="${condition.id}" style="width:100%;text-align:left;cursor:pointer"><h3>${condition.icon} ${escapeTableHTML(condition.name)}</h3><p>${escapeTableHTML(condition.description)}</p></button>`).join("")}</div></div>`;
+    document.body.appendChild(modal);
+    const close=()=>modal.remove();
+    modal.querySelector(".enemy-condition-close")?.addEventListener("click",close);
+    modal.addEventListener("click",event=>{if(event.target===modal)close();});
+    modal.querySelectorAll(".enemy-condition-choice").forEach(button=>button.addEventListener("click",()=>{
+        const definition=ENEMY_CONDITION_CATALOG.find(item=>item.id===button.dataset.condition);if(!definition)return;
+        enemy.conditions=Array.isArray(enemy.conditions)?enemy.conditions:[];
+        const existing=enemy.conditions.find(item=>String(typeof item==="string"?item:item.id)===definition.id);
+        if(existing&&definition.stackable&&typeof existing==="object")existing.stacks=Math.max(1,Number(existing.stacks)||1)+1;
+        else if(!existing)enemy.conditions.push({...definition,stacks:1});
+        saveTableCampaign();renderCombatPositions();close();openEnemyControlSheet(enemy,position);
+    }));
+}
 function openEnemyControlSheet(enemy,position){
     const skills=enemy.skills&&typeof enemy.skills==="object"?enemy.skills:{};
-    const hp=Number(enemy.status?.pvAtual ?? enemy.pv ?? 0);
-    const max=Number(enemy.status?.pvMax ?? enemy.pv ?? 0);
-    const conditions=Array.isArray(enemy.conditions)?enemy.conditions:[];
-    const skillButtons=Object.entries(skills).filter(([,v])=>Number(v)>0).map(([name,v])=>`<button type="button" class="secondary-button enemy-skill-roll" data-skill="${escapeTableHTML(name)}">${escapeTableHTML(name)} • ${enemyTrainingDie(v)}</button>`).join("");
+    const hp=Number(enemy.status?.pvAtual ?? enemy.pv ?? 0),max=Number(enemy.status?.pvMax ?? enemy.pv ?? 0),conditions=Array.isArray(enemy.conditions)?enemy.conditions:[];
+    const skillEntries=Array.isArray(skills)?skills.map(item=>[item.name||item.id,enemySkillData(enemy,item.name||item.id).rank]):Object.entries(skills).map(([name])=>[name,enemySkillData(enemy,name).rank]);
+    const skillButtons=skillEntries.filter(([,rank])=>rank>0).map(([name,rank])=>`<button type="button" class="secondary-button enemy-skill-roll" data-skill="${escapeTableHTML(name)}">${escapeTableHTML(name)} • ${enemyTrainingDie(rank)}</button>`).join("");
+    const conditionList=conditions.length?conditions.map((condition,index)=>{const value=typeof condition==="string"?{name:condition}:condition;return`<div class="table-panel-card" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center"><span>${escapeTableHTML(value.icon||"○")} ${escapeTableHTML(value.name||"Condição")}${Number(value.stacks)>1?` ×${Number(value.stacks)}`:""}</span><button type="button" class="secondary-button enemy-condition-remove" data-index="${index}">Remover</button></div>`}).join(""):"<p>Nenhuma condição ativa.</p>";
+    const attackCard=(kind,title,damage)=>`<div class="table-panel-card"><h3>${title}</h3><p>Dano: ${escapeTableHTML(damage||"—")}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><button type="button" class="primary-button enemy-quick-attack" data-attack="${kind}" data-roll="attack">Acertar</button><button type="button" class="secondary-button enemy-quick-attack" data-attack="${kind}" data-roll="damage">Dano</button></div></div>`;
+    const isWounded=conditions.some(condition=>String(typeof condition==="string"?condition:condition.id||condition.name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()==="machucado"),currentPhoto=(isWounded?enemy.woundedPhoto:"")||enemy.photo||"";
     openTablePanel("AMEAÇA",enemy.name||"Criatura",`
-      <div class="table-panel-card enemy-control-sheet">
-        <div style="display:flex;gap:14px;align-items:center">
-          ${enemy.photo?`<img src="${enemy.photo}" alt="" style="width:82px;height:82px;object-fit:cover;border-radius:18px">`:"<div style='font-size:42px'>👹</div>"}
-          <div><h3>${escapeTableHTML(enemy.name||"Criatura")}</h3><p>${escapeTableHTML(enemy.element||"")} • NA ${Number(enemy.na)||0} • Tamanho ${Math.max(1,Number(enemy.size)||1)}</p><p>DEF ${enemy.defense||0} • RD ${enemy.rd||0} • PA ${enemy.status?.paAtual ?? enemy.paAtual ?? enemy.pa ?? 0}/${enemy.status?.paMax ?? enemy.paMax ?? enemy.pa ?? 0}</p></div>
-        </div>
-      </div>
+      <div class="table-panel-card enemy-control-sheet"><div style="display:flex;gap:14px;align-items:center">${currentPhoto?`<img src="${currentPhoto}" alt="" style="width:82px;height:82px;object-fit:cover;border-radius:18px">`:"<div style='font-size:42px'>👹</div>"}<div><h3>${escapeTableHTML(enemy.name||"Criatura")}</h3><p>${escapeTableHTML(enemy.element||"")} • NA ${Number(enemy.na)||0} • Tamanho ${Math.max(1,Number(enemy.size)||1)}</p></div></div></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div class="table-panel-card"><span>DEFESA</span><h3>${Number(enemy.defense)||0}</h3></div><div class="table-panel-card"><span>RD</span><h3>${Number(enemy.rd)||0}</h3></div><div class="table-panel-card"><span>PA</span><h3>${enemy.status?.paAtual ?? enemy.paAtual ?? enemy.pa ?? 0}/${enemy.status?.paMax ?? enemy.paMax ?? enemy.pa ?? 0}</h3></div></div>
       <div class="table-panel-card"><h3>PV</h3><div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end"><label>Atual<input id="enemyHpCurrent" type="number" value="${hp}"></label><label>Máximo<input id="enemyHpMax" type="number" value="${max}"></label><button id="enemySaveHp" class="primary-button">Aplicar</button></div></div>
-      <div class="table-panel-card"><h3>Ataques</h3><button class="primary-button enemy-attack-roll" data-attack="basic">Ataque básico • ${escapeTableHTML(enemy.basicAttack||"—")}</button><button class="secondary-button enemy-attack-roll" data-attack="strong" style="margin-top:8px">Ataque forte • ${escapeTableHTML(enemy.strongAttack||"—")}</button></div>
+      <div><h3 style="margin-bottom:8px">Ataques rápidos</h3>${attackCard("basic","Ataque básico",enemy.basicAttack)}${attackCard("strong","Ataque forte",enemy.strongAttack)}</div>
       <div class="table-panel-card"><h3>Perícias</h3><div style="display:grid;gap:8px">${skillButtons||"<p>Nenhuma perícia treinada.</p>"}</div></div>
-      <div class="table-panel-card"><h3>Condições</h3><p>${conditions.length?conditions.map(x=>escapeTableHTML(typeof x==="string"?x:x.name)).join(", "):"Nenhuma condição ativa."}</p><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="enemyConditionName" placeholder="Nome da condição"><button id="enemyAddCondition" class="primary-button">Aplicar</button></div>${conditions.length?'<button id="enemyClearConditions" class="secondary-button" style="margin-top:8px">Limpar condições</button>':""}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button id="enemyMoveFromSheet" class="secondary-button">Mover</button><button id="enemyRemoveFromSheet" class="secondary-button">Remover da mesa</button></div>
-    `);
-    document.getElementById("enemySaveHp")?.addEventListener("click",()=>{enemy.status=enemy.status||{};enemy.status.pvAtual=Math.max(0,Number(document.getElementById("enemyHpCurrent").value)||0);enemy.status.pvMax=Math.max(0,Number(document.getElementById("enemyHpMax").value)||0);saveTableCampaign();addSystemChatMessage(`${enemy.name}: PV ${enemy.status.pvAtual}/${enemy.status.pvMax}.`);openEnemyControlSheet(enemy,position)});
-    document.querySelectorAll(".enemy-attack-roll").forEach(btn=>btn.addEventListener("click",()=>{const formula=btn.dataset.attack==="strong"?enemy.strongAttack:enemy.basicAttack;const resolved=String(formula||"").replace(/Corpo/gi,Number(enemy.corpo)||0);const result=rollDiceExpression(resolved);if(result)addDiceChatMessage({characterName:enemy.name,title:btn.dataset.attack==="strong"?"Ataque forte":"Ataque básico",type:"Dano "+(enemy.element||""),formula:resolved,result})}));
-    document.querySelectorAll(".enemy-skill-roll").forEach(btn=>btn.addEventListener("click",()=>{const name=btn.dataset.skill,rank=Number(skills[name])||0,attr=enemySkillAttribute(name),attrValue=Number(enemy[attr])||0,training=enemyTrainingDie(rank),formula=(training==="0"?"1d12":"1d12+"+training)+"+"+attrValue,result=rollDiceExpression(formula);if(result)addDiceChatMessage({characterName:enemy.name,title:name,type:"Perícia",formula,result})}));
-    document.getElementById("enemyAddCondition")?.addEventListener("click",()=>{const name=document.getElementById("enemyConditionName").value.trim();if(!name)return;enemy.conditions=Array.isArray(enemy.conditions)?enemy.conditions:[];enemy.conditions.push({id:name.toLowerCase().replace(/\s+/g,"-"),name});saveTableCampaign();addSystemChatMessage(`${enemy.name} recebeu a condição ${name}.`);openEnemyControlSheet(enemy,position)});
-    document.getElementById("enemyClearConditions")?.addEventListener("click",()=>{enemy.conditions=[];saveTableCampaign();openEnemyControlSheet(enemy,position)});
+      <div class="table-panel-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>Condições</h3><button id="enemyAddCondition" type="button" class="primary-button" aria-label="Adicionar condição" style="width:42px;padding:0">＋</button></div><div style="display:grid;gap:8px;margin-top:10px">${conditionList}</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button id="enemyMoveFromSheet" class="secondary-button">Mover</button><button id="enemyRemoveFromSheet" class="secondary-button">Remover da mesa</button></div>`);
+    document.getElementById("enemySaveHp")?.addEventListener("click",()=>{enemy.status=enemy.status||{};enemy.status.pvAtual=Math.max(0,Number(document.getElementById("enemyHpCurrent").value)||0);enemy.status.pvMax=Math.max(0,Number(document.getElementById("enemyHpMax").value)||0);saveTableCampaign();openEnemyControlSheet(enemy,position)});
+    document.querySelectorAll(".enemy-quick-attack").forEach(button=>button.addEventListener("click",()=>{const attackName=button.dataset.attack==="strong"?"Ataque forte":"Ataque básico";if(button.dataset.roll==="attack"){rollEnemySkill(enemy,"Luta",{label:`Ataque • ${attackName} • ${enemy.name||"Criatura"}`,rollKind:"attack",attackName,applied:false});return}const raw=button.dataset.attack==="strong"?enemy.strongAttack:enemy.basicAttack,resolved=String(raw||"").replace(/Corpo/gi,Number(enemy.corpo)||0),result=rollDiceExpression(resolved);if(result)addRollChatMessage(`Dano • ${attackName} • ${enemy.name||"Criatura"}`,resolved,result.total,enemyRollDetail(result),{rollKind:"damage",attackName,applied:false})}));
+    document.querySelectorAll(".enemy-skill-roll").forEach(button=>button.addEventListener("click",()=>rollEnemySkill(enemy,button.dataset.skill)));
+    document.getElementById("enemyAddCondition")?.addEventListener("click",()=>openEnemyConditionSelector(enemy,position));
+    document.querySelectorAll(".enemy-condition-remove").forEach(button=>button.addEventListener("click",()=>{enemy.conditions=conditions.filter((_,index)=>index!==Number(button.dataset.index));saveTableCampaign();renderCombatPositions();openEnemyControlSheet(enemy,position)}));
     document.getElementById("enemyMoveFromSheet")?.addEventListener("click",()=>{closeCurrentPanel();startMoveEntity("enemy",enemy)});
     document.getElementById("enemyRemoveFromSheet")?.addEventListener("click",()=>{removeEntityFromScene("enemy",enemy);closeCurrentPanel()});
 }
@@ -7373,13 +7450,12 @@ function rollEnemyInitiatives(){
             participant.modifier=foco;
             participant.rolledAt=Date.now();
 
-            addDiceChatMessage({
-                characterName:enemy.name||participant.name||"Ameaça",
-                title:"Iniciativa",
-                type:"Presteza",
+            addRollChatMessage(
+                `Iniciativa • ${enemy.name||participant.name||"Ameaça"}`,
                 formula,
-                result
-            });
+                result.total,
+                enemyRollDetail(result)
+            );
         });
 
     currentTableCampaign.combat.updatedAt=Date.now();
