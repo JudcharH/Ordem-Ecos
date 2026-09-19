@@ -46,7 +46,17 @@
    <div class="enemy-note">Criaturas têm Movimento 2. Gastam 1 PA para mover até 2 posições. O mestre escolhe entre PV clássico ou sistema de membros ao jogar.</div>
    <div class="enemy-save-row"><button id="deleteEnemy" class="danger-button hidden">Excluir</button><button id="saveEnemy" class="primary-button">Salvar criatura</button></div>
   </div>
-  <div id="humanEditor" class="human-editor hidden"><p>Humanos usam exatamente a ficha de personagem dos jogadores.</p><button id="openHumanEditor" class="primary-button">Criar ficha humana</button></div>
+  <div id="humanEditor" class="human-editor hidden">
+ <div class="human-threat-card">
+  <div class="enemy-photos">
+   <div class="enemy-photo-preview" id="humanPhotoPreview"><span>👤</span><small>Foto normal</small></div>
+   <label class="secondary-button">Foto normal<input id="humanPhoto" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
+   <label class="secondary-button">Foto machucada<input id="humanWoundedPhoto" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
+  </div>
+  <div class="enemy-fields"><label>Nome<input id="humanName" placeholder="Nome da ameaça humana"></label><div class="enemy-note">Esta é uma ameaça Humano, separada das fichas dos jogadores. Os detalhes de combate próprios dos humanos serão expandidos aqui sem criar personagem na lista de players.</div></div>
+ </div>
+ <div class="enemy-save-row"><button id="saveHuman" class="primary-button">Salvar humano</button></div>
+</div>
  </div>
 </div>
 <script src="ameacas.js"></script>
