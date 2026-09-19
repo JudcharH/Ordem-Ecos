@@ -3278,7 +3278,7 @@ function openEnemiesPanel(){
         enemies =
             JSON.parse(
                 localStorage.getItem(
-                    "ordem_enemies"
+                    "ordem_threats"
                 )
             ) || [];
 
@@ -3422,7 +3422,7 @@ function startEnemyPlacement(enemyId){
         enemies =
             JSON.parse(
                 localStorage.getItem(
-                    "ordem_enemies"
+                    "ordem_threats"
                 )
             ) || [];
 
@@ -4119,6 +4119,21 @@ function openPositionSelector(
 
     }
 
+    if(type==="enemy"){
+        const size=Math.max(1,Number(entity.size)||1);
+        positions=positions.filter(position=>{
+            const wanted=[];
+            for(let i=0;i<size;i++) wanted.push(position-i);
+            if(wanted.some(p=>p<1)) return false;
+            const current=Array.isArray(currentTableCampaign.enemies)?currentTableCampaign.enemies:[];
+            return !current.some(item=>{
+                const anchor=Number(item.position),itemSize=Math.max(1,Number(item.size)||1),slots=[];
+                for(let i=0;i<itemSize;i++) slots.push(anchor-i);
+                return slots.some(p=>wanted.includes(p));
+            });
+        });
+    }
+
     const buttons =
         positions
             .map(position => `
@@ -4200,114 +4215,51 @@ function openPositionSelector(
 =              COLOCAR ENTIDADE NA POSIÇÃO
 ==========================================================*/
 
-function placeEntityAtPosition(
-    type,
-    entity,
-    position
-){
-
-    if(type === "enemy"){
-
-        if(
-            !Array.isArray(
-                currentTableCampaign.enemies
-            )
-        ){
-
-            currentTableCampaign.enemies = [];
-
+function placeEntityAtPosition(type,entity,position){
+    if(type==="enemy"){
+        if(!Array.isArray(currentTableCampaign.enemies)) currentTableCampaign.enemies=[];
+        const size=Math.max(1,Number(entity.size)||1);
+        const occupied=[];
+        for(let i=0;i<size;i++) occupied.push(position-i);
+        if(occupied.some(p=>p<1||p>6)){
+            alert("Esta criatura precisa de "+size+" posições consecutivas.");
+            return;
         }
-
-        currentTableCampaign.enemies =
-            currentTableCampaign.enemies
-                .filter(
-                    item =>
-                        item.position !== position &&
-                        item.enemyId !== entity.id
-                );
-
+        const collision=currentTableCampaign.enemies.some(item=>{
+            const anchor=Number(item.position);
+            const itemSize=Math.max(1,Number(item.size)||1);
+            const slots=[];
+            for(let i=0;i<itemSize;i++) slots.push(anchor-i);
+            return slots.some(p=>occupied.includes(p));
+        });
+        if(collision){
+            alert("Não há espaço livre suficiente nessas posições.");
+            return;
+        }
+        const instanceId="enemy-instance-"+Date.now()+"-"+Math.random().toString(36).slice(2,7);
+        const paMax=Math.max(0,Number(entity.pa)||0);
         currentTableCampaign.enemies.push({
-
-            enemyId:
-                entity.id,
-
-            name:
-                entity.name || "Ameaça",
-
-            photo:
-                entity.photo ||
-                entity.image ||
-                "",
-
-            position
-
+            ...JSON.parse(JSON.stringify(entity)),
+            id:instanceId,
+            enemyId:instanceId,
+            templateId:entity.id,
+            position,
+            occupiedPositions:occupied,
+            paMax,
+            paAtual:paMax,
+            status:{pvAtual:Number(entity.pv)||0,pvMax:Number(entity.pv)||0,paAtual:paMax,paMax}
         });
-
+    }else{
+        if(!Array.isArray(currentTableCampaign.npcs)) currentTableCampaign.npcs=[];
+        const existing=currentTableCampaign.npcs.find(npc=>npc.id===entity.id);
+        currentTableCampaign.npcs=currentTableCampaign.npcs.filter(npc=>npc.position!==position&&npc.id!==entity.id);
+        currentTableCampaign.npcs.push({...existing,...entity,position});
     }
-    else{
-
-        if(
-            !Array.isArray(
-                currentTableCampaign.npcs
-            )
-        ){
-
-            currentTableCampaign.npcs = [];
-
-        }
-
-        const existing =
-            currentTableCampaign.npcs.find(
-                npc =>
-                    npc.id === entity.id
-            );
-
-        currentTableCampaign.npcs =
-            currentTableCampaign.npcs
-                .filter(
-                    npc =>
-                        npc.position !== position &&
-                        npc.id !== entity.id
-                );
-
-        currentTableCampaign.npcs.push({
-
-            ...entity,
-
-            position
-
-        });
-
-        if(existing){
-
-            currentTableCampaign.npcs[
-                currentTableCampaign.npcs.length - 1
-            ] = {
-
-                ...existing,
-
-                ...entity,
-
-                position
-
-            };
-
-        }
-
-    }
-
     saveTableCampaign();
-
     closeCurrentPositionModal();
-
     renderCombatPositions();
-
-    addSystemChatMessage(
-        `${entity.name || "Entidade"} foi colocado na posição ${position}.`
-    );
-
+    addSystemChatMessage(`${entity.name||"Entidade"} foi colocado na posição ${position}.`);
 }
-
 
 /*==========================================================
 =              SALVAR CAMPANHA
@@ -4730,14 +4682,12 @@ function renderEnemyPositions(){
         }
 
         const enemy =
-            Array.isArray(
-                currentTableCampaign.enemies
-            )
-                ? currentTableCampaign.enemies.find(
-                    item =>
-                        Number(item.position) ===
-                        position
-                )
+            Array.isArray(currentTableCampaign.enemies)
+                ? currentTableCampaign.enemies.find(item => {
+                    const anchor=Number(item.position);
+                    const size=Math.max(1,Number(item.size)||1);
+                    return position<=anchor && position>anchor-size;
+                })
                 : null;
 
         renderPositionSlot(
@@ -5384,7 +5334,7 @@ function openEnemiesForPosition(position){
         enemies =
             JSON.parse(
                 localStorage.getItem(
-                    "ordem_enemies"
+                    "ordem_threats"
                 )
             ) || [];
 
@@ -7353,7 +7303,7 @@ function rollEnemyInitiatives(){
         enemyLibrary =
             JSON.parse(
                 localStorage.getItem(
-                    "ordem_enemies"
+                    "ordem_threats"
                 ) || "[]"
             );
 
@@ -7381,19 +7331,8 @@ function rollEnemyInitiatives(){
                 ) || {};
 
 
-            const attributes =
-                enemy.attributes || {};
-
-
-            const agility =
-                Math.max(
-                    1,
-                    Number(
-                        attributes.agi ??
-                        enemy.agi ??
-                        enemy.agility
-                    ) || 1
-                );
+            const attributes=enemy.attributes||{};
+            const agility=Math.max(0,Number(enemy.foco ?? attributes.foco ?? attributes.agi ?? enemy.agi ?? enemy.agility)||0);
 
 
             const d20Rolls = [];
@@ -7420,42 +7359,13 @@ function rollEnemyInitiatives(){
                 );
 
 
-            const skills =
-                Array.isArray(
-                    enemy.skills
-                )
-                    ? enemy.skills
-                    : [];
-
-
-            const readiness =
-                skills.find(skill => {
-
-                    const id =
-                        String(
-                            skill.id || ""
-                        ).toLowerCase();
-
-
-                    const name =
-                        String(
-                            skill.name || ""
-                        ).toLowerCase();
-
-
-                    return (
-                        id === "presteza" ||
-                        name === "presteza"
-                    );
-
-                });
-
-
-            const trainingFormula =
-                readiness?.training &&
-                readiness.training !== "0"
-                    ? readiness.training
-                    : "0";
+            const rawSkills=enemy.skills||{};
+            const skills=Array.isArray(rawSkills)?rawSkills:[];
+            const readiness=skills.find(skill=>String(skill.id||skill.name||"").toLowerCase()==="presteza");
+            const rank=Array.isArray(rawSkills)?null:Number(rawSkills.Presteza??rawSkills.presteza??0);
+            const trainingFormula=readiness?.training&&readiness.training!=="0"
+                ? readiness.training
+                : ({1:"1d4",2:"1d8",3:"1d12"}[rank]||"0");
 
 
             const trainingResult =
