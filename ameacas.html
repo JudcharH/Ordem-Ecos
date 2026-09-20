@@ -14,7 +14,7 @@
 <div class="background"><div class="background-overlay"></div><div class="particles"></div></div>
 <main class="enemy-page">
 <header class="page-header"><a href="index.html" class="back-button">← Voltar</a><h1>AMEAÇAS</h1><p>Crie criaturas, humanos e chefes para suas campanhas.</p></header>
-<section class="enemy-actions"><button id="newEnemy" class="primary-button">＋ Nova Ameaça</button><input type="text" id="searchEnemy" placeholder="Pesquisar ameaça..."></section>
+<section class="enemy-actions"><button id="newEnemy" class="primary-button">＋ Nova Ameaça</button><button id="newNpc" class="secondary-button">＋ Novo NPC</button><input type="text" id="searchEnemy" placeholder="Pesquisar ameaça ou NPC..."></section>
 <section id="enemyList" class="enemy-list"></section>
 </main>
 <div id="enemyModal" class="enemy-modal hidden">
@@ -58,9 +58,18 @@
    <div class="enemy-photo-preview" id="humanWoundedPhotoPreview"><span>👤</span><small>Foto machucada</small></div>
    <label class="secondary-button">Foto machucada<input id="humanWoundedPhoto" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
   </div>
-  <div class="enemy-fields"><label>Nome<input id="humanName" placeholder="Nome da ameaça humana"></label><div class="enemy-note">Esta é uma ameaça Humano, separada das fichas dos jogadores. Os detalhes de combate próprios dos humanos serão expandidos aqui sem criar personagem na lista de players.</div></div>
+  <div class="enemy-fields"><label>Nome<input id="humanName" placeholder="Nome do NPC"></label><div class="field-row"><label>Tamanho<input id="humanSize" type="number" min="1" value="1"></label><label>Movimento<input id="humanMovement" type="number" min="0" value="2"></label><label>PA<input id="humanPA" type="number" min="0" value="3"></label></div><div class="field-row"><label>PV<input id="humanPV" type="number" min="0" value="20"></label><label>Defesa<input id="humanDefense" type="number" min="0" value="10"></label><label>RD<input id="humanRD" type="number" min="0" value="0"></label></div></div>
  </div>
- <div class="enemy-save-row"><button id="saveHuman" class="primary-button">Salvar humano</button></div>
+ <h3>Atributos</h3>
+ <div class="three-grid"><label>Corpo<input id="humanCorpo" type="number" min="0" value="1"></label><label>Foco<input id="humanFoco" type="number" min="0" value="1"></label><label>Nexo<input id="humanNexo" type="number" min="0" value="1"></label></div>
+ <h3>PV por membro <small>usado ao trocar para sistema de membros na mesa</small></h3>
+ <div class="three-grid"><label>Cabeça<input id="humanHead" type="number" min="0" value="10"></label><label>Torso<input id="humanTorso" type="number" min="0" value="10"></label><label>Braços e pernas<input id="humanLimb" type="number" min="0" value="10"></label></div>
+ <h3>Perícias</h3>
+ <div id="humanSkills" class="skill-grid"></div>
+ <h3>Ataques rápidos</h3>
+ <div class="attack-grid"><label class="attack-card"><strong>Ataque básico</strong><input id="humanBasicAttack" value="1d6 + Corpo" placeholder="Ex.: 1d6 + Corpo"></label><label class="attack-card"><strong>Ataque forte</strong><input id="humanStrongAttack" value="2d6 + Corpo" placeholder="Ex.: 2d6 + Corpo"></label></div>
+ <div class="enemy-note">O NPC funciona como uma ameaça humana na mesa: possui iniciativa, perícias, ataques, reações, condições e pode alternar entre PV clássico e membros.</div>
+ <div class="enemy-save-row"><button id="deleteHuman" class="danger-button hidden">Excluir</button><button id="saveHuman" class="primary-button">Salvar NPC</button></div>
 </div>
  </div>
 </div>
