@@ -374,6 +374,27 @@ if (passiveThreat.pv !== 40 || passiveThreat.head !== 8 || passiveThreat.torso !
 for (const marker of ["startEnemyAbilityTargetSelection", "resolveEnemyAbilityTarget", "openEnemySummonSelector", "openEnemyGrimoire", 'rollKind:"ritual-damage"', 'enemyHasAbility(enemy,"apice-do-poder")', "envelheceu 3 anos"]) {
     if (!mesaSource.includes(marker)) throw new Error(`Fluxo de habilidade ausente: ${marker}`);
 }
+const playerCritical = vm.runInContext(`(() => {
+    const original = rollDiceExpression;
+    let rolls = [12, 4, 7];
+    rollDiceExpression = formula => {
+        const amount = Number(String(formula).match(/^(\\d+)d/)?.[1]) || 1;
+        const values = rolls.splice(0, amount);
+        return { total: values.reduce((sum, value) => sum + value, 0), details: [{ type: "dice", formula, rolls: values }] };
+    };
+    const result = rollCharacterTrainedTest("1d8", 2);
+    rollDiceExpression = original;
+    return result;
+})()`, context);
+if (!playerCritical.critical || playerCritical.formula !== "1d12+2d8+2" || playerCritical.total !== 25) {
+    throw new Error(`Crítico do jogador incorreto: ${JSON.stringify(playerCritical)}`);
+}
+if (!mesaSource.includes("O mestre pode adicionar a criatura manualmente") || !mesaSource.includes("O mestre pode adicionar o Morto-vivo manualmente")) {
+    throw new Error("Invocador ou Possessão ainda tenta adicionar a ameaça automaticamente.");
+}
+if (!mesaSource.includes('const enemyClassicHTML=enemyLifeMode==="classic"')) {
+    throw new Error("O sistema de vida clássico não está sendo ocultado no modo por membros.");
+}
 
 console.log(JSON.stringify({
     ok: true,
@@ -400,4 +421,7 @@ console.log(JSON.stringify({
     enemyGrimoire: true,
     deathTouch: true,
     apexImmunity: true
+    ,playerCriticalTraining: true
+    ,manualSummons: true
+    ,exclusiveLifeSystem: true
 }, null, 2));
