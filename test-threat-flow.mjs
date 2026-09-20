@@ -159,10 +159,10 @@ const initiative = vm.runInContext(`({
     participant: currentTableCampaign.combat.initiativeRequest.participants[0]
 })`, context);
 
-if (initiative.formula !== "1d12+1d8+5") {
+if (initiative.formula !== "1d12+1d8+1") {
     throw new Error(`Fórmula de iniciativa incorreta: ${initiative.formula}`);
 }
-if (!initiative.participant.rolled || initiative.participant.attribute !== "foco" || initiative.participant.attributeValue !== 5) {
+if (!initiative.participant.rolled || initiative.participant.attribute !== "corpo" || initiative.participant.attributeValue !== 1) {
     throw new Error(`Registro de iniciativa incorreto: ${JSON.stringify(initiative.participant)}`);
 }
 
@@ -181,11 +181,11 @@ const playerInitiative = vm.runInContext(`(() => {
     saveTableCampaign = () => {};
     closeCurrentPanel = () => {};
     finalizeInitiativeIfReady = () => {};
-    rollPlayerInitiative("foco");
+    rollPlayerInitiative("corpo");
     currentTableRole = "master";
     return { published, participant: currentTableCampaign.combat.initiativeRequest.participants[0] };
 })()`, context);
-if (playerInitiative.published.total !== 17 || playerInitiative.participant.attribute !== "foco" || playerInitiative.participant.attributeValue !== 4 || !playerInitiative.published.formula.includes("1d12") || !playerInitiative.published.formula.includes("1d8")) {
+if (playerInitiative.published.total !== 15 || playerInitiative.participant.attribute !== "corpo" || playerInitiative.participant.attributeValue !== 2 || !playerInitiative.published.formula.includes("1d12") || !playerInitiative.published.formula.includes("1d8")) {
     throw new Error(`Iniciativa atual do jogador incorreta: ${JSON.stringify(playerInitiative)}`);
 }
 
@@ -363,7 +363,7 @@ console.log(JSON.stringify({
     moveAndRemove: true,
     initiativeFormula: initiative.formula,
     initiativeSavedBeforeChat: true,
-    playerInitiativeUsesFocusAndReadiness: true,
+    playerInitiativeUsesBodyAndReadiness: true,
     bodyDamageDistribution: true,
     skillFormula: skillRolls[0],
     conditionCatalog: true,
