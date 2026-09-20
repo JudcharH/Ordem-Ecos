@@ -7066,7 +7066,7 @@ function openPlayerInitiativePanel(){
 
 
     const attributes=currentTableCharacter.attributes||{};
-    const foco=Number(attributes.foco??currentTableCharacter.foco)||0;
+    const corpo=Number(attributes.corpo??currentTableCharacter.corpo)||0;
     const readiness=getCharacterReadinessSkill(currentTableCharacter);
     const trainingFormula=readiness?.training&&readiness.training!=="0"?readiness.training:"0";
 
@@ -7085,17 +7085,17 @@ function openPlayerInitiativePanel(){
                 </h3>
 
                 <p>
-                    A iniciativa utiliza Foco e a perícia Presteza.
+                    A iniciativa utiliza Corpo e a perícia Presteza.
                 </p>
 
                 <p>
-                    Fórmula: 1d12 + ${escapeTableHTML(trainingFormula)} + ${foco} de Foco.
+                    Fórmula: 1d12 + ${escapeTableHTML(trainingFormula)} + ${corpo} de Corpo.
                 </p>
 
             </div>
 
 
-            <button type="button" class="initiative-attribute-button" data-attribute="foco"><strong>Rolar Presteza</strong><span>Foco ${foco}</span></button>
+            <button type="button" class="initiative-attribute-button" data-attribute="corpo"><strong>Rolar Presteza</strong><span>Corpo ${corpo}</span></button>
 
         </div>
 
@@ -7113,7 +7113,7 @@ function openPlayerInitiativePanel(){
                 "click",
                 () => {
 
-                    rollPlayerInitiative("foco");
+                    rollPlayerInitiative("corpo");
 
                 }
             );
@@ -7238,7 +7238,7 @@ function rollPlayerInitiative(
     }
 
 
-    const attributeValue=Math.max(0,Number(currentTableCharacter.attributes?.foco??currentTableCharacter.foco)||0);
+    const attributeValue=Math.max(0,Number(currentTableCharacter.attributes?.corpo??currentTableCharacter.corpo)||0);
     const principalResult=rollDiceExpression("1d12");
     if(!principalResult)return;
     const principalRoll=Number(principalResult.details?.find(part=>part.type==="dice")?.rolls?.[0])||Number(principalResult.total)||0;
@@ -7328,7 +7328,7 @@ function rollPlayerInitiative(
 
         `1d12 [${principalRoll}]`,
 
-        `Foco ${attributeValue >= 0 ? "+" : ""}${attributeValue}`,
+        `Corpo ${attributeValue >= 0 ? "+" : ""}${attributeValue}`,
 
         trainingFormula !== "0"
             ? `Presteza ${trainingFormula} = ${trainingValue}`
@@ -7379,12 +7379,12 @@ function rollEnemyInitiatives(){
             const enemy=placed.find(item=>String(item.enemyId||item.id)===String(participant.enemyId));
             if(!enemy)return;
 
-            const result=rollEnemyTrainedTest(enemy,"Presteza","foco");
+            const result=rollEnemyTrainedTest(enemy,"Presteza","corpo");
             if(!result)return;
 
             participant.rolled=true;
             participant.result=result.total;
-            participant.attribute="foco";
+            participant.attribute="corpo";
             participant.attributeValue=result.attributeValue;
             participant.readinessTraining=result.trainingFormula;
             participant.modifier=result.modifier;
