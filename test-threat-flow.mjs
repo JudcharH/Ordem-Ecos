@@ -355,6 +355,21 @@ const abilityCatalog = vm.runInContext("window.OrdemThreatRules.abilityCatalog.m
 if (!["investida", "mordida-feroz", "esquiva-maior"].every(id => abilityCatalog.includes(id))) {
     throw new Error(`Biblioteca de habilidades incompleta: ${JSON.stringify(abilityCatalog)}`);
 }
+const deathGodPreset = vm.runInContext(`(() => {
+    const god = window.OrdemThreatRules.deathGodPreset();
+    return { corpo: god.corpo, foco: god.foco, nexo: god.nexo, skills: god.skills, pv: god.pv, rd: god.rd, abilities: god.abilities.map(a => a.id) };
+})()`, context);
+if (deathGodPreset.corpo !== 8 || deathGodPreset.foco !== 8 || deathGodPreset.nexo !== 6 || Object.values(deathGodPreset.skills).reduce((a, b) => a + b, 0) !== 24 || deathGodPreset.pv !== 440 || deathGodPreset.rd !== 25 || !["reliquia", "cronos", "segunda-fase", "conjurador"].every(id => deathGodPreset.abilities.includes(id))) {
+    throw new Error(`Deus da Morte incorreto: ${JSON.stringify(deathGodPreset)}`);
+}
+const passiveThreat = vm.runInContext(`(() => {
+    const enemy = { pv: 20, head: 4, torso: 4, limb: 3, rd: 2, abilities: [{ id: "reliquia" }, { id: "camada-extra" }] };
+    applyEnemyPassiveStats(enemy);
+    return enemy;
+})()`, context);
+if (passiveThreat.pv !== 40 || passiveThreat.head !== 8 || passiveThreat.torso !== 8 || passiveThreat.limb !== 6 || passiveThreat.rd !== 5) {
+    throw new Error(`Passivas de ameaça incorretas: ${JSON.stringify(passiveThreat)}`);
+}
 
 console.log(JSON.stringify({
     ok: true,
@@ -373,5 +388,7 @@ console.log(JSON.stringify({
     enemyConditions: true,
     fierceBiteTarget: true,
     reusableAbilityCatalog: true,
+    deathGodPreset: true,
+    passiveThreatAbilities: true,
     greaterDodge: true
 }, null, 2));
