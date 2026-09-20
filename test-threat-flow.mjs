@@ -54,7 +54,8 @@ const context = vm.createContext({
     clearTimeout() {}
 });
 
-vm.runInContext(fs.readFileSync("mesa.js", "utf8"), context, { filename: "mesa.js" });
+const mesaSource = fs.readFileSync("mesa.js", "utf8");
+vm.runInContext(mesaSource, context, { filename: "mesa.js" });
 
 vm.runInContext(`
     let openedEnemy = null;
@@ -370,6 +371,9 @@ const passiveThreat = vm.runInContext(`(() => {
 if (passiveThreat.pv !== 40 || passiveThreat.head !== 8 || passiveThreat.torso !== 8 || passiveThreat.limb !== 6 || passiveThreat.rd !== 5) {
     throw new Error(`Passivas de ameaça incorretas: ${JSON.stringify(passiveThreat)}`);
 }
+for (const marker of ["startEnemyAbilityTargetSelection", "resolveEnemyAbilityTarget", "openEnemySummonSelector", "openEnemyGrimoire", 'rollKind:"ritual-damage"', 'enemyHasAbility(enemy,"apice-do-poder")', "envelheceu 3 anos"]) {
+    if (!mesaSource.includes(marker)) throw new Error(`Fluxo de habilidade ausente: ${marker}`);
+}
 
 console.log(JSON.stringify({
     ok: true,
@@ -390,5 +394,10 @@ console.log(JSON.stringify({
     reusableAbilityCatalog: true,
     deathGodPreset: true,
     passiveThreatAbilities: true,
-    greaterDodge: true
+    greaterDodge: true,
+    targetedThreatAbilities: true,
+    summonChoice: true,
+    enemyGrimoire: true,
+    deathTouch: true,
+    apexImmunity: true
 }, null, 2));
