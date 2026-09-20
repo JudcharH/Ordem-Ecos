@@ -166,6 +166,45 @@ if (!initiative.participant.rolled || initiative.participant.attribute !== "foco
     throw new Error(`Registro de iniciativa incorreto: ${JSON.stringify(initiative.participant)}`);
 }
 
+const playerInitiative = vm.runInContext(`(() => {
+    currentTableRole = "player";
+    currentTableCharacter = { id: "player-initiative", name: "Agente", attributes: { corpo: 2, foco: 4, nexo: 3 }, skills: [{ id: "presteza", name: "Presteza", training: "1d8", bonus: 2, penalty: 1 }] };
+    currentTableCampaign.combat = { initiativeRequest: { active: true, participants: [{ type: "player", characterId: "player-initiative", rolled: false }] } };
+    refreshCurrentTableCampaign = () => true;
+    refreshCurrentTableCharacter = () => true;
+    rollDiceExpression = formula => formula === "1d12"
+        ? { total: 7, details: [{ type: "dice", formula, rolls: [7] }] }
+        : { total: 5, details: [{ type: "dice", formula, rolls: [5] }] };
+    let published = null;
+    addRollChatMessage = (label, formula, total) => { published = { label, formula, total }; };
+    addSystemChatMessage = () => {};
+    saveTableCampaign = () => {};
+    closeCurrentPanel = () => {};
+    finalizeInitiativeIfReady = () => {};
+    rollPlayerInitiative("foco");
+    currentTableRole = "master";
+    return { published, participant: currentTableCampaign.combat.initiativeRequest.participants[0] };
+})()`, context);
+if (playerInitiative.published.total !== 17 || playerInitiative.participant.attribute !== "foco" || playerInitiative.participant.attributeValue !== 4 || !playerInitiative.published.formula.includes("1d12") || !playerInitiative.published.formula.includes("1d8")) {
+    throw new Error(`Iniciativa atual do jogador incorreta: ${JSON.stringify(playerInitiative)}`);
+}
+
+const bodyDistribution = vm.runInContext(`(() => {
+    let remaining = 24;
+    const allocations = [];
+    for (const current of [10, 10, 10]) {
+        const applied = applyDamageAmountToBodyPart(current, remaining);
+        allocations.push(applied);
+        remaining -= applied;
+    }
+    const enemy = { head: 10, torso: 10, limb: 10 };
+    initializeEnemyBody(enemy);
+    return { allocations, remaining, mode: enemy.lifeMode, head: enemy.body.head, rightLeg: enemy.body.rightLeg };
+})()`, context);
+if (JSON.stringify(bodyDistribution.allocations) !== JSON.stringify([10, 10, 4]) || bodyDistribution.remaining !== 0 || bodyDistribution.mode !== "body" || bodyDistribution.head !== 10 || bodyDistribution.rightLeg !== 10) {
+    throw new Error(`Distribuição de dano por membros incorreta: ${JSON.stringify(bodyDistribution)}`);
+}
+
 const skillRolls = vm.runInContext(`(() => {
     const formulas = [];
     rollDiceExpression = formula => ({
@@ -324,6 +363,8 @@ console.log(JSON.stringify({
     moveAndRemove: true,
     initiativeFormula: initiative.formula,
     initiativeSavedBeforeChat: true,
+    playerInitiativeUsesFocusAndReadiness: true,
+    bodyDamageDistribution: true,
     skillFormula: skillRolls[0],
     conditionCatalog: true,
     chargeDamageDie: true,
