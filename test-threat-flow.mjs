@@ -395,6 +395,13 @@ if (!mesaSource.includes("O mestre pode adicionar a criatura manualmente") || !m
 if (!mesaSource.includes('const enemyClassicHTML=enemyLifeMode==="classic"')) {
     throw new Error("O sistema de vida clássico não está sendo ocultado no modo por membros.");
 }
+for (const marker of ["openNpcControlSheet", "Ataque em conjunto", "Curar 2d8 + 4", "+3 no próximo teste", "npcInstanceId", 'type==="npc"']) {
+    if (!mesaSource.includes(marker)) throw new Error(`Sistema de NPC aliado ausente: ${marker}`);
+}
+const threatEditorSource = fs.readFileSync("ameacas.js", "utf8");
+for (const marker of ["persistNpc", "npcRole", "npcLevel", "NPC Aliado"]) {
+    if (!threatEditorSource.includes(marker)) throw new Error(`Editor de NPC aliado ausente: ${marker}`);
+}
 
 console.log(JSON.stringify({
     ok: true,
@@ -424,4 +431,5 @@ console.log(JSON.stringify({
     ,playerCriticalTraining: true
     ,manualSummons: true
     ,exclusiveLifeSystem: true
+    ,alliedNpcSystem: true
 }, null, 2));
