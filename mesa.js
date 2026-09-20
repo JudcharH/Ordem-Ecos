@@ -45,6 +45,8 @@ let lastInitiativeRequestShown = null;
 
 let pendingDamageApplication = null;
 
+let pendingBodyDamageApplication = null;
+
 let pendingAttackApplication = null;
 
 let lastAttackReactionShown = null;
@@ -1783,10 +1785,10 @@ function openCharacterPanel(){
 
                         <div class="table-panel-item">
 
-                            <strong>FOR</strong>
+                            <strong>Corpo</strong>
 
                             <span>
-                                ${attrs.for ?? 1}
+                                ${attrs.corpo ?? character.corpo ?? 0}
                             </span>
 
                         </div>
@@ -1794,10 +1796,10 @@ function openCharacterPanel(){
 
                         <div class="table-panel-item">
 
-                            <strong>AGI</strong>
+                            <strong>Foco</strong>
 
                             <span>
-                                ${attrs.agi ?? 1}
+                                ${attrs.foco ?? character.foco ?? 0}
                             </span>
 
                         </div>
@@ -1805,35 +1807,14 @@ function openCharacterPanel(){
 
                         <div class="table-panel-item">
 
-                            <strong>INT</strong>
+                            <strong>Nexo</strong>
 
                             <span>
-                                ${attrs.int ?? 1}
+                                ${attrs.nexo ?? character.nexo ?? 0}
                             </span>
 
                         </div>
 
-
-                        <div class="table-panel-item">
-
-                            <strong>VIG</strong>
-
-                            <span>
-                                ${attrs.vig ?? 1}
-                            </span>
-
-                        </div>
-
-
-                        <div class="table-panel-item">
-
-                            <strong>PRE</strong>
-
-                            <span>
-                                ${attrs.pre ?? 1}
-                            </span>
-
-                        </div>
 
                     </div>
 
@@ -5850,6 +5831,8 @@ function openEnemyControlSheet(enemy,position){
     enemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(requestedEnemyId))||enemy;
     const skills=enemy.skills&&typeof enemy.skills==="object"?enemy.skills:{};
     const hp=Number(enemy.status?.pvAtual ?? enemy.pv ?? 0),max=Number(enemy.status?.pvMax ?? enemy.pv ?? 0),conditions=Array.isArray(enemy.conditions)?enemy.conditions:[];
+    const enemyLifeMode=enemy.lifeMode==="body"?"body":"classic";
+    const enemyBodyHTML=enemyLifeMode==="body"?`<div class="table-panel-card"><h3>Partes do Corpo</h3><div class="table-panel-list">${bodyDamageParts(enemy,"enemy").map(part=>`<div class="table-panel-item"><strong>${escapeTableHTML(part.label)}</strong><span>${part.current}/${Number(enemy.bodyMaximums?.[part.id])||part.current}</span></div>`).join("")}</div></div>`:"";
     const skillEntries=Array.isArray(skills)?skills.map(item=>[item.name||item.id,enemySkillData(enemy,item.name||item.id).rank]):Object.entries(skills).map(([name])=>[name,enemySkillData(enemy,name).rank]);
     const skillButtons=skillEntries.filter(([,rank])=>rank>0).map(([name,rank])=>`<button type="button" class="secondary-button enemy-skill-roll" data-skill="${escapeTableHTML(name)}">${escapeTableHTML(name)} • ${enemyTrainingDie(rank)}</button>`).join("");
     const conditionList=conditions.length?conditions.map((condition,index)=>{const value=typeof condition==="string"?{name:condition}:condition;return`<div class="table-panel-card" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center"><span>${escapeTableHTML(value.icon||"○")} ${escapeTableHTML(value.name||"Condição")}${Number(value.stacks)>1?` ×${Number(value.stacks)}`:""}</span><button type="button" class="secondary-button enemy-condition-remove" data-index="${index}">Remover</button></div>`}).join(""):"<p>Nenhuma condição ativa.</p>";
@@ -5860,12 +5843,15 @@ function openEnemyControlSheet(enemy,position){
       <div class="table-panel-card enemy-control-sheet"><div style="display:flex;gap:14px;align-items:center">${currentPhoto?`<img src="${currentPhoto}" alt="" style="width:82px;height:82px;object-fit:cover;border-radius:18px">`:"<div style='font-size:42px'>👹</div>"}<div><h3>${escapeTableHTML(enemy.name||"Criatura")}</h3><p>${escapeTableHTML(enemy.element||"")} • NA ${Number(enemy.na)||0} • Tamanho ${Math.max(1,Number(enemy.size)||1)}</p></div></div></div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div class="table-panel-card"><span>DEFESA</span><h3>${Number(enemy.defense)||0}</h3></div><div class="table-panel-card"><span>RD</span><h3>${Number(enemy.rd)||0}</h3></div><div class="table-panel-card"><span>PA</span><h3>${enemy.status?.paAtual ?? enemy.paAtual ?? enemy.pa ?? 0}/${enemy.status?.paMax ?? enemy.paMax ?? enemy.pa ?? 0}</h3></div></div>
       <div class="table-panel-card"><h3>PV</h3><div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end"><label>Atual<input id="enemyHpCurrent" type="number" value="${hp}"></label><label>Máximo<input id="enemyHpMax" type="number" value="${max}"></label><button id="enemySaveHp" class="primary-button">Aplicar</button></div></div>
+      <div class="table-panel-card"><h3>Sistema de vida</h3><p>${enemyLifeMode==="body"?"Partes do Corpo":"PV Clássico"}</p><button id="enemyToggleLifeMode" type="button" class="secondary-button">Usar ${enemyLifeMode==="body"?"PV clássico":"sistema de membros"}</button></div>
+      ${enemyBodyHTML}
       <div><h3 style="margin-bottom:8px">Ataques rápidos</h3>${attackCard("basic","Ataque básico",enemy.basicAttack)}${attackCard("strong","Ataque forte",enemy.strongAttack)}</div>
       <div class="table-panel-card"><h3>Perícias</h3><div style="display:grid;gap:8px">${skillButtons||"<p>Nenhuma perícia treinada.</p>"}</div></div>
       <div><h3 style="margin-bottom:8px">Habilidades</h3>${renderEnemyAbilityCards(enemy)}</div>
       <div class="table-panel-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>Condições</h3><button id="enemyAddCondition" type="button" class="primary-button" aria-label="Adicionar condição" style="width:42px;padding:0">＋</button></div><div style="display:grid;gap:8px;margin-top:10px">${conditionList}</div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button id="enemyMoveFromSheet" class="secondary-button">Mover</button><button id="enemyRemoveFromSheet" class="secondary-button">Remover da mesa</button></div>`);
     document.getElementById("enemySaveHp")?.addEventListener("click",()=>{enemy.status=enemy.status||{};enemy.status.pvAtual=Math.max(0,Number(document.getElementById("enemyHpCurrent").value)||0);enemy.status.pvMax=Math.max(0,Number(document.getElementById("enemyHpMax").value)||0);saveTableCampaign();openEnemyControlSheet(enemy,position)});
+    document.getElementById("enemyToggleLifeMode")?.addEventListener("click",()=>{if(enemy.lifeMode==="body")enemy.lifeMode="classic";else initializeEnemyBody(enemy);saveTableCampaign();openEnemyControlSheet(enemy,position)});
     document.querySelectorAll(".enemy-quick-attack").forEach(button=>button.addEventListener("click",()=>{refreshCurrentTableCampaign();const liveEnemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemy.enemyId||enemy.id))||enemy,attackName=button.dataset.attack==="strong"?"Ataque forte":"Ataque básico",enemyInstanceId=liveEnemy.enemyId||liveEnemy.id,attackVariant=button.dataset.attack;if(button.dataset.roll==="attack"){if(!spendEnemyActionPoints(liveEnemy,1)){addSystemChatMessage(`${liveEnemy.name||"A criatura"} não possui PA suficiente para atacar.`);openEnemyControlSheet(liveEnemy,position);return;}rollEnemySkill(liveEnemy,"Luta",{label:`Ataque • ${attackName} • ${liveEnemy.name||"Criatura"}`,rollKind:"attack",attackName,enemyInstanceId,attackVariant,applied:false});openEnemyControlSheet(liveEnemy,position);return}const state=enemyAbilityState(liveEnemy),raw=button.dataset.attack==="strong"?liveEnemy.strongAttack:liveEnemy.basicAttack,investidaDice=state.investidaArmed?1:0,criticalDice=state.criticalDamageDice&&(!state.criticalAttackVariant||state.criticalAttackVariant===attackVariant)?Number(state.criticalDamageDice)||0:0,extraDice=investidaDice+criticalDice,boosted=extraDice?addEnemyDamageDice(raw,extraDice):raw,resolved=String(boosted||"").replace(/Corpo/gi,Number(liveEnemy.corpo)||0),result=rollDiceExpression(resolved);if(!result)return;if(state.investidaArmed)state.investidaArmed=false;if(criticalDice){state.criticalDamageDice=0;state.criticalAttackVariant=null;}if(extraDice)saveTableCampaign();const bonuses=[investidaDice?"Investida +1 dado":"",criticalDice?"Crítico +2 dados":""].filter(Boolean).join(" • ");addRollChatMessage(`Dano • ${attackName} • ${liveEnemy.name||"Criatura"}${bonuses?` • ${bonuses}`:""}`,resolved,result.total,enemyRollDetail(result),{rollKind:"damage",attackName,enemyInstanceId,attackVariant,applied:false})}));
     document.querySelectorAll(".enemy-skill-roll").forEach(button=>button.addEventListener("click",()=>rollEnemySkill(enemy,button.dataset.skill)));
     document.querySelectorAll(".enemy-use-ability").forEach(button=>button.addEventListener("click",()=>useEnemyAbility(enemy,button.dataset.ability,position)));
@@ -7079,58 +7065,10 @@ function openPlayerInitiativePanel(){
     }
 
 
-    const attributes =
-        currentTableCharacter.attributes || {};
-
-
-    const attributeButtons = [
-
-        {
-            id:"for",
-            name:"FOR",
-            value:
-                Number(
-                    attributes.for
-                ) || 1
-        },
-
-        {
-            id:"agi",
-            name:"AGI",
-            value:
-                Number(
-                    attributes.agi
-                ) || 1
-        },
-
-        {
-            id:"int",
-            name:"INT",
-            value:
-                Number(
-                    attributes.int
-                ) || 1
-        },
-
-        {
-            id:"vig",
-            name:"VIG",
-            value:
-                Number(
-                    attributes.vig
-                ) || 1
-        },
-
-        {
-            id:"pre",
-            name:"PRE",
-            value:
-                Number(
-                    attributes.pre
-                ) || 1
-        }
-
-    ];
+    const attributes=currentTableCharacter.attributes||{};
+    const foco=Number(attributes.foco??currentTableCharacter.foco)||0;
+    const readiness=getCharacterReadinessSkill(currentTableCharacter);
+    const trainingFormula=readiness?.training&&readiness.training!=="0"?readiness.training:"0";
 
 
     openTablePanel(
@@ -7147,44 +7085,17 @@ function openPlayerInitiativePanel(){
                 </h3>
 
                 <p>
-                    Escolha qual atributo será utilizado.
+                    A iniciativa utiliza Foco e a perícia Presteza.
                 </p>
 
                 <p>
-                    Serão rolados vários d20 conforme o atributo, usando o maior resultado, mais o dado de treino de Presteza.
+                    Fórmula: 1d12 + ${escapeTableHTML(trainingFormula)} + ${foco} de Foco.
                 </p>
 
             </div>
 
 
-            <div class="initiative-attribute-grid">
-
-                ${
-                    attributeButtons
-                        .map(
-                            attribute => `
-
-                                <button
-                                    type="button"
-                                    class="initiative-attribute-button"
-                                    data-attribute="${attribute.id}">
-
-                                    <strong>
-                                        ${attribute.name}
-                                    </strong>
-
-                                    <span>
-                                        ${attribute.value}d20
-                                    </span>
-
-                                </button>
-
-                            `
-                        )
-                        .join("")
-                }
-
-            </div>
+            <button type="button" class="initiative-attribute-button" data-attribute="foco"><strong>Rolar Presteza</strong><span>Foco ${foco}</span></button>
 
         </div>
 
@@ -7202,9 +7113,7 @@ function openPlayerInitiativePanel(){
                 "click",
                 () => {
 
-                    rollPlayerInitiative(
-                        button.dataset.attribute
-                    );
+                    rollPlayerInitiative("foco");
 
                 }
             );
@@ -7329,39 +7238,10 @@ function rollPlayerInitiative(
     }
 
 
-    const attributeValue =
-        Math.max(
-            1,
-            Number(
-                currentTableCharacter
-                    .attributes
-                    ?.[attributeName]
-            ) || 1
-        );
-
-
-    const d20Rolls = [];
-
-
-    for(
-        let index = 0;
-        index < attributeValue;
-        index++
-    ){
-
-        d20Rolls.push(
-            Math.floor(
-                Math.random() * 20
-            ) + 1
-        );
-
-    }
-
-
-    const bestD20 =
-        Math.max(
-            ...d20Rolls
-        );
+    const attributeValue=Math.max(0,Number(currentTableCharacter.attributes?.foco??currentTableCharacter.foco)||0);
+    const principalResult=rollDiceExpression("1d12");
+    if(!principalResult)return;
+    const principalRoll=Number(principalResult.details?.find(part=>part.type==="dice")?.rolls?.[0])||Number(principalResult.total)||0;
 
 
     const readiness =
@@ -7377,10 +7257,7 @@ function rollPlayerInitiative(
             : "0";
 
 
-    const trainingResult =
-        rollDiceExpression(
-            trainingFormula
-        );
+    const trainingResult=trainingFormula!=="0"?rollDiceExpression(trainingFormula):null;
 
 
     const trainingValue =
@@ -7393,17 +7270,13 @@ function rollPlayerInitiative(
                 readiness?.bonus
             ) || 0
         )
-        +
-        (
-            Number(
-                readiness?.penalty
-            ) || 0
-        );
+        - Math.abs(Number(readiness?.penalty??readiness?.penalidade)||0);
 
 
     const total =
-        bestD20 +
+        principalRoll +
         trainingValue +
+        attributeValue +
         skillModifier;
 
 
@@ -7423,12 +7296,7 @@ function rollPlayerInitiative(
         attributeValue;
 
 
-    participant.d20Rolls =
-        d20Rolls;
-
-
-    participant.bestD20 =
-        bestD20;
+    participant.principalRoll=principalRoll;
 
 
     participant.readinessTraining =
@@ -7458,9 +7326,9 @@ function rollPlayerInitiative(
 
     const detail = [
 
-        `${attributeValue}d20 [${d20Rolls.join(", ")}]`,
+        `1d12 [${principalRoll}]`,
 
-        `maior ${bestD20}`,
+        `Foco ${attributeValue >= 0 ? "+" : ""}${attributeValue}`,
 
         trainingFormula !== "0"
             ? `Presteza ${trainingFormula} = ${trainingValue}`
@@ -7477,7 +7345,7 @@ function rollPlayerInitiative(
 
     addRollChatMessage(
         `Iniciativa • ${currentTableCharacter.name}`,
-        `${attributeValue}d20 + ${trainingFormula}`,
+        `1d12${trainingFormula!=="0"?` + ${trainingFormula}`:""} + ${attributeValue}${skillModifier?` ${skillModifier>=0?"+":"-"} ${Math.abs(skillModifier)}`:""}`,
         total,
         detail
     );
@@ -9291,7 +9159,7 @@ ${
 
                 </span>
 
-                <span>PV: ${Number(message.damageApplication.pvBefore)||0} → ${Number(message.damageApplication.pvAfter)||0}</span>
+                ${message.damageApplication.bodyDamage?`<span>Membros: ${Object.entries(message.damageApplication.allocations||{}).filter(([,amount])=>Number(amount)>0).map(([id,amount])=>`${escapeTableHTML(BODY_PART_LABELS[id]||id)} −${Number(amount)}`).join(" • ")}</span>`:`<span>PV: ${Number(message.damageApplication.pvBefore)||0} → ${Number(message.damageApplication.pvAfter)||0}</span>`}
 
             </div>
 
@@ -11794,19 +11662,9 @@ function applyPendingDamageToTarget(
             : "classic";
 
 
-    /*
-        O sistema de membros será feito na próxima etapa.
-    */
-
     if(lifeMode === "body"){
-
-        cancelDamageTargetSelection();
-
-
-        addSystemChatMessage(
-            `${character.name || "O personagem"} utiliza Partes do Corpo. O dano precisa ser distribuído entre os membros.`
-        );
-
+        const originalDamage=Math.max(0,Number(pendingDamageApplication.damage)||0),normalRD=Math.max(0,Number(character.damageReduction?.total)||0),context=currentTableCampaign.combat?.damageContext,contextMatches=context?.active===true&&context.targetCharacterId===character.id,damageReduction=contextMatches?Math.max(0,Number(context.damageReduction)||0):normalRD;
+        startBodyDamageDistribution("player",character,originalDamage,damageReduction);
         return;
 
     }
@@ -11818,11 +11676,63 @@ function applyPendingDamageToTarget(
 
 }
 
+const BODY_PART_LABELS={head:"Cabeça",chest:"Torso",leftArm:"Braço esquerdo",rightArm:"Braço direito",leftLeg:"Perna esquerda",rightLeg:"Perna direita"};
+function initializeEnemyBody(enemy){
+    enemy.lifeMode="body";
+    enemy.body=enemy.body&&typeof enemy.body==="object"?enemy.body:{};
+    enemy.bodyMaximums=enemy.bodyMaximums&&typeof enemy.bodyMaximums==="object"?enemy.bodyMaximums:{};
+    const maximums={head:Number(enemy.head)||0,chest:Number(enemy.torso)||0,leftArm:Number(enemy.limb)||0,rightArm:Number(enemy.limb)||0,leftLeg:Number(enemy.limb)||0,rightLeg:Number(enemy.limb)||0};
+    Object.entries(maximums).forEach(([id,max])=>{enemy.bodyMaximums[id]=Math.max(0,Number(enemy.bodyMaximums[id]??max)||0);enemy.body[id]=Math.max(0,Number(enemy.body[id]??enemy.bodyMaximums[id])||0);});
+    return enemy;
+}
+function bodyDamageParts(target,type){
+    if(type==="enemy")initializeEnemyBody(target);
+    const body=target.body&&typeof target.body==="object"?target.body:{},states=target.bodyState&&typeof target.bodyState==="object"?target.bodyState:{};
+    return Object.keys(BODY_PART_LABELS).map(id=>{const state=states[id]||{};const missing=state.type==="missing";const current=missing?0:Math.max(0,Number(state.type==="prosthetic"?state.currentPV:body[id])||0);return{id,label:BODY_PART_LABELS[id],current,state};});
+}
+function applyDamageAmountToBodyPart(current,remaining){return Math.min(Math.max(0,Number(current)||0),Math.max(0,Number(remaining)||0));}
+function startBodyDamageDistribution(type,target,originalDamage,damageReduction){
+    const reducedDamage=Math.max(0,originalDamage-damageReduction),temporaryBefore=type==="player"?Math.max(0,Number(target.body?.temporaryPV)||0):0,temporaryAbsorbed=Math.min(temporaryBefore,reducedDamage);
+    pendingBodyDamageApplication={type,targetId:type==="player"?target.id:(target.enemyId||target.id),messageId:pendingDamageApplication.messageId,attackName:pendingDamageApplication.attackName,originalDamage,damageReduction,reducedDamage,temporaryBefore,temporaryAbsorbed,remaining:reducedDamage-temporaryAbsorbed,allocations:{}};
+    cancelDamageTargetSelection();
+    if(pendingBodyDamageApplication.remaining<=0){finishBodyDamageDistribution();return;}
+    renderBodyDamageDistribution();
+}
+function getPendingBodyDamageTarget(){const state=pendingBodyDamageApplication;if(!state)return null;return state.type==="player"?getLiveCharacter(state.targetId):(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(state.targetId));}
+function renderBodyDamageDistribution(){
+    const state=pendingBodyDamageApplication,target=getPendingBodyDamageTarget();if(!state||!target)return;
+    document.getElementById("bodyDamageSelector")?.remove();
+    const parts=bodyDamageParts(target,state.type),modal=document.createElement("div");modal.id="bodyDamageSelector";modal.className="table-modal";
+    modal.innerHTML=`<div class="table-modal-content"><div class="table-modal-header"><div><span class="table-panel-label">DANO POR MEMBROS</span><h2>${escapeTableHTML(target.name||"Alvo")}</h2></div></div><div class="table-panel-card"><h3>Dano restante: ${state.remaining}</h3><p>Escolha um membro. Ele receberá o máximo possível e o restante continuará para o próximo.</p></div><div class="table-panel-list">${parts.map(part=>{const allocated=Number(state.allocations[part.id])||0,current=Math.max(0,part.current-allocated);return`<button type="button" class="table-panel-card body-damage-part" data-part="${part.id}" ${current<=0?"disabled":""} style="width:100%;text-align:left"><h3>${escapeTableHTML(part.label)}</h3><p>PV disponível: ${current}</p></button>`}).join("")}</div></div>`;
+    document.body.appendChild(modal);
+    modal.querySelectorAll(".body-damage-part").forEach(button=>button.addEventListener("click",()=>allocatePendingBodyDamage(button.dataset.part)));
+}
+function allocatePendingBodyDamage(partId){
+    const state=pendingBodyDamageApplication,target=getPendingBodyDamageTarget();if(!state||!target)return;
+    const part=bodyDamageParts(target,state.type).find(item=>item.id===partId);if(!part)return;
+    const already=Number(state.allocations[partId])||0,applied=applyDamageAmountToBodyPart(part.current-already,state.remaining);if(applied<=0)return;
+    state.allocations[partId]=already+applied;state.remaining=Math.max(0,state.remaining-applied);
+    const available=bodyDamageParts(target,state.type).reduce((sum,item)=>sum+Math.max(0,item.current-(Number(state.allocations[item.id])||0)),0);
+    if(state.remaining<=0||available<=0)finishBodyDamageDistribution();else renderBodyDamageDistribution();
+}
+function finishBodyDamageDistribution(){
+    const state=pendingBodyDamageApplication,target=getPendingBodyDamageTarget();if(!state||!target)return;
+    bodyDamageParts(target,state.type).forEach(part=>{const amount=Number(state.allocations[part.id])||0;if(!amount)return;if(part.state.type==="prosthetic")part.state.currentPV=Math.max(0,part.current-amount);else target.body[part.id]=Math.max(0,part.current-amount);});
+    if(state.type==="player"){target.body.temporaryPV=Math.max(0,state.temporaryBefore-state.temporaryAbsorbed);saveDamagedCharacter(target);}else saveTableCampaign();
+    const context=currentTableCampaign.combat?.damageContext;if(context?.active===true){context.active=false;context.consumed=true;context.consumedAt=Date.now();}
+    const message=(currentTableCampaign.chatMessages||[]).find(item=>item.id===state.messageId),appliedDamage=state.reducedDamage-state.remaining;
+    if(message){message.applied=true;message.appliedAt=Date.now();message.appliedTarget={type:state.type,characterId:state.type==="player"?target.id:null,enemyId:state.type==="enemy"?(target.enemyId||target.id):null,name:target.name||"Alvo"};message.damageApplication={originalDamage:state.originalDamage,damageReduction:state.damageReduction,finalDamage:appliedDamage,bodyDamage:true,allocations:{...state.allocations},unallocatedDamage:state.remaining};}
+    saveTableCampaign();document.getElementById("bodyDamageSelector")?.remove();pendingBodyDamageApplication=null;renderCombatPositions();renderPublicChat();refreshOpenCharacterPanel();
+    const allocationText=Object.entries(state.allocations).filter(([,amount])=>amount>0).map(([id,amount])=>`${BODY_PART_LABELS[id]}: ${amount}`).join(" • ");
+    addSystemChatMessage(`${target.name||"O alvo"} recebeu ${appliedDamage} de dano nos membros${allocationText?` (${allocationText})`:""}.${state.remaining>0?` Restaram ${state.remaining} de dano sem membro disponível.`:""}`);
+}
+
 function applyDamageToEnemy(enemy){
     if(!enemy||!pendingDamageApplication)return;
     const enemyId=enemy.enemyId||enemy.id;
     enemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemyId))||enemy;
     const originalDamage=Math.max(0,Number(pendingDamageApplication.damage)||0),context=currentTableCampaign.combat?.damageContext,contextMatches=context?.active===true&&String(context.targetEnemyId)===String(enemy.enemyId||enemy.id),damageReduction=contextMatches?Math.max(0,Number(context.damageReduction)||0):Math.max(0,Number(enemy.rd)||0),finalDamage=Math.max(0,originalDamage-damageReduction);
+    if(enemy.lifeMode==="body"){startBodyDamageDistribution("enemy",enemy,originalDamage,damageReduction);return;}
     enemy.status=enemy.status&&typeof enemy.status==="object"?enemy.status:{};
     const before=Math.max(0,Number(enemy.status.pvAtual??enemy.pv)||0);
     enemy.status.pvAtual=Math.max(0,before-finalDamage);
