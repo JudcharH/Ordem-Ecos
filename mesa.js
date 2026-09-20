@@ -3082,6 +3082,13 @@ function rollQuickAttack(
             currentTableCharacter
         );
 
+    const npcAssist=currentTableCampaign?.combat?.npcAssists?.[currentTableCharacter.id];
+    if(npcAssist&&Number(npcAssist.round)===enemyCombatRound()){
+        if(type==="attack"&&npcAssist.attackBonus){formula=`${formula} + ${Number(npcAssist.attackBonus)}`;npcAssist.attackBonus=0;}
+        if(type==="damage"&&npcAssist.damageDice){formula=addEnemyDamageDice(formula,Number(npcAssist.damageDice)||1);npcAssist.damageDice=0;}
+        saveTableCampaign();
+    }
+
 
     const result =
         rollDiceExpression(
@@ -3339,6 +3346,8 @@ function openEnemiesPanel(){
 
     }
 
+    enemies=enemies.filter(enemy=>enemy.type!=="npc");
+
     if(enemies.length === 0){
 
         openTablePanel(
@@ -3512,12 +3521,8 @@ function openNPCPanel(){
 
     }
 
-    let npcs =
-        Array.isArray(
-            currentTableCampaign.npcs
-        )
-            ? currentTableCampaign.npcs
-            : [];
+    let npcs=[];
+    try{npcs=(JSON.parse(localStorage.getItem("ordem_threats")||"[]")||[]).filter(item=>item.type==="npc");}catch{npcs=[];}
 
     if(npcs.length === 0){
 
@@ -3610,8 +3615,8 @@ function openNPCPanel(){
                     const npc =
                         npcs.find(
                             item =>
-                                item.id ===
-                                button.dataset.npcId
+                                String(item.id) ===
+                                String(button.dataset.npcId)
                         );
 
                     if(!npc){
@@ -4295,9 +4300,10 @@ function placeEntityAtPosition(type,entity,position){
         }
     }else{
         if(!Array.isArray(currentTableCampaign.npcs))currentTableCampaign.npcs=[];
-        const existing=currentTableCampaign.npcs.find(npc=>npc.id===entity.id);
-        currentTableCampaign.npcs=currentTableCampaign.npcs.filter(npc=>npc.position!==position&&npc.id!==entity.id);
-        currentTableCampaign.npcs.push({...existing,...entity,position});
+        const entityId=entity.npcId||entity.id,existing=currentTableCampaign.npcs.find(npc=>String(npc.npcId||npc.id)===String(entityId));
+        currentTableCampaign.npcs=currentTableCampaign.npcs.filter(npc=>npc.position!==position&&String(npc.npcId||npc.id)!==String(entityId));
+        const level=Math.max(1,Math.min(3,Number(entity.npcLevel)||1)),instanceId=existing?.npcId||`npc-instance-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+        currentTableCampaign.npcs.push({...existing,...entity,id:instanceId,npcId:instanceId,templateId:entity.id,position,size:1,pv:level*25,status:existing?.status||{pvAtual:level*25,pvMax:level*25},helpState:existing?.helpState||{}});
     }
     saveTableCampaign();closeCurrentPositionModal();renderCombatPositions();
     addSystemChatMessage(`${entity.name||"Entidade"} foi colocado na posição ${position}.`);
@@ -5053,7 +5059,9 @@ const openEntityFromToken = event => {
     }
 
 
-    if(type==="enemy" && currentTableRole==="master"){
+    if(type==="npc"){
+        openNpcControlSheet(entity,position);
+    }else if(type==="enemy" && currentTableRole==="master"){
         openEnemyControlSheet(entity,position);
     }else{
         openOccupiedPosition(type,entity,position);
@@ -5512,12 +5520,7 @@ function openEnemiesForPosition(position){
 
 function openNPCsForPosition(position){
 
-    const npcs =
-        Array.isArray(
-            currentTableCampaign.npcs
-        )
-            ? currentTableCampaign.npcs
-            : [];
+    let npcs=[];try{npcs=(JSON.parse(localStorage.getItem("ordem_threats")||"[]")||[]).filter(item=>item.type==="npc");}catch{npcs=[];}
 
     if(npcs.length === 0){
 
@@ -5870,6 +5873,14 @@ function resolveEnemyAbilityTarget(type,entity){const pending=pendingEnemyAbilit
 function openEnemySummonSelector(enemy,position){const summons=enemyLibrary().filter(item=>item.type==="creature"&&Number(item.na)<=5&&String(item.id)!==String(enemy.templateId||enemy.id));if(!summons.length){addSystemChatMessage("Não existe uma criatura de até NV 5 disponível para Invocador.");return;}openTablePanel("HABILIDADE","Invocador",`<div class="table-panel-list">${summons.map(item=>`<button type="button" class="table-panel-card enemy-summon-choice" data-enemy-id="${escapeTableHTML(item.id)}" style="width:100%;text-align:left;cursor:pointer"><h3>${escapeTableHTML(item.name||"Criatura")}</h3><p>NV ${Number(item.na)||0} • ${escapeTableHTML(item.element||"Sem elemento")}</p></button>`).join("")}</div>`);document.querySelectorAll(".enemy-summon-choice").forEach(button=>button.addEventListener("click",()=>{refreshCurrentTableCampaign();const live=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemy.enemyId||enemy.id));if(!live||!enemyAbilityAvailability(live,"invocador").enabled||!spendEnemyActionPoints(live,2))return;const state=enemyAbilityState(live);state.invocadorUses=(Number(state.invocadorUses)||0)+1;saveTableCampaign();const summon=enemyLibrary().find(item=>String(item.id)===String(button.dataset.enemyId));if(!summon)return;startEnemyPlacement(summon.id);addSystemChatMessage(`${live.name} usou Invocador. Escolha a posição de ${summon.name}.`);}));}
 function openEnemyGrimoire(enemy){const grimoire=Array.isArray(enemy.grimoire)?enemy.grimoire:[];openTablePanel("PARANORMAL",`Grimório • ${enemy.name||"Ameaça"}`,grimoire.length?`<div class="table-panel-list">${grimoire.map((ritual,index)=>`<div class="table-panel-card"><h3>${escapeTableHTML(ritual.name||"Ritual")}</h3>${ritual.element?`<p>Elemento: ${escapeTableHTML(ritual.element)}</p>`:""}${ritual.description?`<p>${escapeTableHTML(ritual.description)}</p>`:""}<button type="button" class="primary-button enemy-cast-ritual" data-index="${index}">Conjurar</button></div>`).join("")}</div>`:`<div class="editor-empty-state"><span>✦</span><p>Nenhum ritual foi adicionado ao grimório desta ameaça.</p></div>`);document.querySelectorAll(".enemy-cast-ritual").forEach(button=>button.addEventListener("click",()=>{const ritual=grimoire[Number(button.dataset.index)];if(!ritual)return;const raw=ritual.damage||ritual.formula||ritual.roll||"",formula=String(raw).replace(/Corpo/gi,Number(enemy.corpo)||0).replace(/Foco/gi,Number(enemy.foco)||0).replace(/Nexo/gi,Number(enemy.nexo)||0),result=formula?rollDiceExpression(formula):null;if(result)addRollChatMessage(`Ritual • ${ritual.name||"Ritual"} • ${enemy.name}`,formula,result.total,enemyRollDetail(result),{rollKind:"ritual-damage",isRitual:true,element:ritual.element,enemyInstanceId:enemy.enemyId||enemy.id,applied:false});else addSystemChatMessage(`${enemy.name} conjurou ${ritual.name||"um ritual"}.`);}));}
 function useEnemyAbility(enemy,id,position){refreshCurrentTableCampaign();const liveEnemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(enemy.enemyId||enemy.id))||enemy,state=enemyAbilityState(liveEnemy),round=enemyCombatRound(),availability=enemyAbilityAvailability(liveEnemy,id);if(!availability.enabled)return;if(id==="cronos"){liveEnemy.status=liveEnemy.status||{};liveEnemy.status.paAtual=enemyCurrentActionPoints(liveEnemy)+3;liveEnemy.paAtual=liveEnemy.status.paAtual;state.cronosUsedScene=true;saveTableCampaign();addSystemChatMessage(`${liveEnemy.name} usou Cronos e recebeu +3 PA nesta rodada.`);openEnemyControlSheet(liveEnemy,position);return;}if(id==="invocador"){if(!spendEnemyActionPoints(liveEnemy,2))return;state.invocadorUses=(Number(state.invocadorUses)||0)+1;saveTableCampaign();addSystemChatMessage(`${liveEnemy.name} usou Invocador. O mestre pode adicionar a criatura manualmente à mesa.`);openEnemyControlSheet(liveEnemy,position);return;}if(id==="possessao"||id==="agarrao-necrotico"){startEnemyAbilityTargetSelection(liveEnemy,id,position);return;}if(id==="conjurador"){openEnemyGrimoire(liveEnemy);return;}if(id==="investida"){state.investidaArmed=true;state.investidaUsedRound=round;saveTableCampaign();addSystemChatMessage(`${liveEnemy.name} preparou Investida. O próximo dano recebe +1 dado.`);openEnemyControlSheet((currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(liveEnemy.enemyId||liveEnemy.id))||liveEnemy,position);return;}if(id==="esquiva-maior"){state.esquivaMaiorArmed=true;saveTableCampaign();addSystemChatMessage(`${liveEnemy.name} preparou Esquiva Maior. Ela será ativada somente se a criatura escolher Esquivar como reação.`);openEnemyControlSheet((currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(liveEnemy.enemyId||liveEnemy.id))||liveEnemy,position);return;}if(id==="mordida-feroz"){const message=latestSuccessfulStrongAttack(liveEnemy),target=message?.attackApplication?.targetCharacterId?getLiveCharacter(message.attackApplication.targetCharacterId):null;if(!message||!target)return;const enemyRank=enemySkillData(liveEnemy,"Manobra"),enemyTraining=enemyTrainingDie(enemyRank.rank),enemyModifier=(Number(liveEnemy.corpo)||0)+enemyRank.bonus-enemyRank.penalty,enemyFormula=`1d12${enemyTraining!=="0"?`+${enemyTraining}`:""}${enemyModifier>=0?"+":""}${enemyModifier}`,enemyResult=rollDiceExpression(enemyFormula),playerRoll=rollCharacterManobra(target);if(!enemyResult||!playerRoll.result)return;state.mordidaLastUsedRound=round;message.mordidaFerozUsed=true;saveTableCampaign();addRollChatMessage(`Mordida Feroz • ${liveEnemy.name}`,enemyFormula,enemyResult.total,enemyRollDetail(enemyResult));addRollChatMessage(`Resistência de Manobra • ${target.name}`,playerRoll.formula,playerRoll.result.total,enemyRollDetail(playerRoll.result));if(enemyResult.total>=playerRoll.result.total){target.conditions=Array.isArray(target.conditions)?target.conditions:[];target.conditions=target.conditions.filter(condition=>normalizeEnemyAbilityId(typeof condition==="string"?condition:condition.id||condition.name)!=="caido");target.conditions.push({id:"caido",name:"Caído",description:`Derrubado por ${liveEnemy.name}. Use Testar Manobra para se levantar.`,source:"mordida-feroz",escapeEnemyId:liveEnemy.enemyId||liveEnemy.id});saveDamagedCharacter(target);addSystemChatMessage(`${liveEnemy.name} venceu a disputa de Manobra. ${target.name} recebeu Caído.`);}else addSystemChatMessage(`${target.name} venceu a disputa de Manobra e resistiu à Mordida Feroz.`);openEnemyControlSheet((currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(liveEnemy.enemyId||liveEnemy.id))||liveEnemy,position);}}
+function npcRound(){return Math.max(0,Number(currentTableCampaign?.combat?.round)||0);}
+function npcAssistMap(){currentTableCampaign.combat=currentTableCampaign.combat||{};currentTableCampaign.combat.npcAssists=currentTableCampaign.combat.npcAssists||{};return currentTableCampaign.combat.npcAssists;}
+function npcUsedThisRound(npc){return Number(npc?.helpState?.usedRound)===npcRound();}
+function markNpcUsed(npc,action){npc.helpState=npc.helpState||{};npc.helpState.usedRound=npcRound();npc.helpState.action=action;npc.helpState.usedAt=Date.now();saveTableCampaign();if(action==="npc-attack"){const level=Math.max(1,Math.min(3,Number(npc.npcLevel)||1)),extra=npc.helpState.critical?2:0,formula=`${level+extra}d8+${level*2}`;setTimeout(()=>{const result=rollDiceExpression(formula);if(result)addRollChatMessage(`Dano • ${npc.name}${extra?" • CRÍTICO":""}`,formula,result.total,enemyRollDetail(result),{rollKind:"damage",npcInstanceId:npc.npcId||npc.id,applied:false});},0);}}
+function npcRoleLabel(role){return({combat:"Combate",support:"Suporte",investigative:"Investigativo"})[role]||"Aliado";}
+function openNpcControlSheet(npc,position){refreshCurrentTableCampaign();npc=(currentTableCampaign.npcs||[]).find(item=>String(item.npcId||item.id)===String(npc.npcId||npc.id))||npc;const level=Math.max(1,Math.min(3,Number(npc.npcLevel)||1)),used=npcUsedThisRound(npc),hp=Math.max(0,Number(npc.status?.pvAtual??npc.pv)||0),max=level*25,player=currentTableCharacter;let actions="";if(currentTableRole==="player"&&player&&!used){if(npc.npcRole==="combat")actions=`<button class="primary-button npc-help-action" data-action="joint">Ataque em conjunto</button><button class="secondary-button npc-help-action" data-action="protect">Proteção</button>`;else if(npc.npcRole==="support")actions=`<button class="primary-button npc-help-action" data-action="heal">Curar 2d8 + 4</button><button class="secondary-button npc-help-action" data-action="condition">Retirar condição</button>`;else actions=`<button class="primary-button npc-help-action" data-action="test">+3 no próximo teste</button><button class="secondary-button npc-help-action" data-action="analysis">Análise</button>`;}if(currentTableRole==="master"&&!used)actions=`<button class="primary-button npc-help-action" data-action="npc-attack">Rolar ataque</button><button class="secondary-button npc-help-action" data-action="npc-damage">Rolar dano</button>`;openTablePanel("NPC ALIADO",npc.name||"NPC",`<div class="table-panel-card"><h3>${escapeTableHTML(npc.name||"NPC")}</h3><p>${npcRoleLabel(npc.npcRole)} • Nível ${level}</p><p>PV: <strong>${hp}/${max}</strong></p><p>${used?"Ação desta rodada já utilizada.":"Disponível: 1 ajuda ou ação nesta rodada."}</p></div><div style="display:grid;gap:8px">${actions||""}</div>${currentTableRole==="master"?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><button id="npcMoveControl" class="secondary-button">Mover</button><button id="npcRemoveControl" class="secondary-button">Remover</button></div>`:""}`);document.querySelectorAll(".npc-help-action").forEach(button=>button.addEventListener("click",()=>useNpcAction(npc,button.dataset.action,position)));document.getElementById("npcMoveControl")?.addEventListener("click",()=>{closeCurrentPanel();openOccupiedPosition("npc",npc,position)});document.getElementById("npcRemoveControl")?.addEventListener("click",()=>{currentTableCampaign.npcs=(currentTableCampaign.npcs||[]).filter(item=>String(item.npcId||item.id)!==String(npc.npcId||npc.id));saveTableCampaign();closeCurrentPanel();renderCombatPositions()});}
+function useNpcAction(npc,action,position){refreshCurrentTableCampaign();npc=(currentTableCampaign.npcs||[]).find(item=>String(item.npcId||item.id)===String(npc.npcId||npc.id))||npc;if(npcUsedThisRound(npc))return;const character=currentTableCharacter,assists=npcAssistMap();if(action==="joint"&&character){assists[character.id]={...(assists[character.id]||{}),attackBonus:3,damageDice:1,round:npcRound(),sourceNpc:npc.name};markNpcUsed(npc,action);addSystemChatMessage(`${npc.name} ajudará ${character.name}: +3 no próximo ataque e +1 dado no dano principal.`);}else if(action==="protect"&&character){assists[character.id]={...(assists[character.id]||{}),defenseBonus:4,rdBonus:3,round:npcRound(),sourceNpc:npc.name};markNpcUsed(npc,action);addSystemChatMessage(`${npc.name} protegeu ${character.name}: +4 Defesa e +3 RD até o próximo turno.`);}else if(action==="heal"&&character){const result=rollDiceExpression("2d8+4");character.status=character.status||{};const max=Math.max(0,Number(character.status.pvMax)||0),before=Math.max(0,Number(character.status.pvAtual)||0);character.status.pvAtual=Math.min(max,before+(Number(result?.total)||0));saveDamagedCharacter(character);markNpcUsed(npc,action);addRollChatMessage(`Cura de ${npc.name} • ${character.name}`,"2d8+4",result?.total||0,enemyRollDetail(result||{}));}else if(action==="condition"&&character){const conditions=Array.isArray(character.conditions)?character.conditions:[];if(!conditions.length){addSystemChatMessage(`${character.name} não possui condições para remover.`);return;}openTablePanel("AJUDA",`Remover condição • ${npc.name}`,`<div class="table-panel-list">${conditions.map((condition,index)=>`<button class="table-panel-card npc-condition-choice" data-index="${index}"><h3>${escapeTableHTML(typeof condition==="string"?condition:condition.name||"Condição")}</h3></button>`).join("")}</div>`);document.querySelectorAll(".npc-condition-choice").forEach(button=>button.addEventListener("click",()=>{character.conditions.splice(Number(button.dataset.index),1);saveDamagedCharacter(character);markNpcUsed(npc,"condition");addSystemChatMessage(`${npc.name} removeu uma condição de ${character.name}.`);openNpcControlSheet(npc,position)}));return;}else if(action==="test"&&character){assists[character.id]={...(assists[character.id]||{}),testBonus:3,round:npcRound(),sourceNpc:npc.name};markNpcUsed(npc,action);addSystemChatMessage(`${npc.name} concedeu +3 no próximo teste de ${character.name}.`);}else if(action==="analysis"&&character){markNpcUsed(npc,action);addSystemChatMessage(`${character.name} solicitou uma Análise de ${npc.name}. O mestre deve revelar uma habilidade, atributo, PV ou outra informação da criatura.`);}else if(action==="npc-attack"){const level=Math.max(1,Math.min(3,Number(npc.npcLevel)||1)),training=[0,"1d4","1d8","1d12"][level],result=rollCharacterTrainedTest(training,level*2);if(!result)return;npc.helpState=npc.helpState||{};npc.helpState.critical=result.critical;markNpcUsed(npc,action);addRollChatMessage(`Ataque • ${npc.name}${result.critical?" • CRÍTICO":""}`,result.formula,result.total,enemyRollDetail(result),{rollKind:"attack",npcInstanceId:npc.npcId||npc.id,applied:false});}else if(action==="npc-damage"){const level=Math.max(1,Math.min(3,Number(npc.npcLevel)||1)),extra=npc.helpState?.critical?2:0,formula=`${level+extra}d8+${level*2}`,result=rollDiceExpression(formula);if(!result)return;npc.helpState.critical=false;markNpcUsed(npc,action);addRollChatMessage(`Dano • ${npc.name}${extra?" • CRÍTICO":""}`,formula,result.total,enemyRollDetail(result),{rollKind:"damage",npcInstanceId:npc.npcId||npc.id,applied:false});}openNpcControlSheet(npc,position);}
+
 function openEnemyControlSheet(enemy,position){
     const requestedEnemyId=enemy?.enemyId||enemy?.id;
     refreshCurrentTableCampaign();
@@ -7951,7 +7962,9 @@ function rollTableCharacterSkill(
     skillId
 ){
     const skill=character.skills?.find(item=>String(item.id)===String(skillId));if(!skill)return;
-    const attribute=skill.selectedAttribute||skill.attribute||enemySkillAttribute(skill.name),attributeValue=Number(character.attributes?.[attribute]??character[attribute])||0,bonus=Number(skill.bonus)||0,penalty=Math.abs(Number(skill.penalty??skill.penalidade)||0),conditionModifier=getTableSkillConditionModifier(character,skill),result=rollCharacterTrainedTest(skill.training||skill.treino||"0",attributeValue+bonus-penalty+conditionModifier);if(!result)return;
+    const assist=currentTableCampaign?.combat?.npcAssists?.[character.id],npcTestBonus=assist&&Number(assist.round)===enemyCombatRound()?Number(assist.testBonus)||0:0;
+    const attribute=skill.selectedAttribute||skill.attribute||enemySkillAttribute(skill.name),attributeValue=Number(character.attributes?.[attribute]??character[attribute])||0,bonus=Number(skill.bonus)||0,penalty=Math.abs(Number(skill.penalty??skill.penalidade)||0),conditionModifier=getTableSkillConditionModifier(character,skill),result=rollCharacterTrainedTest(skill.training||skill.treino||"0",attributeValue+bonus-penalty+conditionModifier+npcTestBonus);if(!result)return;
+    if(npcTestBonus){assist.testBonus=0;saveTableCampaign();}
     addRollChatMessage(`${skill.name||"Perícia"} • ${character.name||"Personagem"}${result.critical?" • CRÍTICO":""}`,result.formula,result.total,`${enemyRollDetail(result)}${result.critical?" • d12 principal = 12 • dado de treino adicional":""}`,{rollKind:"skill",playerCritical:result.critical});
 
 }
@@ -10508,6 +10521,8 @@ function answerAttackReaction(
     }
 
 
+    const npcProtection=currentTableCampaign?.combat?.npcAssists?.[character.id],npcProtectionActive=npcProtection&&Number(npcProtection.round)===enemyCombatRound();
+
     const baseDefense =
         Math.max(
             0,
@@ -10540,10 +10555,10 @@ function answerAttackReaction(
     let paCost = 0;
 
     let finalDefense =
-        baseDefense;
+        baseDefense+(npcProtectionActive?Number(npcProtection.defenseBonus)||0:0);
 
     let reactionRD =
-        baseRD;
+        baseRD+(npcProtectionActive?Number(npcProtection.rdBonus)||0:0);
 
     let readinessResult =
         null;
@@ -10572,7 +10587,7 @@ if(reactionType === "dodge"){
 
 
     finalDefense =
-        baseDefense +
+        baseDefense +(npcProtectionActive?Number(npcProtection.defenseBonus)||0:0)+
         Math.max(
             0,
             Number(
@@ -11558,6 +11573,17 @@ function applyPendingDamageToTarget(
 
     if(type==="enemy"){
         applyDamageToEnemy(entity);
+        return;
+    }
+
+    if(type==="npc"){
+        const npc=(currentTableCampaign.npcs||[]).find(item=>String(item.npcId||item.id)===String(entity.npcId||entity.id))||entity;
+        npc.status=npc.status||{pvAtual:Number(npc.pv)||0,pvMax:Number(npc.pv)||0};
+        const before=Math.max(0,Number(npc.status.pvAtual)||0),damage=Math.max(0,Number(pendingDamageApplication.damage)||0);
+        npc.status.pvAtual=Math.max(0,before-damage);
+        const message=(currentTableCampaign.chatMessages||[]).find(item=>item.id===pendingDamageApplication.messageId);
+        if(message){message.applied=true;message.appliedAt=Date.now();message.appliedTarget={type:"npc",npcId:npc.npcId||npc.id,name:npc.name||"NPC"};message.damageApplication={originalDamage:damage,damageReduction:0,finalDamage:damage,pvBefore:before,pvAfter:npc.status.pvAtual};}
+        saveTableCampaign();cancelDamageTargetSelection();renderCombatPositions();renderPublicChat();addSystemChatMessage(`${npc.name||"O NPC"} sofreu ${damage} de dano. PV: ${before} → ${npc.status.pvAtual}.`);
         return;
     }
 
