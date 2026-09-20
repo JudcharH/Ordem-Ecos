@@ -22,7 +22,8 @@
   <div class="enemy-editor-head"><div><span>AMEAÇA</span><h2 id="enemyModalTitle">Nova Ameaça</h2></div><button id="closeEnemyModal" class="enemy-close">✕</button></div>
   <div class="enemy-type-choice">
    <button class="enemy-type active" data-type="creature"><strong>Criatura</strong><small>Ficha paranormal automática por NA</small></button>
-   <button class="enemy-type" data-type="human"><strong>Humano</strong><small>Usa a ficha normal de jogador</small></button>
+   <button class="enemy-type" data-type="human"><strong>Ameaça Humana</strong><small>Inimigo com ficha semelhante à de jogador</small></button>
+   <button class="enemy-type" data-type="npc"><strong>NPC Aliado</strong><small>Auxilia jogadores durante o combate</small></button>
   </div>
   <div id="creatureEditor">
    <div class="enemy-editor-grid">
@@ -58,7 +59,7 @@
    <div class="enemy-photo-preview" id="humanWoundedPhotoPreview"><span>👤</span><small>Foto machucada</small></div>
    <label class="secondary-button">Foto machucada<input id="humanWoundedPhoto" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
   </div>
-  <div class="enemy-fields"><label>Nome<input id="humanName" placeholder="Nome do NPC"></label><div class="field-row"><label>Tamanho<input id="humanSize" type="number" min="1" value="1"></label><label>Movimento<input id="humanMovement" type="number" min="0" value="2"></label><label>PA<input id="humanPA" type="number" min="0" value="3"></label></div><div class="field-row"><label>PV<input id="humanPV" type="number" min="0" value="20"></label><label>Defesa<input id="humanDefense" type="number" min="0" value="10"></label><label>RD<input id="humanRD" type="number" min="0" value="0"></label></div></div>
+  <div class="enemy-fields"><label>Nome<input id="humanName" placeholder="Nome da ameaça humana"></label><div class="field-row"><label>Tamanho<input id="humanSize" type="number" min="1" value="1"></label><label>Movimento<input id="humanMovement" type="number" min="0" value="2"></label><label>PA<input id="humanPA" type="number" min="0" value="3"></label></div><div class="field-row"><label>PV<input id="humanPV" type="number" min="0" value="20"></label><label>Defesa<input id="humanDefense" type="number" min="0" value="10"></label><label>RD<input id="humanRD" type="number" min="0" value="0"></label></div></div>
  </div>
  <h3>Atributos</h3>
  <div class="three-grid"><label>Corpo<input id="humanCorpo" type="number" min="0" value="1"></label><label>Foco<input id="humanFoco" type="number" min="0" value="1"></label><label>Nexo<input id="humanNexo" type="number" min="0" value="1"></label></div>
@@ -68,9 +69,15 @@
  <div id="humanSkills" class="skill-grid"></div>
  <h3>Ataques rápidos</h3>
  <div class="attack-grid"><label class="attack-card"><strong>Ataque básico</strong><input id="humanBasicAttack" value="1d6 + Corpo" placeholder="Ex.: 1d6 + Corpo"></label><label class="attack-card"><strong>Ataque forte</strong><input id="humanStrongAttack" value="2d6 + Corpo" placeholder="Ex.: 2d6 + Corpo"></label></div>
- <div class="enemy-note">O NPC funciona como uma ameaça humana na mesa: possui iniciativa, perícias, ataques, reações, condições e pode alternar entre PV clássico e membros.</div>
- <div class="enemy-save-row"><button id="deleteHuman" class="danger-button hidden">Excluir</button><button id="saveHuman" class="primary-button">Salvar NPC</button></div>
+ <div class="enemy-note">Ameaças humanas são inimigos: possuem iniciativa, perícias, ataques, reações, condições e podem alternar entre PV clássico e membros.</div>
+ <div class="enemy-save-row"><button id="deleteHuman" class="danger-button hidden">Excluir</button><button id="saveHuman" class="primary-button">Salvar ameaça humana</button></div>
 </div>
+  <div id="npcEditor" class="human-editor hidden">
+   <div class="human-threat-card"><div class="enemy-photos"><div class="enemy-photo-preview" id="npcPhotoPreview"><span>♟</span><small>Foto do NPC</small></div><label class="secondary-button">Escolher foto<input id="npcPhoto" type="file" accept="image/png,image/jpeg,image/webp" hidden></label></div><div class="enemy-fields"><label>Nome<input id="npcName" placeholder="Nome do NPC aliado"></label><div class="field-row"><label>Tipo<select id="npcRole"><option value="combat">Combate</option><option value="support">Suporte</option><option value="investigative">Investigativo</option></select></label><label>Nível<select id="npcLevel"><option value="1">Nível 1</option><option value="2">Nível 2</option><option value="3">Nível 3</option></select></label></div></div></div>
+   <div id="npcSummary" class="enemy-auto-stats"></div>
+   <div class="enemy-note">NPCs são aliados simples. Possuem uma ajuda ou ação por rodada, tamanho 1, sem PA, Defesa, RD ou sistema de membros.</div>
+   <div class="enemy-save-row"><button id="deleteNpc" class="danger-button hidden">Excluir</button><button id="saveNpc" class="primary-button">Salvar NPC aliado</button></div>
+  </div>
  </div>
 </div>
 <script src="ameacas.js"></script>
