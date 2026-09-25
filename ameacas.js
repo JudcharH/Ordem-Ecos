@@ -17,6 +17,13 @@ const ENEMY_ABILITY_CATALOG=[
  ,{id:"segunda-fase",name:"Segunda Fase",description:"Ao adquirir Machucado, recebe +1 dado no dano principal dos ataques básico e forte e +3 para acertar.",passive:true}
  ,{id:"camada-extra",name:"Camada Extra",description:"Recebe +3 de RD total.",passive:true}
  ,{id:"conjurador",name:"Conjurador",description:"Permite conjurar rituais e utilizar o grimório.",passive:true}
+ ,{id:"ferocidade",name:"Ferocidade",description:"Adiciona +1 dado de dano principal aos ataques básico e forte.",passive:true}
+ ,{id:"atrair",name:"Atrair",description:"Disputa Vontade contra um alvo. Se vencer, o alvo avança até a posição 1. Uso: 1 vez a cada 2 rodadas.",cooldownRounds:2}
+ ,{id:"ilusorio",name:"Ilusório",description:"Assume a aparência de alguém importante para o alvo. O alvo sofre penalidade no próximo ataque igual ao Nexo da ameaça. Uso: 1 vez por rodada.",oncePerRound:true}
+ ,{id:"regenerativo",name:"Regenerativo",description:"No início de cada rodada, recupera PV igual a Corpo. No sistema de membros, regenera o membro mais danificado.",passive:true}
+ ,{id:"vampirismo",name:"Vampirismo",description:"Sempre que acerta um ataque, recupera 1d10 PV. No sistema de membros, regenera o membro mais danificado.",passive:true}
+ ,{id:"aplicador",name:"Aplicador",description:"Ao deixar um alvo Morrendo, aplica uma condição pelo elemento: Sangue = Sangramento, Morte = Envenenamento, Energia = Chamas, Conhecimento = Vulnerável.",passive:true}
+ ,{id:"espinhoso",name:"Espinhoso",description:"Sempre que sofre um ataque, causa ao atacante dano igual ao Corpo.",passive:true}
 ];
 const wolfAbilities=ENEMY_ABILITY_CATALOG;
 const $=id=>document.getElementById(id),num=id=>Math.max(0,Number($(id)?.value)||0);
