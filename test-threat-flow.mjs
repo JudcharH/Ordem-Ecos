@@ -395,6 +395,12 @@ if (!mesaSource.includes("O mestre pode adicionar a criatura manualmente") || !m
 if (!mesaSource.includes('const enemyClassicHTML=enemyLifeMode==="classic"')) {
     throw new Error("O sistema de vida clássico não está sendo ocultado no modo por membros.");
 }
+for (const id of ["ferocidade", "atrair", "ilusorio", "regenerativo", "vampirismo", "aplicador", "espinhoso"]) {
+    if (!abilityCatalog.includes(id)) throw new Error(`Nova habilidade ausente da biblioteca: ${id}`);
+}
+for (const marker of ["processEnemyRoundAbilities", "resolveEnemyAbilityTargetRouter", "illusoryPenalties", "Vampirismo", "applyApplicatorCondition", "Espinhoso de", 'ids.includes("ferocidade")']) {
+    if (!mesaSource.includes(marker)) throw new Error(`Automação de nova habilidade ausente: ${marker}`);
+}
 for (const marker of ["openNpcControlSheet", "Ataque em conjunto", "Curar 2d8 + 4", "+3 no próximo teste", "npcInstanceId", 'type==="npc"']) {
     if (!mesaSource.includes(marker)) throw new Error(`Sistema de NPC aliado ausente: ${marker}`);
 }
@@ -432,4 +438,5 @@ console.log(JSON.stringify({
     ,manualSummons: true
     ,exclusiveLifeSystem: true
     ,alliedNpcSystem: true
+    ,newThreatAbilities: true
 }, null, 2));
