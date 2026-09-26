@@ -1854,10 +1854,18 @@ function openCharacterPanel(){
 =              VIDA CLÁSSICA NA MESA
 ==========================================================*/
 
+function ensureCharacterHeart(character){
+    if(!character)return null;const level=Math.max(1,Number(character.level)||1),corpo=Math.max(0,Number(character.attributes?.corpo??character.attributes?.for)||0),classicMax=(9*level)+(corpo*2),bodyMax=Math.max(0,Number(character.bodyMaximums?.chest??character.body?.chestMax??((2*level)+corpo))||0),heartMax=character.lifeMode==="body"?bodyMax:Math.ceil(classicMax/4);
+    character.status=character.status&&typeof character.status==="object"?character.status:{};if(character.lifeMode!=="body"){const oldMax=Math.max(0,Number(character.status.pvMax)||0),oldCurrent=Math.max(0,Number(character.status.pvAtual)||0);character.status.pvMax=classicMax;character.status.pvAtual=oldMax>0&&oldCurrent>=oldMax?classicMax:Math.min(classicMax,oldCurrent);}
+    character.heart=character.heart&&typeof character.heart==="object"?character.heart:{};const existingMax=Math.max(0,Number(character.heart.max)||0),existingCurrent=Number(character.heart.current);character.heart.max=heartMax;character.heart.current=Number.isFinite(existingCurrent)?Math.min(heartMax,Math.max(0,existingCurrent)):(existingMax?Math.min(heartMax,existingMax):heartMax);return character.heart;
+}
+function markCharacterDead(character){character.conditions=Array.isArray(character.conditions)?character.conditions:[];if(!character.conditions.some(condition=>normalizeEnemyAbilityId(typeof condition==="string"?condition:condition.id||condition.name)==="morto"))character.conditions.push({id:"morto",name:"Morto",description:"O Coração chegou a 0 PV.",source:"coracao"});character.status=character.status||{};character.status.paAtual=0;}
+
 function createTableClassicLifeHTML(
     character
 ){
 
+    ensureCharacterHeart(character);
     const status =
         character.status || {};
 
@@ -1878,6 +1886,11 @@ function createTableClassicLifeHTML(
 
             </span>
 
+        </div>
+
+        <div class="table-panel-item table-life-item">
+            <strong>Coração</strong>
+            <span>${character.heart.current} / ${character.heart.max}</span>
         </div>
 
 
@@ -1905,6 +1918,7 @@ function createTableBodyLifeHTML(
     character
 ){
 
+    ensureCharacterHeart(character);
     const body =
         character.body || {};
 
@@ -1997,6 +2011,11 @@ function createTableBodyLifeHTML(
 
 
             ${rows}
+
+            <div class="table-panel-item table-body-part heart">
+                <strong>Coração</strong>
+                <span>${character.heart.current} / ${character.heart.max}</span>
+            </div>
 
 
             <div class="table-panel-item table-body-temp">
@@ -10567,6 +10586,8 @@ function answerAttackReaction(
 
     }
 
+    ensureCharacterHeart(character);
+
 
     const npcProtection=currentTableCampaign?.combat?.npcAssists?.[character.id],npcProtectionActive=npcProtection&&Number(npcProtection.round)===enemyCombatRound();
 
@@ -11702,7 +11723,7 @@ function applyPendingDamageToTarget(
 
 }
 
-const BODY_PART_LABELS={head:"Cabeça",chest:"Torso",leftArm:"Braço esquerdo",rightArm:"Braço direito",leftLeg:"Perna esquerda",rightLeg:"Perna direita"};
+const BODY_PART_LABELS={head:"Cabeça",chest:"Torso",heart:"Coração",leftArm:"Braço esquerdo",rightArm:"Braço direito",leftLeg:"Perna esquerda",rightLeg:"Perna direita"};
 function initializeEnemyBody(enemy){
     enemy.lifeMode="body";
     enemy.body=enemy.body&&typeof enemy.body==="object"?enemy.body:{};
@@ -11714,16 +11735,18 @@ function initializeEnemyBody(enemy){
 function bodyDamageParts(target,type){
     if(type==="enemy")initializeEnemyBody(target);
     const body=target.body&&typeof target.body==="object"?target.body:{},states=target.bodyState&&typeof target.bodyState==="object"?target.bodyState:{};
-    return Object.keys(BODY_PART_LABELS).map(id=>{const state=states[id]||{};const missing=state.type==="missing";const current=missing?0:Math.max(0,Number(state.type==="prosthetic"?state.currentPV:body[id])||0);return{id,label:BODY_PART_LABELS[id],current,state};});
+    return ["head","chest","leftArm","rightArm","leftLeg","rightLeg"].map(id=>{const state=states[id]||{};const missing=state.type==="missing";const current=missing?0:Math.max(0,Number(state.type==="prosthetic"?state.currentPV:body[id])||0);return{id,label:BODY_PART_LABELS[id],current,state};});
 }
 function applyDamageAmountToBodyPart(current,remaining){return Math.min(Math.max(0,Number(current)||0),Math.max(0,Number(remaining)||0));}
 function startBodyDamageDistribution(type,target,originalDamage,damageReduction){
     const reducedDamage=Math.max(0,originalDamage-damageReduction),temporaryBefore=type==="player"?Math.max(0,Number(target.body?.temporaryPV)||0):0,temporaryAbsorbed=Math.min(temporaryBefore,reducedDamage);
     pendingBodyDamageApplication={type,targetId:type==="player"?target.id:(target.enemyId||target.id),messageId:pendingDamageApplication.messageId,attackName:pendingDamageApplication.attackName,originalDamage,damageReduction,reducedDamage,temporaryBefore,temporaryAbsorbed,remaining:reducedDamage-temporaryAbsorbed,allocations:{}};
     cancelDamageTargetSelection();
+    if(type==="player"&&Math.max(0,Number(target.body?.chest)||0)<=0){applyPendingDamageToHeart();finishBodyDamageDistribution();return;}
     if(pendingBodyDamageApplication.remaining<=0){finishBodyDamageDistribution();return;}
     renderBodyDamageDistribution();
 }
+function applyPendingDamageToHeart(){const state=pendingBodyDamageApplication,target=getPendingBodyDamageTarget();if(!state||state.type!=="player"||!target)return 0;ensureCharacterHeart(target);const before=Math.max(0,Number(target.heart.current)||0),applied=Math.min(before,Math.max(0,Number(state.remaining)||0));target.heart.current=Math.max(0,before-applied);state.allocations.heart=(Number(state.allocations.heart)||0)+applied;state.remaining=Math.max(0,state.remaining-applied);if(target.heart.current<=0&&applied>0)markCharacterDead(target);return applied;}
 function getPendingBodyDamageTarget(){const state=pendingBodyDamageApplication;if(!state)return null;return state.type==="player"?getLiveCharacter(state.targetId):(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(state.targetId));}
 function renderBodyDamageDistribution(){
     const state=pendingBodyDamageApplication,target=getPendingBodyDamageTarget();if(!state||!target)return;
@@ -11738,6 +11761,7 @@ function allocatePendingBodyDamage(partId){
     const part=bodyDamageParts(target,state.type).find(item=>item.id===partId);if(!part)return;
     const already=Number(state.allocations[partId])||0,applied=applyDamageAmountToBodyPart(part.current-already,state.remaining);if(applied<=0)return;
     state.allocations[partId]=already+applied;state.remaining=Math.max(0,state.remaining-applied);
+    if(state.type==="player"&&partId==="chest"&&part.current-already-applied<=0&&state.remaining>0){applyPendingDamageToHeart();finishBodyDamageDistribution();return;}
     const available=bodyDamageParts(target,state.type).reduce((sum,item)=>sum+Math.max(0,item.current-(Number(state.allocations[item.id])||0)),0);
     if(state.remaining<=0||available<=0)finishBodyDamageDistribution();else renderBodyDamageDistribution();
 }
@@ -11894,6 +11918,9 @@ const damageReduction =
             damageAfterTemporary
         );
 
+    const heartBefore=Math.max(0,Number(character.heart?.current)||0);
+    const heartDamage=Math.min(heartBefore,Math.max(0,damageAfterTemporary-currentPVBefore));
+
 
     character.status.pvTemp =
         Math.max(
@@ -11910,6 +11937,9 @@ const damageReduction =
             damageAfterTemporary
         );
 
+    character.heart.current=Math.max(0,heartBefore-heartDamage);
+    if(character.heart.current<=0&&heartDamage>0)markCharacterDead(character);
+
 
     const application =
         {
@@ -11923,6 +11953,12 @@ const damageReduction =
             temporaryAbsorbed,
 
             actualPVLost,
+
+            heartDamage,
+
+            heartBefore,
+
+            heartAfter:character.heart.current,
 
             usedReactionDamageReduction:
     Boolean(
@@ -12187,6 +12223,8 @@ if(application.damageReduction > 0){
         );
 
     }
+
+    if(application.heartDamage > 0){details.push(`${application.heartDamage} de dano excedente atingiu o Coração. Coração: ${application.heartBefore} → ${application.heartAfter}.`);if(application.heartAfter<=0)details.push(`${character.name || "O personagem"} morreu.`);}
 
 
     if(application.reducedDamage === 0){
