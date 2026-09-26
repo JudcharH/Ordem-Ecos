@@ -418,6 +418,8 @@ const heartRules = vm.runInContext(`(() => { const classic={level:10,lifeMode:"c
 if (heartRules.classicPV !== 100 || heartRules.classicHeart !== 25 || heartRules.bodyHeart !== 25) {
     throw new Error(`Regra do Coração incorreta: ${JSON.stringify(heartRules)}`);
 }
+const heartOverflow = vm.runInContext(`(() => { const originalSave=saveDamagedCharacter,originalFinish=finishDamageApplication;saveDamagedCharacter=()=>true;finishDamageApplication=()=>{};currentTableCampaign={combat:{},chatMessages:[]};pendingDamageApplication={messageId:"heart-test",damage:35,attackName:"Teste"};const character={id:"heart-character",name:"Teste",level:10,lifeMode:"classic",attributes:{corpo:5},status:{pvAtual:10,pvMax:100,pvTemp:0},heart:{current:25,max:25},damageReduction:{total:0},conditions:[]};applyClassicDamageToCharacter(character);const result={pv:character.status.pvAtual,heart:character.heart.current,dead:character.conditions.some(c=>c.id==="morto")};saveDamagedCharacter=originalSave;finishDamageApplication=originalFinish;pendingDamageApplication=null;return result;})()`, context);
+if (heartOverflow.pv !== 0 || heartOverflow.heart !== 0 || !heartOverflow.dead) throw new Error(`Transbordamento para o Coração incorreto: ${JSON.stringify(heartOverflow)}`);
 const baseSystemSource = fs.readFileSync("sistema-base-v2.js", "utf8");
 if (!baseSystemSource.includes("const pvMax=(9*level)+(corpo*2)")) throw new Error("Fórmula nova de PV clássico ausente.");
 
@@ -453,4 +455,5 @@ console.log(JSON.stringify({
     ,newThreatAbilities: true
     ,approvedThreatAbilities: true
     ,heartLifeSystem: heartRules
+    ,heartOverflow
 }, null, 2));
