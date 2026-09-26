@@ -414,6 +414,12 @@ const threatEditorSource = fs.readFileSync("ameacas.js", "utf8");
 for (const marker of ["persistNpc", "npcRole", "npcLevel", "NPC Aliado"]) {
     if (!threatEditorSource.includes(marker)) throw new Error(`Editor de NPC aliado ausente: ${marker}`);
 }
+const heartRules = vm.runInContext(`(() => { const classic={level:10,lifeMode:"classic",attributes:{corpo:5},status:{pvAtual:0,pvMax:75}};ensureCharacterHeart(classic);const body={level:10,lifeMode:"body",attributes:{corpo:5},body:{chest:25,chestMax:25}};ensureCharacterHeart(body);return{classicPV:classic.status.pvMax,classicHeart:classic.heart.max,bodyHeart:body.heart.max}; })()`, context);
+if (heartRules.classicPV !== 100 || heartRules.classicHeart !== 25 || heartRules.bodyHeart !== 25) {
+    throw new Error(`Regra do Coração incorreta: ${JSON.stringify(heartRules)}`);
+}
+const baseSystemSource = fs.readFileSync("sistema-base-v2.js", "utf8");
+if (!baseSystemSource.includes("const pvMax=(9*level)+(corpo*2)")) throw new Error("Fórmula nova de PV clássico ausente.");
 
 console.log(JSON.stringify({
     ok: true,
@@ -446,4 +452,5 @@ console.log(JSON.stringify({
     ,alliedNpcSystem: true
     ,newThreatAbilities: true
     ,approvedThreatAbilities: true
+    ,heartLifeSystem: heartRules
 }, null, 2));
