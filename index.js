@@ -225,6 +225,6 @@ window.OrdemApp = {
 
     version:"0.1.0",
 
-    name:"ORDEM • ECOS DO DESCONHECIDO"
+    name:"ECO • SISTEMAS DE RPG ALTERADOS"
 
 };
