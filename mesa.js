@@ -1855,8 +1855,8 @@ function openCharacterPanel(){
 ==========================================================*/
 
 function ensureCharacterHeart(character){
-    if(!character)return null;const level=Math.max(1,Number(character.level)||1),corpo=Math.max(0,Number(character.attributes?.corpo??character.attributes?.for)||0),classicMax=(9*level)+(corpo*2),bodyMax=Math.max(0,Number(character.bodyMaximums?.chest??character.body?.chestMax??((2*level)+corpo))||0),heartMax=character.lifeMode==="body"?bodyMax:Math.ceil(classicMax/4);
-    character.status=character.status&&typeof character.status==="object"?character.status:{};if(character.lifeMode!=="body"){const oldMax=Math.max(0,Number(character.status.pvMax)||0),oldCurrent=Math.max(0,Number(character.status.pvAtual)||0);character.status.pvMax=classicMax;character.status.pvAtual=oldMax>0&&oldCurrent>=oldMax?classicMax:Math.min(classicMax,oldCurrent);}
+    if(!character)return null;const level=Math.max(1,Number(character.level)||1),corpo=Math.max(0,Number(character.attributes?.corpo??character.attributes?.for)||0),classicMax=(9*level)+(corpo*2),legacyMax=(7*level)+corpo,bodyMax=Math.max(0,Number(character.bodyMaximums?.chest??character.body?.chestMax??((2*level)+corpo))||0);
+    character.status=character.status&&typeof character.status==="object"?character.status:{};if(character.lifeMode!=="body"){const oldMax=Math.max(0,Number(character.status.pvMax)||0),oldCurrent=Math.max(0,Number(character.status.pvAtual)||0);if(!oldMax||oldMax===legacyMax){character.status.pvMax=classicMax;character.status.pvAtual=oldMax>0&&oldCurrent>=oldMax?classicMax:Math.min(classicMax,oldCurrent);}else character.status.pvMax=oldMax;}const heartMax=character.lifeMode==="body"?bodyMax:Math.ceil(Math.max(0,Number(character.status.pvMax)||classicMax)/4);
     character.heart=character.heart&&typeof character.heart==="object"?character.heart:{};const existingMax=Math.max(0,Number(character.heart.max)||0),existingCurrent=Number(character.heart.current);character.heart.max=heartMax;character.heart.current=Number.isFinite(existingCurrent)?Math.min(heartMax,Math.max(0,existingCurrent)):(existingMax?Math.min(heartMax,existingMax):heartMax);return character.heart;
 }
 function markCharacterDead(character){character.conditions=Array.isArray(character.conditions)?character.conditions:[];if(!character.conditions.some(condition=>normalizeEnemyAbilityId(typeof condition==="string"?condition:condition.id||condition.name)==="morto"))character.conditions.push({id:"morto",name:"Morto",description:"O Coração chegou a 0 PV.",source:"coracao"});character.status=character.status||{};character.status.paAtual=0;}
@@ -5803,9 +5803,10 @@ function triggerEnemyLastBreath(enemy){if(!enemy||!enemyHasAbility(enemy,"ultimo
 function damageCharacterFromAbility(character,amount,source){
     if(!character)return 0;const value=Math.max(0,Number(amount)||0);if(!value)return 0;
     if(character.lifeMode==="body"){
-        const parts=bodyDamageParts(character,"player").filter(part=>part.current>0).sort((a,b)=>b.current-a.current),part=parts[0];if(!part)return 0;const dealt=Math.min(value,part.current);if(part.state.type==="prosthetic")part.state.currentPV=part.current-dealt;else character.body[part.id]=part.current-dealt;saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${dealt} de dano em ${BODY_PART_LABELS[part.id]} de ${character.name}.`);return dealt;
+        ensureCharacterHeart(character);if(Math.max(0,Number(character.body?.chest)||0)<=0){const before=Math.max(0,Number(character.heart.current)||0),dealt=Math.min(before,value);character.heart.current=Math.max(0,before-dealt);if(character.heart.current<=0&&dealt>0)markCharacterDead(character);saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${dealt} de dano no Coração de ${character.name}.`);return dealt;}
+        const parts=bodyDamageParts(character,"player").filter(part=>part.current>0).sort((a,b)=>b.current-a.current),part=parts[0];if(!part)return 0;const dealt=Math.min(value,part.current);if(part.state.type==="prosthetic")part.state.currentPV=part.current-dealt;else character.body[part.id]=part.current-dealt;let heartDamage=0;if(part.id==="chest"&&part.current-dealt<=0&&value>dealt){const before=Math.max(0,Number(character.heart.current)||0);heartDamage=Math.min(before,value-dealt);character.heart.current=Math.max(0,before-heartDamage);if(character.heart.current<=0&&heartDamage>0)markCharacterDead(character);}saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${dealt} de dano em ${BODY_PART_LABELS[part.id]} de ${character.name}${heartDamage?` e ${heartDamage} no Coração`:""}.`);return dealt+heartDamage;
     }
-    character.status=character.status&&typeof character.status==="object"?character.status:{};const before=Math.max(0,Number(character.status.pvAtual)||0);character.status.pvAtual=Math.max(0,before-value);saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${before-character.status.pvAtual} de dano em ${character.name}.`);return before-character.status.pvAtual;
+    ensureCharacterHeart(character);const before=Math.max(0,Number(character.status.pvAtual)||0),pvDamage=Math.min(before,value),overflow=Math.max(0,value-pvDamage),heartBefore=Math.max(0,Number(character.heart.current)||0),heartDamage=Math.min(heartBefore,overflow);character.status.pvAtual=Math.max(0,before-pvDamage);character.heart.current=Math.max(0,heartBefore-heartDamage);if(character.heart.current<=0&&heartDamage>0)markCharacterDead(character);saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${pvDamage} de dano em ${character.name}${heartDamage?` e ${heartDamage} no Coração`:""}.`);return pvDamage+heartDamage;
 }
 function spendEnemyActionPoints(enemy,cost=1){
     const amount=Math.max(0,Number(cost)||0),current=enemyCurrentActionPoints(enemy);
@@ -11820,6 +11821,8 @@ function applyClassicDamageToCharacter(
         character.status = {};
 
     }
+
+    ensureCharacterHeart(character);
 
 
     const originalDamage =
