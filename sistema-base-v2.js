@@ -153,13 +153,15 @@ function calculateSystemBaseStats(){
     const foco=Math.max(0,numberValue("attributeAGI",1));
     const nexo=Math.max(0,numberValue("attributeINT",1));
 
-    const pvMax=(7*level)+corpo;
+    const pvMax=(9*level)+(corpo*2);
     const pmMax=(4*level)+foco;
     const defenseAttributeValue=getDefenseAttribute()==="foco"?foco:corpo;
     const defenseBase=5+defenseAttributeValue;
     const initialSkillPoints=7+nexo;
 
     setValue("characterPVMax",pvMax);
+    const heartMax=document.getElementById("lifeMode")?.value==="body"?getBodyMaximums(level,corpo).chest:Math.ceil(pvMax/4);
+    setValue("characterHeartMax",heartMax);
     setValue("characterPDMax",pmMax);
     setValue("characterDefenseBase",defenseBase);
 
@@ -175,11 +177,14 @@ function calculateSystemBaseStats(){
 
     const pv=document.getElementById("characterPV");
     const pm=document.getElementById("characterPD");
+    const heart=document.getElementById("characterHeart");
 
     if(pv&&!pv.value) pv.value=String(pvMax);
     if(pm&&!pm.value) pm.value=String(pmMax);
+    if(heart&&!heart.value) heart.value=String(heartMax);
     if(pv&&Number(pv.value)>pvMax) pv.value=String(pvMax);
     if(pm&&Number(pm.value)>pmMax) pm.value=String(pmMax);
+    if(heart&&Number(heart.value)>heartMax) heart.value=String(heartMax);
 
     const summary=document.getElementById("skillPointsSummary");
     if(summary&&!document.querySelector(".system-v2-skill-row")){
@@ -225,6 +230,12 @@ function migrateCharacterData(character){
         pdAtual:numberValue("characterPD",0),
         pdMax:numberValue("characterPDMax",0),
         pdTemp:numberValue("characterPDTemp",0)
+    };
+
+    character.heart={
+        ...(character.heart||{}),
+        current:numberValue("characterHeart",document.getElementById("lifeMode")?.value==="body"?bodyMaximums.chest:Math.ceil(((9*level)+(corpo*2))/4)),
+        max:numberValue("characterHeartMax",document.getElementById("lifeMode")?.value==="body"?bodyMaximums.chest:Math.ceil(((9*level)+(corpo*2))/4))
     };
 
     character.body={
