@@ -24,6 +24,11 @@ const ENEMY_ABILITY_CATALOG=[
  ,{id:"vampirismo",name:"Vampirismo",description:"Sempre que acerta um ataque, recupera 1d10 PV. No sistema de membros, regenera o membro mais danificado.",passive:true}
  ,{id:"aplicador",name:"Aplicador",description:"Ao deixar um alvo Morrendo, aplica uma condição pelo elemento: Sangue = Sangramento, Morte = Envenenamento, Energia = Chamas, Conhecimento = Vulnerável.",passive:true}
  ,{id:"espinhoso",name:"Espinhoso",description:"Sempre que sofre um ataque, causa ao atacante dano igual ao Corpo.",passive:true}
+ ,{id:"aura-opressora",name:"Aura Opressora",description:"No início da rodada, disputa Vontade com cada jogador. Quem falhar sofre penalidade no próximo ataque igual ao Nexo da ameaça.",passive:true}
+ ,{id:"devorador-de-condicoes",name:"Devorador de Condições",description:"Remove uma condição própria para recuperar 1d10 PV. Pode ser usado um número de vezes por cena igual a Corpo.",usesPerSceneAttribute:"corpo"}
+ ,{id:"ultimo-suspiro",name:"Último Suspiro",description:"Ao chegar a 0 PV, recebe 1 PA para realizar uma última ação antes de cair. Ativa uma vez por cena.",passive:true}
+ ,{id:"metamorfose",name:"Metamorfose",description:"Ao ficar Machucado, transforma-se e recebe +1 Corpo e +1 Foco pelo restante da cena.",passive:true}
+ ,{id:"predador",name:"Predador",description:"Recebe +3 para acertar alvos que estejam Machucados.",passive:true}
 ];
 const wolfAbilities=ENEMY_ABILITY_CATALOG;
 const $=id=>document.getElementById(id),num=id=>Math.max(0,Number($(id)?.value)||0);
