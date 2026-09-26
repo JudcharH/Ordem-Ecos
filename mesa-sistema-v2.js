@@ -155,8 +155,10 @@ function damageTypeLabel(value){
 
 function currentLifeHTML(character){
     const mode=character.lifeMode||character.life?.mode||character.status?.lifeMode||"classic";
+    if(typeof ensureCharacterHeart==="function")ensureCharacterHeart(character);
+    const heart=`<div class="table-v2-status-card"><span>Coração</span><strong>${number(character.heart?.current,0)} / ${number(character.heart?.max,0)}</strong></div>`;
     if(mode!=="members"&&mode!=="body"){
-        return `<div class="table-v2-status-card"><span>PV</span><strong>${number(character.status?.pvAtual,0)} / ${number(character.status?.pvMax,0)}</strong></div>`;
+        return `<div class="table-v2-status-card"><span>PV</span><strong>${number(character.status?.pvAtual,0)} / ${number(character.status?.pvMax,0)}</strong></div>${heart}`;
     }
 
     const body=character.body||{};
@@ -166,7 +168,7 @@ function currentLifeHTML(character){
     ];
     return `<div class="table-v2-members">${parts.map(([label,key])=>`
         <div><span>${label}</span><strong>${number(body[key],0)} / ${number(body[`${key}Max`],number(body[key],0))}</strong></div>
-    `).join("")}</div>`;
+    `).join("")}</div>${heart}`;
 }
 
 function abilitySummaryHTML(character){
