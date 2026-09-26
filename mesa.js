@@ -1856,10 +1856,21 @@ function openCharacterPanel(){
 
 function ensureCharacterHeart(character){
     if(!character)return null;const level=Math.max(1,Number(character.level)||1),corpo=Math.max(0,Number(character.attributes?.corpo??character.attributes?.for)||0),classicMax=(9*level)+(corpo*2),legacyMax=(7*level)+corpo,bodyMax=Math.max(0,Number(character.bodyMaximums?.chest??character.body?.chestMax??((2*level)+corpo))||0);
-    character.status=character.status&&typeof character.status==="object"?character.status:{};if(character.lifeMode!=="body"){const oldMax=Math.max(0,Number(character.status.pvMax)||0),oldCurrent=Math.max(0,Number(character.status.pvAtual)||0);if(!oldMax||oldMax===legacyMax){character.status.pvMax=classicMax;character.status.pvAtual=oldMax>0&&oldCurrent>=oldMax?classicMax:Math.min(classicMax,oldCurrent);}else character.status.pvMax=oldMax;}const heartMax=character.lifeMode==="body"?bodyMax:Math.ceil(Math.max(0,Number(character.status.pvMax)||classicMax)/4);
+    character.status=character.status&&typeof character.status==="object"?character.status:{};if(character.lifeMode!=="body"){const oldMax=Math.max(0,Number(character.status.pvMax)||0),oldCurrent=Math.max(0,Number(character.status.pvAtual)||0);if(!oldMax||oldMax===legacyMax){character.status.pvMax=classicMax;character.status.pvAtual=oldMax>0&&oldCurrent>=oldMax?classicMax:Math.min(classicMax,oldCurrent);}else character.status.pvMax=oldMax;}const heartMax=character.lifeMode==="body"?Math.ceil(classicMax/4):Math.ceil(Math.max(0,Number(character.status.pvMax)||classicMax)/4);
     character.heart=character.heart&&typeof character.heart==="object"?character.heart:{};const existingMax=Math.max(0,Number(character.heart.max)||0),existingCurrent=Number(character.heart.current);character.heart.max=heartMax;character.heart.current=Number.isFinite(existingCurrent)?Math.min(heartMax,Math.max(0,existingCurrent)):(existingMax?Math.min(heartMax,existingMax):heartMax);return character.heart;
 }
 function markCharacterDead(character){character.conditions=Array.isArray(character.conditions)?character.conditions:[];if(!character.conditions.some(condition=>normalizeEnemyAbilityId(typeof condition==="string"?condition:condition.id||condition.name)==="morto"))character.conditions.push({id:"morto",name:"Morto",description:"O Coração chegou a 0 PV.",source:"coracao"});character.status=character.status||{};character.status.paAtual=0;}
+function trySoMaisUmPasso(character){
+    const abilities=[character?.abilities,character?.acquiredAbilities,character?.habilidades].find(Array.isArray)||[];
+    if(!abilities.some(ability=>normalizeEnemyAbilityId(typeof ability==="string"?ability:ability.id||ability.name)==="so-mais-um-passo"))return false;
+    const combat=currentTableCampaign?.combat;if(!combat)return false;
+    combat.abilityState=combat.abilityState||{};combat.abilityState.heartSurvival=combat.abilityState.heartSurvival||{};
+    const key=character.id,uses=Math.max(0,Number(combat.abilityState.heartSurvival[key])||0),limit=Math.max(1,Number(character.attributes?.corpo??character.attributes?.for)||1);
+    if(uses>=limit)return false;
+    combat.abilityState.heartSurvival[key]=uses+1;character.heart.current=1;
+    addSystemChatMessage(`${character.name} utilizou Só Mais um Passo e permaneceu com 1 PV no Coração (${uses+1}/${limit}).`);
+    return true;
+}
 
 function createTableClassicLifeHTML(
     character
@@ -4634,6 +4645,21 @@ function passCurrentCombatTurn(){
     combat.updatedAt =
         Date.now();
 
+    const incomingParticipant=combat.turnOrder[nextIndex];
+    if(incomingParticipant?.type==="enemy"){
+        const incomingEnemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(incomingParticipant.enemyId||incomingParticipant.id));
+        if(incomingEnemy) incomingEnemy.combatPressure=0;
+    }
+    else{
+        const incomingCharacter=getLiveCharacter(incomingParticipant?.characterId||incomingParticipant?.id);
+        if(incomingCharacter){
+            incomingCharacter.combatPressure=0;
+            const pendingPA=Math.max(0,Number(incomingCharacter.nextRoundTemporaryPA)||0);
+            if(pendingPA){incomingCharacter.status=incomingCharacter.status||{};incomingCharacter.status.paAtual=Math.max(0,Number(incomingCharacter.status.paAtual)||0)+pendingPA;incomingCharacter.nextRoundTemporaryPA=0;addSystemChatMessage(`${incomingCharacter.name} recebeu +${pendingPA} PA temporário de Dor é uma Bênção.`);}
+            saveDamagedCharacter(incomingCharacter);
+        }
+    }
+
 
     saveTableCampaign();
 
@@ -5803,10 +5829,10 @@ function triggerEnemyLastBreath(enemy){if(!enemy||!enemyHasAbility(enemy,"ultimo
 function damageCharacterFromAbility(character,amount,source){
     if(!character)return 0;const value=Math.max(0,Number(amount)||0);if(!value)return 0;
     if(character.lifeMode==="body"){
-        ensureCharacterHeart(character);if(Math.max(0,Number(character.body?.chest)||0)<=0){const before=Math.max(0,Number(character.heart.current)||0),dealt=Math.min(before,value);character.heart.current=Math.max(0,before-dealt);if(character.heart.current<=0&&dealt>0)markCharacterDead(character);saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${dealt} de dano no Coração de ${character.name}.`);return dealt;}
-        const parts=bodyDamageParts(character,"player").filter(part=>part.current>0).sort((a,b)=>b.current-a.current),part=parts[0];if(!part)return 0;const dealt=Math.min(value,part.current);if(part.state.type==="prosthetic")part.state.currentPV=part.current-dealt;else character.body[part.id]=part.current-dealt;let heartDamage=0;if(part.id==="chest"&&part.current-dealt<=0&&value>dealt){const before=Math.max(0,Number(character.heart.current)||0);heartDamage=Math.min(before,value-dealt);character.heart.current=Math.max(0,before-heartDamage);if(character.heart.current<=0&&heartDamage>0)markCharacterDead(character);}saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${dealt} de dano em ${BODY_PART_LABELS[part.id]} de ${character.name}${heartDamage?` e ${heartDamage} no Coração`:""}.`);return dealt+heartDamage;
+        ensureCharacterHeart(character);if(Math.max(0,Number(character.body?.chest)||0)<=0){const before=Math.max(0,Number(character.heart.current)||0),dealt=Math.min(before,value);character.heart.current=Math.max(0,before-dealt);if(character.heart.current<=0&&dealt>0&&!trySoMaisUmPasso(character))markCharacterDead(character);saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${dealt} de dano no Coração de ${character.name}.`);return dealt;}
+        const parts=bodyDamageParts(character,"player").filter(part=>part.current>0).sort((a,b)=>b.current-a.current),part=parts[0];if(!part)return 0;const dealt=Math.min(value,part.current);if(part.state.type==="prosthetic")part.state.currentPV=part.current-dealt;else character.body[part.id]=part.current-dealt;let heartDamage=0;if(part.id==="chest"&&part.current-dealt<=0&&value>dealt){const before=Math.max(0,Number(character.heart.current)||0);heartDamage=Math.min(before,value-dealt);character.heart.current=Math.max(0,before-heartDamage);if(character.heart.current<=0&&heartDamage>0&&!trySoMaisUmPasso(character))markCharacterDead(character);}saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${dealt} de dano em ${BODY_PART_LABELS[part.id]} de ${character.name}${heartDamage?` e ${heartDamage} no Coração`:""}.`);return dealt+heartDamage;
     }
-    ensureCharacterHeart(character);const before=Math.max(0,Number(character.status.pvAtual)||0),pvDamage=Math.min(before,value),overflow=Math.max(0,value-pvDamage),heartBefore=Math.max(0,Number(character.heart.current)||0),heartDamage=Math.min(heartBefore,overflow);character.status.pvAtual=Math.max(0,before-pvDamage);character.heart.current=Math.max(0,heartBefore-heartDamage);if(character.heart.current<=0&&heartDamage>0)markCharacterDead(character);saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${pvDamage} de dano em ${character.name}${heartDamage?` e ${heartDamage} no Coração`:""}.`);return pvDamage+heartDamage;
+    ensureCharacterHeart(character);const before=Math.max(0,Number(character.status.pvAtual)||0),pvDamage=Math.min(before,value),overflow=Math.max(0,value-pvDamage),heartBefore=Math.max(0,Number(character.heart.current)||0),heartDamage=Math.min(heartBefore,overflow);character.status.pvAtual=Math.max(0,before-pvDamage);character.heart.current=Math.max(0,heartBefore-heartDamage);if(character.heart.current<=0&&heartDamage>0&&!trySoMaisUmPasso(character))markCharacterDead(character);saveDamagedCharacter(character);addSystemChatMessage(`${source} causou ${pvDamage} de dano em ${character.name}${heartDamage?` e ${heartDamage} no Coração`:""}.`);return pvDamage+heartDamage;
 }
 function spendEnemyActionPoints(enemy,cost=1){
     const amount=Math.max(0,Number(cost)||0),current=enemyCurrentActionPoints(enemy);
@@ -8337,10 +8363,37 @@ function passTableRound(){
     combat.updatedAt =
         Date.now();
 
+    (currentTableCampaign.enemies||[]).forEach(enemy=>{enemy.combatPressure=0;});
+    (currentTableCampaign.players||[]).forEach(player=>{
+        const character=getLiveCharacter(player.characterId);
+        if(character){character.combatPressure=0;saveDamagedCharacter(character);}
+    });
+
 
     restorePlayersActionPoints();
 
     restoreEnemiesActionPoints();
+
+    if(combat.round===1&&!combat.firstRoundAbilityBonusesApplied){
+        const participants=(currentTableCampaign.players||[]).map(player=>getLiveCharacter(player.characterId)).filter(Boolean);
+        const hasAbility=(character,id)=>{
+            const list=[character.abilities,character.acquiredAbilities,character.habilidades].find(Array.isArray)||[];
+            return list.some(ability=>normalizeEnemyAbilityId(typeof ability==="string"?ability:ability.id||ability.name)===id);
+        };
+        participants.forEach(owner=>{
+            const foco=Math.max(0,Number(owner.attributes?.foco??owner.attributes?.agi)||0);
+            participants.filter(ally=>ally.id!==owner.id).forEach(ally=>{
+                ally.status=ally.status||{};
+                if(hasAbility(owner,"prontidao")) ally.status.paAtual=Math.max(0,Number(ally.status.paAtual)||0)+1;
+                if(hasAbility(owner,"oficial-comandante")){
+                    ally.status.pmTemp=Math.max(0,Number(ally.status.pmTemp??ally.status.pdTemp)||0)+foco;
+                    ally.status.pdTemp=ally.status.pmTemp;
+                }
+                saveDamagedCharacter(ally);
+            });
+        });
+        combat.firstRoundAbilityBonusesApplied=true;
+    }
 
     processEnemyRoundAbilities();
 
@@ -9528,6 +9581,24 @@ function applyPendingAttackToTarget(
 
     }
 
+    if(pendingAttackApplication.attackerEnemyId&&!pendingAttackApplication.protectedCostPaid){
+        const protectedTarget=(targetCharacter.conditions||[]).some(condition=>normalizeEnemyAbilityId(typeof condition==="string"?condition:condition.id||condition.name)==="protegido");
+        if(protectedTarget){
+            const attacker=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(pendingAttackApplication.attackerEnemyId));
+            const currentPA=Math.max(0,Number(attacker?.status?.paAtual??attacker?.paAtual??attacker?.pa)||0);
+            if(!attacker||currentPA<1){
+                addLocalAttackNotice("A ameaça não possui o PA adicional exigido por Protegido.");
+                return;
+            }
+            attacker.status=attacker.status&&typeof attacker.status==="object"?attacker.status:{};
+            attacker.status.paAtual=currentPA-1;
+            attacker.paAtual=attacker.status.paAtual;
+            pendingAttackApplication.protectedCostPaid=true;
+            addSystemChatMessage(`${attacker.name||"A ameaça"} gastou +1 PA para atacar ${targetCharacter.name} por causa de Protegido.`);
+            saveTableCampaign();
+        }
+    }
+
 
     /*
         Impede atacar a própria ficha por engano.
@@ -9585,7 +9656,7 @@ function answerEnemyAttackReaction(reactionType){
     const request=currentTableCampaign.combat?.pendingEnemyAttack,enemy=(currentTableCampaign.enemies||[]).find(item=>String(item.enemyId||item.id)===String(request?.targetEnemyId));
     if(!request||!enemy||request.active!==true)return;
     enemy.status=enemy.status&&typeof enemy.status==="object"?enemy.status:{};
-    const baseDefense=Math.max(0,Number(enemy.defense)||0),baseRD=Math.max(0,Number(enemy.rd)||0),currentPA=Math.max(0,Number(enemy.status.paAtual??enemy.paAtual??enemy.pa)||0),state=enemyAbilityState(enemy),round=enemyCombatRound();
+    const pressure=Math.max(0,Number(enemy.combatPressure)||0),baseDefense=Math.max(0,(Number(enemy.defense)||0)-pressure),baseRD=Math.max(0,Number(enemy.rd)||0),currentPA=Math.max(0,Number(enemy.status.paAtual??enemy.paAtual??enemy.pa)||0),state=enemyAbilityState(enemy),round=enemyCombatRound();
     let cost=0,finalDefense=baseDefense,reactionRD=baseRD,reactionName="Guardar",dodgeResult=null,majorTriggered=false;
     if(["dodge","block","counter"].includes(reactionType)){cost=1;if(currentPA<1)return;}
     if(reactionType==="dodge"){
@@ -9596,6 +9667,7 @@ function answerEnemyAttackReaction(reactionType){
     }else if(reactionType==="block"){reactionName="Bloquear";reactionRD=baseRD+Math.max(0,Number(enemy.corpo)||0);}else if(reactionType==="counter")reactionName="Contra-atacar";else reactionType="guard";
     enemy.status.paAtual=Math.max(0,currentPA-cost);enemy.paAtual=enemy.status.paAtual;
     const hit=Number(request.attackResult)>=finalDefense;
+    if(hit){enemy.combatPressure=pressure+2;}
     request.active=false;request.resolved=true;request.hit=hit;request.reaction={type:reactionType,name:majorTriggered?"Esquiva Maior":reactionName,paCost:cost,baseDefense,finalDefense,baseRD,reactionRD,majorTriggered,answeredAt:Date.now()};
     const message=(currentTableCampaign.chatMessages||[]).find(item=>item.id===request.messageId);if(message){message.applied=true;message.appliedAt=Date.now();message.attackApplication={targetEnemyId:enemy.enemyId||enemy.id,targetName:enemy.name||"Ameaça",attackResult:Number(request.attackResult)||0,finalDefense,reaction:majorTriggered?"Esquiva Maior":reactionName,hit};}
     currentTableCampaign.combat.damageContext=hit?{id:`damage_${Date.now()}`,active:true,targetEnemyId:enemy.enemyId||enemy.id,targetName:enemy.name||"Ameaça",reaction:majorTriggered?"esquiva-maior":reactionType,damageReduction:reactionRD,consumed:false,createdAt:Date.now()}:null;
@@ -10592,12 +10664,13 @@ function answerAttackReaction(
 
     const npcProtection=currentTableCampaign?.combat?.npcAssists?.[character.id],npcProtectionActive=npcProtection&&Number(npcProtection.round)===enemyCombatRound();
 
+    const pressurePenalty=Math.max(0,Number(character.combatPressure)||0);
     const baseDefense =
         Math.max(
             0,
             Number(
                 character.defense?.total
-            ) || 0
+            ) - pressurePenalty || 0
         );
 
 
@@ -10786,6 +10859,15 @@ else if(reactionType === "counter"){
             request.attackResult
         ) >=
         finalDefense;
+
+        if(request.hit){
+            const abilities=[character.abilities,character.acquiredAbilities,character.habilidades].find(Array.isArray)||[];
+            const perfectDefense=abilities.some(ability=>normalizeEnemyAbilityId(typeof ability==="string"?ability:ability.id||ability.name)==="defesa-perfeita");
+            if(!perfectDefense){
+                character.combatPressure=pressurePenalty+2;
+                saveDamagedCharacter(character);
+            }
+        }
 
         if(request.hit){
 
@@ -11941,7 +12023,7 @@ const damageReduction =
         );
 
     character.heart.current=Math.max(0,heartBefore-heartDamage);
-    if(character.heart.current<=0&&heartDamage>0)markCharacterDead(character);
+    if(character.heart.current<=0&&heartDamage>0&&!trySoMaisUmPasso(character))markCharacterDead(character);
 
 
     const application =
@@ -12128,6 +12210,14 @@ function finishDamageApplication(
     const damageData = {
         ...pendingDamageApplication
     };
+
+    const receivedDamage=Math.max(0,Number(application?.reducedDamage??application?.actualDamage??application?.finalDamage)||0);
+    const abilities=[character?.abilities,character?.acquiredAbilities,character?.habilidades].find(Array.isArray)||[];
+    if(receivedDamage>=20&&abilities.some(ability=>normalizeEnemyAbilityId(typeof ability==="string"?ability:ability.id||ability.name)==="dor-e-uma-bencao")){
+        character.nextRoundTemporaryPA=Math.max(0,Number(character.nextRoundTemporaryPA)||0)+1;
+        saveDamagedCharacter(character);
+        addSystemChatMessage(`${character.name} ativou Dor é uma Bênção e receberá +1 PA temporário no próximo turno.`);
+    }
 
     applyApplicatorCondition(character,damageData.attackerEnemyId);
 
