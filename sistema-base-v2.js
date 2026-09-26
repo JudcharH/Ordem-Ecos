@@ -68,18 +68,21 @@ function getDefenseAttribute(){
     return getEditingCharacter()?.combatConfig?.defenseAttribute||"corpo";
 }
 
-function calculateBodyPartMax(basePerLevel,level,corpo){
-    return (basePerLevel*level)+corpo;
-}
-
 function getBodyMaximums(level,corpo){
+    const total=Math.max(1,(9*Math.max(1,Number(level)||1))+(2*Math.max(0,Number(corpo)||0)));
+    const chest=Math.ceil(total*0.25);
+    const head=Math.round(total*0.20);
+    const remaining=Math.max(0,total-chest-head);
+    const limbBase=Math.floor(remaining/4);
+    let extra=remaining-(limbBase*4);
+    const limb=()=>limbBase+(extra-->0?1:0);
     return {
-        head:calculateBodyPartMax(1,level,corpo),
-        chest:calculateBodyPartMax(2,level,corpo),
-        leftArm:calculateBodyPartMax(1,level,corpo),
-        rightArm:calculateBodyPartMax(1,level,corpo),
-        leftLeg:calculateBodyPartMax(1,level,corpo),
-        rightLeg:calculateBodyPartMax(1,level,corpo)
+        head,
+        chest,
+        leftArm:limb(),
+        rightArm:limb(),
+        leftLeg:limb(),
+        rightLeg:limb()
     };
 }
 
@@ -154,7 +157,7 @@ function calculateSystemBaseStats(){
     const nexo=Math.max(0,numberValue("attributeINT",1));
 
     const pvMax=(9*level)+(corpo*2);
-    const pmMax=(4*level)+foco;
+    const pmMax=(6*level)+(foco*2);
     const defenseAttributeValue=getDefenseAttribute()==="foco"?foco:corpo;
     const defenseBase=5+defenseAttributeValue;
     const initialSkillPoints=7+nexo;
@@ -169,9 +172,8 @@ function calculateSystemBaseStats(){
     setValue("characterDefense",Math.max(0,defenseBase+defenseBonus));
 
     /*
-        PV máximo por membros:
-        Cabeça, braços e pernas: (1 × nível) + Corpo.
-        Torso: (2 × nível) + Corpo.
+        Os seis membros dividem exatamente o mesmo PV máximo do modo clássico.
+        Torso recebe 25%, cabeça cerca de 20% e o restante é dividido nos membros.
     */
     applyBodyPartMaximums(level,corpo);
 
