@@ -11487,6 +11487,18 @@ const DEFAULT_CONDITIONS = [
     }
 },
 
+{
+    id:"protegido",
+    name:"Protegido",
+    category:"positive",
+    icon:"🛡️",
+    stackable:false,
+    description:"Ataques de ameaças contra este personagem custam +1 PA.",
+    effects:{
+        enemyAttackPACost:1
+    }
+},
+
 ];
 
 /*==========================================================
