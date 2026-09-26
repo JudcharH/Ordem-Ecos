@@ -258,19 +258,38 @@ function useAbilityV2(id){
     if(id==="ataque-especial"){openAttackSpecial(ability);return;}
     if(id==="tecnica-secreta"){
         if(!spend(character,"pm",4)) return;
-        chooseAttack("Técnica Secreta — Amplo",(attack,index)=>{
+        chooseAttack("Ataque Giratório",(attack,index)=>{
             combatState().wideAttack={active:true,characterId:character.id,attackIndex:index,attackName:attack.name||"Ataque",createdAt:Date.now()};
             saveTableCampaign();
-            notify(`${character.name} preparou Técnica Secreta`,`O próximo ataque corpo a corpo poderá atingir um alvo adicional.`,"🧠");
+            notify(`${character.name} preparou Ataque Giratório`,`O próximo ataque corpo a corpo poderá atingir um alvo adicional.`,"🌀");
             closeCurrentPanel();
         });
         return;
     }
-    if(id==="tecnica-sublime"){
+    if(id==="surto-de-adrenalina"){
         if(!spend(character,"pm",4)) return;
-        combatState().temporaryCriticalMargin={characterId:character.id,amount:2,round:roundNumber(),active:true};
-        saveTableCampaign();
-        notify(`${character.name} utilizou Técnica Sublime`,`Margem de crítico aumentada em 2.`,"🔥");
+        character.status=character.status||{};
+        character.status.paAtual=Math.max(0,Number(character.status.paAtual)||0)+1;
+        saveDamagedCharacter(character);
+        notify(`${character.name} utilizou Surto de Adrenalina`,`+1 PA temporário nesta rodada.`,"⚡");
+        openAbilitiesV2();return;
+    }
+    if(id==="surto-de-acao"){
+        const key=useKey(id,"scene");
+        if(hasUsed(key)){addSystemChatMessage("Surto de Ação já foi utilizado nesta cena.");return;}
+        character.status=character.status||{};
+        character.status.paAtual=Math.max(0,Number(character.status.paAtual)||0)+2;
+        saveDamagedCharacter(character);markUsed(key);
+        notify(`${character.name} utilizou Surto de Ação`,`+2 PA temporários nesta rodada.`,"⚡");
+        openAbilitiesV2();return;
+    }
+    if(id==="segunda-respiracao"){
+        const limit=Math.max(1,Number(character.attributes?.corpo??character.attributes?.for)||1),scene=sceneId(),state=combatState();
+        state.sceneUses=state.sceneUses||{};const key=`${id}:${character.id}:${scene}`,uses=Number(state.sceneUses[key])||0;
+        if(uses>=limit){addSystemChatMessage(`Segunda Respiração atingiu o limite de ${limit} uso(s) nesta cena.`);return;}
+        character.status=character.status||{};const maximum=Math.max(0,Number(character.status.pvMax)||0),before=Math.max(0,Number(character.status.pvAtual)||0);
+        character.status.pvAtual=Math.min(maximum,before+8);state.sceneUses[key]=uses+1;saveDamagedCharacter(character);saveTableCampaign();
+        notify(`${character.name} utilizou Segunda Respiração`,`Recuperou ${character.status.pvAtual-before} PV. Uso ${uses+1}/${limit}.`,"💚");
         openAbilitiesV2();return;
     }
     const cost=parseCost(ability);
